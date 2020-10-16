@@ -33,3 +33,19 @@ Uses psql from the container to create a database, creates the schema using Liqu
 ****03_shutdown.sh****
 
 Uses docker-compose to bring down the container started in 01_startuo.sh.
+
+***PostgreSQL_terraform-aws-rds-aurora***
+
+Runs PostgreSQL in AWS with cluster capabilities, so we can start collect repeatable metrics about speed, capacity, etc. for this database engine.
+
+****01_startup.sh****
+
+Uses terraform to create the AWS objects.  
+
+****02_populate.sh****
+
+TBD on how, but similar to Postgres_Local.
+
+****03_shutdown.sh****
+
+Uses terraform to destroy all of the AWS objects created in 01_startup.sh.
