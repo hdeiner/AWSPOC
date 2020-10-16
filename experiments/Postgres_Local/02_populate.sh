@@ -5,4 +5,5 @@ docker exec postgres_container psql --port=5432 --username=postgres --no-passwor
 liquibase update
 
 figlet -w 160 -f small "Check Postgres Locally"
-docker exec postgres_container psql --port=5432 --username=postgres --no-password -d testdatabase -c 'select * from department;'
+docker exec postgres_container psql --port=5432 --username=postgres --no-password -d testdatabase -c 'select * from DERIVEDFACT;'
+docker exec postgres_container psql --port=5432 --username=postgres --no-password -d testdatabase -c 'select * from MEMBERHEALTHSTATE;'
