@@ -44,7 +44,7 @@ Uses terraform to create the AWS objects.
 
 ****02_populate.sh****
 
-TBD on how, but similar to Postgres_Local.
+Uses locally installed psql to create a database, creates the schema using Liquibase (liquibase.properties is dynamically generated), and then uses psql to demonstrate that the schema is present in the database.
 
 ****03_shutdown.sh****
 
