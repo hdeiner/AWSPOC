@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 figlet -w 160 -f small "Startup Postgres Locally"
-docker volume rm postgres_local_postgres_data
+docker volume rm 01_postgres_local_postgres_data
 docker-compose -f docker-compose.yml up -d
 
 figlet -w 160 -f small "Wait For Postgres To Start"
