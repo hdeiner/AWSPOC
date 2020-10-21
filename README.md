@@ -18,34 +18,18 @@ Under this POC, we are working on the following schemas:
 
 This is where we share knowledge about how to do something or answer other questions related to the project.  We don't want to lose the organizational knowledge to the ether.
 
-***Postgres_Local***
+***01_Postgres_Local***
 
 Runs Postgres in a local Docker container, so we can learn how to handle it when we go to AWS.
 
-****01_startup.sh****
-
-Uses docker-compose to create a Postgres container.  Wait for the container's logs to indicate that the database is ready to accept connections.
-
-****02_populate.sh****
-
-Uses psql from the container to create a database, creates the schema using Liquibase, and then uses psql to demonstrate that the schema is present in the database.
-
-****03_shutdown.sh****
-
-Uses docker-compose to bring down the container started in 01_startuo.sh.
-
-***PostgreSQL_terraform-aws-rds-aurora***
+***02_PostgreSQL_terraform-aws-rds-aurora-clustered***
 
 Runs PostgreSQL in AWS with cluster capabilities, so we can start collect repeatable metrics about speed, capacity, etc. for this database engine.
 
-****01_startup.sh****
+***03_MySQL_Local***
 
-Uses terraform to create the AWS objects.  
+Runs MySQL in a local Docker container, so we can learn how to handle it when we go to AWS.
 
-****02_populate.sh****
+***04_MySQL_terraform-aws-rds-aurora-clustered***
 
-Uses locally installed psql to create a database, creates the schema using Liquibase (liquibase.properties is dynamically generated), and then uses psql to demonstrate that the schema is present in the database.
-
-****03_shutdown.sh****
-
-Uses terraform to destroy all of the AWS objects created in 01_startup.sh.
+Runs MySQL in AWS with cluster capabilities, so we can start collect repeatable metrics about speed, capacity, etc. for this database engine.
