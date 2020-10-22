@@ -36,8 +36,8 @@ module "aurora" {
   instance_type_replica           = "db.t3.medium" # 2 vCPU	variable ECU 4 GiB Memory EBS Only	$0.0416 per Hour
   apply_immediately               = true
   skip_final_snapshot             = true
-  db_parameter_group_name         = aws_db_parameter_group.aurora_db_postgres11_parameter_group.id
-  db_cluster_parameter_group_name = aws_rds_cluster_parameter_group.aurora_cluster_postgres11_parameter_group.id
+  db_parameter_group_name         = aws_db_parameter_group.aurora_db_mysql57_parameter_group.id
+  db_cluster_parameter_group_name = aws_rds_cluster_parameter_group.aurora_cluster_mysql57_parameter_group.id
   #  enabled_cloudwatch_logs_exports = ["audit", "error", "general", "slowquery"]
   security_group_description      = ""
   tags = {
@@ -46,16 +46,16 @@ module "aurora" {
   }
 }
 
-resource "aws_db_parameter_group" "aurora_db_postgres11_parameter_group" {
-  name        = "test-aurora-db-postgres11-parameter-group"
+resource "aws_db_parameter_group" "aurora_db_mysql57_parameter_group" {
+  name        = "test-aurora-db-mysql57-parameter-group"
   family      = "aurora-mysql5.7"
-  description = "test-aurora-db-postgres11-parameter-group"
+  description = "test-aurora-db-mysql57-parameter-group"
 }
 
-resource "aws_rds_cluster_parameter_group" "aurora_cluster_postgres11_parameter_group" {
-  name        = "test-aurora-postgres11-cluster-parameter-group"
+resource "aws_rds_cluster_parameter_group" "aurora_cluster_mysql57_parameter_group" {
+  name        = "test-aurora-mysql57-cluster-parameter-group"
   family      = "aurora-mysql5.7"
-  description = "test-aurora-postgres11-cluster-parameter-group"
+  description = "test-aurora-mysql57-cluster-parameter-group"
 }
 
 #############################

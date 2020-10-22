@@ -9,7 +9,9 @@
     <changeSet  id="1"  author="howarddeiner">
 
         <createTable tableName="DERIVEDFACT">
-            <column name="DERIVEDFACTID" type="bigint"/>
+            <column name="DERIVEDFACTID" type="bigint">
+                <constraints primaryKey="true"/>
+            </column>
             <column name="DERIVEDFACTTRACKINGID" type="bigint"/>
             <column name="DERIVEDFACTTYPEID" type="bigint"/>
             <column name="INSERTEDBY" type="varchar(30)" defaultValue="DEFAULT USER"/>
@@ -21,7 +23,9 @@
         <loadData file="DERIVEDFACT.csv" relativeToChangelogFile="true" tableName="DERIVEDFACT"/>
 
         <createTable tableName="MEMBERHEALTHSTATE">
-            <column name="MEMBERHEALTHSTATESKEY" type="bigint"/>
+            <column name="MEMBERHEALTHSTATESKEY" type="bigint">
+                <constraints primaryKey="true"/>
+            </column>
             <column name="EPISODEID" type="bigint"/>
             <column name="VERSIONNBR" type="bigint"/>
             <column name="STATETYPECD" type="varchar(2)"/>
