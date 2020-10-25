@@ -7,7 +7,7 @@ docker-compose -f docker-compose.yml up -d
 figlet -w 160 -f small "Wait For Cassandra To Start"
 while true ; do
   docker logs cassandra_container > stdout.txt 2> stderr.txt
-  result=$(grep -c "CassandraRoleManager.java:372 - Created default superuser role 'cassandra'" stdout.txt)
+  result=$(grep -c "CassandraRoleManager.java:[0-9]* - Created default superuser role 'cassandra'" stdout.txt)
   if [ $result = 1 ] ; then
     echo "Cassandra has started"
     break
