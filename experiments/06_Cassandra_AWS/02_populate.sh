@@ -8,14 +8,6 @@ figlet -w 200 -f small "Create Cassandra Database (Keyspace) on AWS"
 cqlsh localhost 9042 -e "CREATE KEYSPACE IF NOT EXISTS testdatabase WITH replication = {'class': 'SimpleStrategy', 'replication_factor' : 1}"
 
 figlet -w 200 -f small "Create Cassandra Tables on AWS"
-echo 'changeLogFile: /tmp/changeset.cassandra.sql' > liquibase.properties
-echo 'jdbc:cassandra://localhost:9042/testdatabase;DefaultKeyspace=testdatabase' >> liquibase.properties
-echo 'username: cassandra' >> liquibase.properties
-echo 'password: cassandra' >> liquibase.properties
-echo 'driver: com.simba.cassandra.jdbc42.Driver' >> liquibase.properties
-echo 'defaultSchemaName: testdatabase' >> liquibase.properties
-echo 'classpath: /tmp/CassandraJDBC42.jar:/tmp/liquibase-cassandra-4.0.0.2.jar' >> liquibase.properties
-
 cd /tmp
 java -jar liquibase.jar --driver=com.simba.cassandra.jdbc42.Driver --url="jdbc:cassandra://localhost:9042/testdatabase;DefaultKeyspace=testdatabase" --username=cassandra --password=cassandra --classpath="CassandraJDBC42.jar:liquibase-cassandra-4.0.0.2.jar" --changeLogFile=changeset.cassandra.sql --defaultSchemaName=testdatabase update
 cd -
