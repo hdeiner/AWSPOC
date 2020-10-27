@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<databaseChangeLog
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.8.xsd">
+
+    <changeSet  id="1"  author="howarddeiner">
+
+        <createTable tableName="DERIVEDFACT">
+            <column name="DERIVEDFACTID" type="bigint">
+                <constraints primaryKey="true"/>
+            </column>
+            <column name="DERIVEDFACTTRACKINGID" type="bigint"/>
+            <column name="DERIVEDFACTTYPEID" type="bigint"/>
+            <column name="INSERTEDBY" type="varchar(30)" defaultValue="DEFAULT USER"/>
+            <column name="RECORDINSERTDT" type="timestamp" defaultValueComputed="CURRENT_TIMESTAMP"/>
+            <column name="RECORDUPDTDT" type="timestamp" defaultValueComputed="CURRENT_TIMESTAMP"/>
+            <column name="UPDTDBY" type="varchar(30)" defaultValue="DEFAULT USER"/>
+        </createTable>
+
+        <createTable tableName="MEMBERHEALTHSTATE">
+            <column name="MEMBERHEALTHSTATESKEY" type="bigint">
+                <constraints primaryKey="true"/>
+            </column>
+            <column name="EPISODEID" type="bigint"/>
+            <column name="VERSIONNBR" type="bigint"/>
+            <column name="STATETYPECD" type="varchar(2)"/>
+            <column name="STATECOMPONENTID" type="bigint"/>
+            <column name="MEMBERID" type="bigint"/>
+            <column name="HEALTHSTATESTATUSCD" type="varchar(12)"/>
+            <column name="HEALTHSTATESTATUSCHANGERSNCD" type="varchar(12)"/>
+            <column name="HEALTHSTATESTATUSCHANGEDT" type="date"/>
+            <column name="HEALTHSTATECHANGEDT" type="date"/>
+            <column name="SEVERITYLEVEL" type="varchar(12)"/>
+            <column name="COMPLETIONFLG" type="varchar(1)"/>
+            <column name="CLINICALREVIEWSTATUSCD" type="varchar(12)"/>
+            <column name="CLINICALREVIEWSTATUSDT" type="date"/>
+            <column name="LASTEVALUATIONDT" type="date"/>
+            <column name="VOIDFLG" type="varchar(2)"/>
+            <column name="INSERTEDBY" type="varchar(30)" defaultValue="DEFAULT USER"/>
+            <column name="INSERTEDDT" type="timestamp" defaultValueComputed="CURRENT_TIMESTAMP"/>
+            <column name="UPDATEDBY" type="varchar(30)" defaultValue="DEFAULT USER"/>
+            <column name="UPDATEDDT" type="timestamp" defaultValueComputed="CURRENT_TIMESTAMP"/>
+            <column name="SEVERITYSCORE" type="bigint"/>
+            <column name="MASTERSUPPLIERID" type="bigint"/>
+            <column name="YEARQTR" type="bigint"/>
+            <column name="PDCSCOREPERC" type="bigint"/>
+        </createTable>
+
+    </changeSet>
+
+</databaseChangeLog>

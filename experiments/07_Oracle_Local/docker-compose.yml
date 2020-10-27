@@ -1,0 +1,21 @@
+version: '3.1'
+
+services:
+
+  oracle_service:
+    image: store/oracle/database-enterprise:12.2.0.1
+    container_name: oracle_container
+    volumes:
+      - oracle_data:/ORCL
+    restart: unless-stopped
+    ports:
+      - 1521:1521
+    networks:
+      container_network:
+
+networks:
+  container_network:
+    driver: bridge
+
+volumes:
+  oracle_data:
