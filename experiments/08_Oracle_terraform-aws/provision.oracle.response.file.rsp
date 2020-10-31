@@ -1,0 +1,508 @@
+# ALL QUESTIONS ANSWERED BEWLOW  ####################################################################
+# ALL QUESTIONS ANSWERED BEWLOW  ## Copyright(c) Oracle Corporation 1998,2014. All rights reserved.##
+# ALL QUESTIONS ANSWERED BEWLOW  ##                                                                ##
+# ALL QUESTIONS ANSWERED BEWLOW  ## Specify values for the variables listed below to customize     ##
+# ALL QUESTIONS ANSWERED BEWLOW  ## your installation.                                             ##
+# ALL QUESTIONS ANSWERED BEWLOW  ##                                                                ##
+# ALL QUESTIONS ANSWERED BEWLOW  ## Each variable is associated with a comment. The comment        ##
+# ALL QUESTIONS ANSWERED BEWLOW  ## can help to populate the variables with the appropriate        ##
+# ALL QUESTIONS ANSWERED BEWLOW  ## values.                                                        ##
+# ALL QUESTIONS ANSWERED BEWLOW  ##                                                                ##
+# ALL QUESTIONS ANSWERED BEWLOW  ## IMPORTANT NOTE: This file contains plain text passwords and    ##
+# ALL QUESTIONS ANSWERED BEWLOW  ## should be secured to have read permission only by oracle user  ##
+# ALL QUESTIONS ANSWERED BEWLOW  ## or db administrator who owns this installation.                ##
+# ALL QUESTIONS ANSWERED BEWLOW  ##                                                                ##
+# ALL QUESTIONS ANSWERED BEWLOW  ####################################################################
+# ALL QUESTIONS ANSWERED BEWLOW  
+# ALL QUESTIONS ANSWERED BEWLOW  
+# ALL QUESTIONS ANSWERED BEWLOW  #-------------------------------------------------------------------------------
+# ALL QUESTIONS ANSWERED BEWLOW  # Do not change the following system generated value.
+# ALL QUESTIONS ANSWERED BEWLOW  #-------------------------------------------------------------------------------
+# ALL QUESTIONS ANSWERED BEWLOW  oracle.install.responseFileVersion=/oracle/install/rspfmt_dbinstall_response_schema_v12.1.0
+# ALL QUESTIONS ANSWERED BEWLOW  
+# ALL QUESTIONS ANSWERED BEWLOW  #-------------------------------------------------------------------------------
+# ALL QUESTIONS ANSWERED BEWLOW  # Specify the installation option.
+# ALL QUESTIONS ANSWERED BEWLOW  # It can be one of the following:
+# ALL QUESTIONS ANSWERED BEWLOW  #   - INSTALL_DB_SWONLY
+# ALL QUESTIONS ANSWERED BEWLOW  #   - INSTALL_DB_AND_CONFIG
+# ALL QUESTIONS ANSWERED BEWLOW  #   - UPGRADE_DB
+# ALL QUESTIONS ANSWERED BEWLOW  #-------------------------------------------------------------------------------
+# ALL QUESTIONS ANSWERED BEWLOW  oracle.install.option=INSTALL_DB_SWONLY
+# ALL QUESTIONS ANSWERED BEWLOW  
+# ALL QUESTIONS ANSWERED BEWLOW  #-------------------------------------------------------------------------------
+# ALL QUESTIONS ANSWERED BEWLOW  # Specify the hostname of the system as set during the install. It can be used
+# ALL QUESTIONS ANSWERED BEWLOW  # to force the installation to use an alternative hostname rather than using the
+# ALL QUESTIONS ANSWERED BEWLOW  # first hostname found on the system. (e.g., for systems with multiple hostnames
+# ALL QUESTIONS ANSWERED BEWLOW  # and network interfaces)
+# ALL QUESTIONS ANSWERED BEWLOW  #-------------------------------------------------------------------------------
+# ALL QUESTIONS ANSWERED BEWLOW  ORACLE_HOSTNAME=obtest1
+# ALL QUESTIONS ANSWERED BEWLOW  
+# ALL QUESTIONS ANSWERED BEWLOW  #-------------------------------------------------------------------------------
+# ALL QUESTIONS ANSWERED BEWLOW  # Specify the Unix group to be set for the inventory directory.
+# ALL QUESTIONS ANSWERED BEWLOW  #-------------------------------------------------------------------------------
+# ALL QUESTIONS ANSWERED BEWLOW  UNIX_GROUP_NAME=oinstall
+# ALL QUESTIONS ANSWERED BEWLOW  
+# ALL QUESTIONS ANSWERED BEWLOW  #-------------------------------------------------------------------------------
+# ALL QUESTIONS ANSWERED BEWLOW  # Specify the location which holds the inventory files.
+# ALL QUESTIONS ANSWERED BEWLOW  # This is an optional parameter if installing on
+# ALL QUESTIONS ANSWERED BEWLOW  # Windows based Operating System.
+# ALL QUESTIONS ANSWERED BEWLOW  #-------------------------------------------------------------------------------
+# ALL QUESTIONS ANSWERED BEWLOW  INVENTORY_LOCATION=/u01/app/oraInventory
+# ALL QUESTIONS ANSWERED BEWLOW  #-------------------------------------------------------------------------------
+# ALL QUESTIONS ANSWERED BEWLOW  # Specify the languages in which the components will be installed.
+# ALL QUESTIONS ANSWERED BEWLOW  #
+# ALL QUESTIONS ANSWERED BEWLOW  # en   : English                  ja   : Japanese
+# ALL QUESTIONS ANSWERED BEWLOW  # fr   : French                   ko   : Korean
+# ALL QUESTIONS ANSWERED BEWLOW  # ar   : Arabic                   es   : Latin American Spanish
+# ALL QUESTIONS ANSWERED BEWLOW  # bn   : Bengali                  lv   : Latvian
+# ALL QUESTIONS ANSWERED BEWLOW  # pt_BR: Brazilian Portuguese     lt   : Lithuanian
+# ALL QUESTIONS ANSWERED BEWLOW  # bg   : Bulgarian                ms   : Malay
+# ALL QUESTIONS ANSWERED BEWLOW  # fr_CA: Canadian French          es_MX: Mexican Spanish
+# ALL QUESTIONS ANSWERED BEWLOW  # ca   : Catalan                  no   : Norwegian
+# ALL QUESTIONS ANSWERED BEWLOW  # hr   : Croatian                 pl   : Polish
+# ALL QUESTIONS ANSWERED BEWLOW  # cs   : Czech                    pt   : Portuguese
+# ALL QUESTIONS ANSWERED BEWLOW  # da   : Danish                   ro   : Romanian
+# ALL QUESTIONS ANSWERED BEWLOW  # nl   : Dutch                    ru   : Russian
+# ALL QUESTIONS ANSWERED BEWLOW  # ar_EG: Egyptian                 zh_CN: Simplified Chinese
+# ALL QUESTIONS ANSWERED BEWLOW  # en_GB: English (Great Britain)  sk   : Slovak
+# ALL QUESTIONS ANSWERED BEWLOW  # et   : Estonian                 sl   : Slovenian
+# ALL QUESTIONS ANSWERED BEWLOW  # fi   : Finnish                  es_ES: Spanish
+# ALL QUESTIONS ANSWERED BEWLOW  # de   : German                   sv   : Swedish
+# ALL QUESTIONS ANSWERED BEWLOW  # el   : Greek                    th   : Thai
+# ALL QUESTIONS ANSWERED BEWLOW  # iw   : Hebrew                   zh_TW: Traditional Chinese
+# ALL QUESTIONS ANSWERED BEWLOW  # hu   : Hungarian                tr   : Turkish
+# ALL QUESTIONS ANSWERED BEWLOW  # is   : Icelandic                uk   : Ukrainian
+# ALL QUESTIONS ANSWERED BEWLOW  # in   : Indonesian               vi   : Vietnamese
+# ALL QUESTIONS ANSWERED BEWLOW  # it   : Italian
+# ALL QUESTIONS ANSWERED BEWLOW  #
+# ALL QUESTIONS ANSWERED BEWLOW  # all_langs   : All languages
+# ALL QUESTIONS ANSWERED BEWLOW  #
+# ALL QUESTIONS ANSWERED BEWLOW  # Specify value as the following to select any of the languages.
+# ALL QUESTIONS ANSWERED BEWLOW  # Example : SELECTED_LANGUAGES=en,fr,ja
+# ALL QUESTIONS ANSWERED BEWLOW  #
+# ALL QUESTIONS ANSWERED BEWLOW  # Specify value as the following to select all the languages.
+# ALL QUESTIONS ANSWERED BEWLOW  # Example : SELECTED_LANGUAGES=all_langs
+# ALL QUESTIONS ANSWERED BEWLOW  #-------------------------------------------------------------------------------
+# ALL QUESTIONS ANSWERED BEWLOW  SELECTED_LANGUAGES=en,en_GB
+# ALL QUESTIONS ANSWERED BEWLOW  
+# ALL QUESTIONS ANSWERED BEWLOW  #-------------------------------------------------------------------------------
+# ALL QUESTIONS ANSWERED BEWLOW  # Specify the complete path of the Oracle Home.
+# ALL QUESTIONS ANSWERED BEWLOW  #-------------------------------------------------------------------------------
+# ALL QUESTIONS ANSWERED BEWLOW  ORACLE_HOME=/u01/app/oracle/product/12.1.0.2/db_1
+# ALL QUESTIONS ANSWERED BEWLOW  
+# ALL QUESTIONS ANSWERED BEWLOW  #-------------------------------------------------------------------------------
+# ALL QUESTIONS ANSWERED BEWLOW  # Specify the complete path of the Oracle Base.
+# ALL QUESTIONS ANSWERED BEWLOW  #-------------------------------------------------------------------------------
+# ALL QUESTIONS ANSWERED BEWLOW  ORACLE_BASE=/u01/app/oracle
+# ALL QUESTIONS ANSWERED BEWLOW  
+# ALL QUESTIONS ANSWERED BEWLOW  #-------------------------------------------------------------------------------
+# ALL QUESTIONS ANSWERED BEWLOW  # Specify the installation edition of the component.
+# ALL QUESTIONS ANSWERED BEWLOW  #
+# ALL QUESTIONS ANSWERED BEWLOW  # The value should contain only one of these choices.
+# ALL QUESTIONS ANSWERED BEWLOW  
+# ALL QUESTIONS ANSWERED BEWLOW  #   - EE     : Enterprise Edition
+# ALL QUESTIONS ANSWERED BEWLOW  
+# ALL QUESTIONS ANSWERED BEWLOW  #-------------------------------------------------------------------------------
+# ALL QUESTIONS ANSWERED BEWLOW  oracle.install.db.InstallEdition=EE
+# ALL QUESTIONS ANSWERED BEWLOW  
+# ALL QUESTIONS ANSWERED BEWLOW  ###############################################################################
+# ALL QUESTIONS ANSWERED BEWLOW  #                                                                             #
+# ALL QUESTIONS ANSWERED BEWLOW  # PRIVILEGED OPERATING SYSTEM GROUPS                                          #
+# ALL QUESTIONS ANSWERED BEWLOW  # ------------------------------------------                                  #
+# ALL QUESTIONS ANSWERED BEWLOW  # Provide values for the OS groups to which OSDBA and OSOPER privileges       #
+# ALL QUESTIONS ANSWERED BEWLOW  # needs to be granted. If the install is being performed as a member of the   #
+# ALL QUESTIONS ANSWERED BEWLOW  # group "dba", then that will be used unless specified otherwise below.       #
+# ALL QUESTIONS ANSWERED BEWLOW  #                                                                             #
+# ALL QUESTIONS ANSWERED BEWLOW  # The value to be specified for OSDBA and OSOPER group is only for UNIX based #
+# ALL QUESTIONS ANSWERED BEWLOW  # Operating System.                                                           #
+# ALL QUESTIONS ANSWERED BEWLOW  #                                                                             #
+# ALL QUESTIONS ANSWERED BEWLOW  ###############################################################################
+# ALL QUESTIONS ANSWERED BEWLOW  
+# ALL QUESTIONS ANSWERED BEWLOW  #------------------------------------------------------------------------------
+# ALL QUESTIONS ANSWERED BEWLOW  # The DBA_GROUP is the OS group which is to be granted OSDBA privileges.
+# ALL QUESTIONS ANSWERED BEWLOW  #-------------------------------------------------------------------------------
+# ALL QUESTIONS ANSWERED BEWLOW  oracle.install.db.DBA_GROUP=dba
+# ALL QUESTIONS ANSWERED BEWLOW  
+# ALL QUESTIONS ANSWERED BEWLOW  #------------------------------------------------------------------------------
+# ALL QUESTIONS ANSWERED BEWLOW  # The OPER_GROUP is the OS group which is to be granted OSOPER privileges.
+# ALL QUESTIONS ANSWERED BEWLOW  # The value to be specified for OSOPER group is optional.
+# ALL QUESTIONS ANSWERED BEWLOW  #------------------------------------------------------------------------------
+# ALL QUESTIONS ANSWERED BEWLOW  oracle.install.db.OPER_GROUP=
+# ALL QUESTIONS ANSWERED BEWLOW  
+# ALL QUESTIONS ANSWERED BEWLOW  #------------------------------------------------------------------------------
+# ALL QUESTIONS ANSWERED BEWLOW  # The BACKUPDBA_GROUP is the OS group which is to be granted OSBACKUPDBA privileges.
+# ALL QUESTIONS ANSWERED BEWLOW  #------------------------------------------------------------------------------
+# ALL QUESTIONS ANSWERED BEWLOW  oracle.install.db.BACKUPDBA_GROUP=dba
+# ALL QUESTIONS ANSWERED BEWLOW  
+# ALL QUESTIONS ANSWERED BEWLOW  #------------------------------------------------------------------------------
+# ALL QUESTIONS ANSWERED BEWLOW  # The DGDBA_GROUP is the OS group which is to be granted OSDGDBA privileges.
+# ALL QUESTIONS ANSWERED BEWLOW  #------------------------------------------------------------------------------
+# ALL QUESTIONS ANSWERED BEWLOW  oracle.install.db.DGDBA_GROUP=dba
+# ALL QUESTIONS ANSWERED BEWLOW  
+# ALL QUESTIONS ANSWERED BEWLOW  #------------------------------------------------------------------------------
+# ALL QUESTIONS ANSWERED BEWLOW  # The KMDBA_GROUP is the OS group which is to be granted OSKMDBA privileges.
+# ALL QUESTIONS ANSWERED BEWLOW  #------------------------------------------------------------------------------
+# ALL QUESTIONS ANSWERED BEWLOW  oracle.install.db.KMDBA_GROUP=dba
+# ALL QUESTIONS ANSWERED BEWLOW  
+# ALL QUESTIONS ANSWERED BEWLOW  ###############################################################################
+# ALL QUESTIONS ANSWERED BEWLOW  #                                                                             #
+# ALL QUESTIONS ANSWERED BEWLOW  #                               Grid Options                                  #
+# ALL QUESTIONS ANSWERED BEWLOW  #                                                                             #
+# ALL QUESTIONS ANSWERED BEWLOW  ###############################################################################
+# ALL QUESTIONS ANSWERED BEWLOW  #------------------------------------------------------------------------------
+# ALL QUESTIONS ANSWERED BEWLOW  # Specify the type of Real Application Cluster Database
+# ALL QUESTIONS ANSWERED BEWLOW  #
+# ALL QUESTIONS ANSWERED BEWLOW  #   - ADMIN_MANAGED: Admin-Managed
+# ALL QUESTIONS ANSWERED BEWLOW  #   - POLICY_MANAGED: Policy-Managed
+# ALL QUESTIONS ANSWERED BEWLOW  #
+# ALL QUESTIONS ANSWERED BEWLOW  # If left unspecified, default will be ADMIN_MANAGED
+# ALL QUESTIONS ANSWERED BEWLOW  #------------------------------------------------------------------------------
+# ALL QUESTIONS ANSWERED BEWLOW  oracle.install.db.rac.configurationType=
+# ALL QUESTIONS ANSWERED BEWLOW  
+# ALL QUESTIONS ANSWERED BEWLOW  #------------------------------------------------------------------------------
+# ALL QUESTIONS ANSWERED BEWLOW  # Value is required only if RAC database type is ADMIN_MANAGED
+# ALL QUESTIONS ANSWERED BEWLOW  #
+# ALL QUESTIONS ANSWERED BEWLOW  # Specify the cluster node names selected during the installation.
+# ALL QUESTIONS ANSWERED BEWLOW  # Leaving it blank will result in install on local server only (Single Instance)
+# ALL QUESTIONS ANSWERED BEWLOW  #
+# ALL QUESTIONS ANSWERED BEWLOW  # Example : oracle.install.db.CLUSTER_NODES=node1,node2
+# ALL QUESTIONS ANSWERED BEWLOW  #------------------------------------------------------------------------------
+# ALL QUESTIONS ANSWERED BEWLOW  oracle.install.db.CLUSTER_NODES=
+# ALL QUESTIONS ANSWERED BEWLOW  
+# ALL QUESTIONS ANSWERED BEWLOW  #------------------------------------------------------------------------------
+# ALL QUESTIONS ANSWERED BEWLOW  # This variable is used to enable or disable RAC One Node install.
+# ALL QUESTIONS ANSWERED BEWLOW  #
+# ALL QUESTIONS ANSWERED BEWLOW  #   - true  : Value of RAC One Node service name is used.
+# ALL QUESTIONS ANSWERED BEWLOW  #   - false : Value of RAC One Node service name is not used.
+# ALL QUESTIONS ANSWERED BEWLOW  #
+# ALL QUESTIONS ANSWERED BEWLOW  # If left blank, it will be assumed to be false.
+# ALL QUESTIONS ANSWERED BEWLOW  #------------------------------------------------------------------------------
+# ALL QUESTIONS ANSWERED BEWLOW  oracle.install.db.isRACOneInstall=false
+# ALL QUESTIONS ANSWERED BEWLOW  
+# ALL QUESTIONS ANSWERED BEWLOW  #------------------------------------------------------------------------------
+# ALL QUESTIONS ANSWERED BEWLOW  # Value is required only if oracle.install.db.isRACOneInstall is true.
+# ALL QUESTIONS ANSWERED BEWLOW  #
+# ALL QUESTIONS ANSWERED BEWLOW  # Specify the name for RAC One Node Service
+# ALL QUESTIONS ANSWERED BEWLOW  #------------------------------------------------------------------------------
+# ALL QUESTIONS ANSWERED BEWLOW  oracle.install.db.racOneServiceName=
+# ALL QUESTIONS ANSWERED BEWLOW  
+# ALL QUESTIONS ANSWERED BEWLOW  #------------------------------------------------------------------------------
+# ALL QUESTIONS ANSWERED BEWLOW  # Value is required only if RAC database type is POLICY_MANAGED
+# ALL QUESTIONS ANSWERED BEWLOW  #
+# ALL QUESTIONS ANSWERED BEWLOW  # Specify a name for the new Server pool that will be configured
+# ALL QUESTIONS ANSWERED BEWLOW  # Example : oracle.install.db.rac.serverpoolName=pool1
+# ALL QUESTIONS ANSWERED BEWLOW  #------------------------------------------------------------------------------
+# ALL QUESTIONS ANSWERED BEWLOW  oracle.install.db.rac.serverpoolName=
+# ALL QUESTIONS ANSWERED BEWLOW  
+# ALL QUESTIONS ANSWERED BEWLOW  #------------------------------------------------------------------------------
+# ALL QUESTIONS ANSWERED BEWLOW  # Value is required only if RAC database type is POLICY_MANAGED
+# ALL QUESTIONS ANSWERED BEWLOW  #
+# ALL QUESTIONS ANSWERED BEWLOW  # Specify a number as cardinality for the new Server pool that will be configured
+# ALL QUESTIONS ANSWERED BEWLOW  # Example : oracle.install.db.rac.serverpoolCardinality=2
+# ALL QUESTIONS ANSWERED BEWLOW  #------------------------------------------------------------------------------
+# ALL QUESTIONS ANSWERED BEWLOW  oracle.install.db.rac.serverpoolCardinality=0
+# ALL QUESTIONS ANSWERED BEWLOW  
+# ALL QUESTIONS ANSWERED BEWLOW  ###############################################################################
+# ALL QUESTIONS ANSWERED BEWLOW  #                                                                             #
+# ALL QUESTIONS ANSWERED BEWLOW  #                        Database Configuration Options                       #
+# ALL QUESTIONS ANSWERED BEWLOW  #                                                                             #
+# ALL QUESTIONS ANSWERED BEWLOW  ###############################################################################
+# ALL QUESTIONS ANSWERED BEWLOW  
+# ALL QUESTIONS ANSWERED BEWLOW  #-------------------------------------------------------------------------------
+# ALL QUESTIONS ANSWERED BEWLOW  # Specify the type of database to create.
+# ALL QUESTIONS ANSWERED BEWLOW  # It can be one of the following:
+# ALL QUESTIONS ANSWERED BEWLOW  #   - GENERAL_PURPOSE
+# ALL QUESTIONS ANSWERED BEWLOW  #   - DATA_WAREHOUSE
+# ALL QUESTIONS ANSWERED BEWLOW  # GENERAL_PURPOSE: A starter database designed for general purpose use or transaction-heavy applications.
+# ALL QUESTIONS ANSWERED BEWLOW  # DATA_WAREHOUSE : A starter database optimized for data warehousing applications.
+# ALL QUESTIONS ANSWERED BEWLOW  #-------------------------------------------------------------------------------
+# ALL QUESTIONS ANSWERED BEWLOW  oracle.install.db.config.starterdb.type=GENERAL_PURPOSE
+# ALL QUESTIONS ANSWERED BEWLOW  
+# ALL QUESTIONS ANSWERED BEWLOW  #-------------------------------------------------------------------------------
+# ALL QUESTIONS ANSWERED BEWLOW  # Specify the Starter Database Global Database Name.
+# ALL QUESTIONS ANSWERED BEWLOW  #-------------------------------------------------------------------------------
+# ALL QUESTIONS ANSWERED BEWLOW  oracle.install.db.config.starterdb.globalDBName=
+# ALL QUESTIONS ANSWERED BEWLOW  
+# ALL QUESTIONS ANSWERED BEWLOW  #-------------------------------------------------------------------------------
+# ALL QUESTIONS ANSWERED BEWLOW  # Specify the Starter Database SID.
+# ALL QUESTIONS ANSWERED BEWLOW  #-------------------------------------------------------------------------------
+# ALL QUESTIONS ANSWERED BEWLOW  oracle.install.db.config.starterdb.SID=
+# ALL QUESTIONS ANSWERED BEWLOW  
+# ALL QUESTIONS ANSWERED BEWLOW  #-------------------------------------------------------------------------------
+# ALL QUESTIONS ANSWERED BEWLOW  # Specify whether the database should be configured as a Container database.
+# ALL QUESTIONS ANSWERED BEWLOW  # The value can be either "true" or "false". If left blank it will be assumed
+# ALL QUESTIONS ANSWERED BEWLOW  # to be "false".
+# ALL QUESTIONS ANSWERED BEWLOW  #-------------------------------------------------------------------------------
+# ALL QUESTIONS ANSWERED BEWLOW  oracle.install.db.ConfigureAsContainerDB=false
+# ALL QUESTIONS ANSWERED BEWLOW  
+# ALL QUESTIONS ANSWERED BEWLOW  #-------------------------------------------------------------------------------
+# ALL QUESTIONS ANSWERED BEWLOW  # Specify the  Pluggable Database name for the pluggable database in Container Database.
+# ALL QUESTIONS ANSWERED BEWLOW  #-------------------------------------------------------------------------------
+# ALL QUESTIONS ANSWERED BEWLOW  oracle.install.db.config.PDBName=
+# ALL QUESTIONS ANSWERED BEWLOW  
+# ALL QUESTIONS ANSWERED BEWLOW  #-------------------------------------------------------------------------------
+# ALL QUESTIONS ANSWERED BEWLOW  # Specify the Starter Database character set.
+# ALL QUESTIONS ANSWERED BEWLOW  #
+# ALL QUESTIONS ANSWERED BEWLOW  #  One of the following
+# ALL QUESTIONS ANSWERED BEWLOW  #  AL32UTF8, WE8ISO8859P15, WE8MSWIN1252, EE8ISO8859P2,
+# ALL QUESTIONS ANSWERED BEWLOW  #  EE8MSWIN1250, NE8ISO8859P10, NEE8ISO8859P4, BLT8MSWIN1257,
+# ALL QUESTIONS ANSWERED BEWLOW  #  BLT8ISO8859P13, CL8ISO8859P5, CL8MSWIN1251, AR8ISO8859P6,
+# ALL QUESTIONS ANSWERED BEWLOW  #  AR8MSWIN1256, EL8ISO8859P7, EL8MSWIN1253, IW8ISO8859P8,
+# ALL QUESTIONS ANSWERED BEWLOW  #  IW8MSWIN1255, JA16EUC, JA16EUCTILDE, JA16SJIS, JA16SJISTILDE,
+# ALL QUESTIONS ANSWERED BEWLOW  #  KO16MSWIN949, ZHS16GBK, TH8TISASCII, ZHT32EUC, ZHT16MSWIN950,
+# ALL QUESTIONS ANSWERED BEWLOW  #  ZHT16HKSCS, WE8ISO8859P9, TR8MSWIN1254, VN8MSWIN1258
+# ALL QUESTIONS ANSWERED BEWLOW  #-------------------------------------------------------------------------------
+# ALL QUESTIONS ANSWERED BEWLOW  oracle.install.db.config.starterdb.characterSet=
+# ALL QUESTIONS ANSWERED BEWLOW  
+# ALL QUESTIONS ANSWERED BEWLOW  #------------------------------------------------------------------------------
+# ALL QUESTIONS ANSWERED BEWLOW  # This variable should be set to true if Automatic Memory Management
+# ALL QUESTIONS ANSWERED BEWLOW  # in Database is desired.
+# ALL QUESTIONS ANSWERED BEWLOW  # If Automatic Memory Management is not desired, and memory allocation
+# ALL QUESTIONS ANSWERED BEWLOW  # is to be done manually, then set it to false.
+# ALL QUESTIONS ANSWERED BEWLOW  #------------------------------------------------------------------------------
+# ALL QUESTIONS ANSWERED BEWLOW  oracle.install.db.config.starterdb.memoryOption=false
+# ALL QUESTIONS ANSWERED BEWLOW  
+# ALL QUESTIONS ANSWERED BEWLOW  #-------------------------------------------------------------------------------
+# ALL QUESTIONS ANSWERED BEWLOW  # Specify the total memory allocation for the database. Value(in MB) should be
+# ALL QUESTIONS ANSWERED BEWLOW  # at least 256 MB, and should not exceed the total physical memory available
+# ALL QUESTIONS ANSWERED BEWLOW  # on the system.
+# ALL QUESTIONS ANSWERED BEWLOW  # Example: oracle.install.db.config.starterdb.memoryLimit=512
+# ALL QUESTIONS ANSWERED BEWLOW  #-------------------------------------------------------------------------------
+# ALL QUESTIONS ANSWERED BEWLOW  oracle.install.db.config.starterdb.memoryLimit=
+# ALL QUESTIONS ANSWERED BEWLOW  
+# ALL QUESTIONS ANSWERED BEWLOW  #-------------------------------------------------------------------------------
+# ALL QUESTIONS ANSWERED BEWLOW  # This variable controls whether to load Example Schemas onto
+# ALL QUESTIONS ANSWERED BEWLOW  # the starter database or not.
+# ALL QUESTIONS ANSWERED BEWLOW  # The value can be either "true" or "false". If left blank it will be assumed
+# ALL QUESTIONS ANSWERED BEWLOW  # to be "false".
+# ALL QUESTIONS ANSWERED BEWLOW  #-------------------------------------------------------------------------------
+# ALL QUESTIONS ANSWERED BEWLOW  oracle.install.db.config.starterdb.installExampleSchemas=false
+# ALL QUESTIONS ANSWERED BEWLOW  
+# ALL QUESTIONS ANSWERED BEWLOW  ###############################################################################
+# ALL QUESTIONS ANSWERED BEWLOW  #                                                                             #
+# ALL QUESTIONS ANSWERED BEWLOW  # Passwords can be supplied for the following four schemas in the	      #
+# ALL QUESTIONS ANSWERED BEWLOW  # starter database:      						      #
+# ALL QUESTIONS ANSWERED BEWLOW  #   SYS                                                                       #
+# ALL QUESTIONS ANSWERED BEWLOW  #   SYSTEM                                                                    #
+# ALL QUESTIONS ANSWERED BEWLOW  #   DBSNMP (used by Enterprise Manager)                                       #
+# ALL QUESTIONS ANSWERED BEWLOW  #                                                                             #
+# ALL QUESTIONS ANSWERED BEWLOW  # Same password can be used for all accounts (not recommended) 		      #
+# ALL QUESTIONS ANSWERED BEWLOW  # or different passwords for each account can be provided (recommended)       #
+# ALL QUESTIONS ANSWERED BEWLOW  #                                                                             #
+# ALL QUESTIONS ANSWERED BEWLOW  ###############################################################################
+# ALL QUESTIONS ANSWERED BEWLOW  
+# ALL QUESTIONS ANSWERED BEWLOW  #------------------------------------------------------------------------------
+# ALL QUESTIONS ANSWERED BEWLOW  # This variable holds the password that is to be used for all schemas in the
+# ALL QUESTIONS ANSWERED BEWLOW  # starter database.
+# ALL QUESTIONS ANSWERED BEWLOW  #-------------------------------------------------------------------------------
+# ALL QUESTIONS ANSWERED BEWLOW  oracle.install.db.config.starterdb.password.ALL=
+# ALL QUESTIONS ANSWERED BEWLOW  
+# ALL QUESTIONS ANSWERED BEWLOW  #-------------------------------------------------------------------------------
+# ALL QUESTIONS ANSWERED BEWLOW  # Specify the SYS password for the starter database.
+# ALL QUESTIONS ANSWERED BEWLOW  #-------------------------------------------------------------------------------
+# ALL QUESTIONS ANSWERED BEWLOW  oracle.install.db.config.starterdb.password.SYS=
+# ALL QUESTIONS ANSWERED BEWLOW  
+# ALL QUESTIONS ANSWERED BEWLOW  #-------------------------------------------------------------------------------
+# ALL QUESTIONS ANSWERED BEWLOW  # Specify the SYSTEM password for the starter database.
+# ALL QUESTIONS ANSWERED BEWLOW  #-------------------------------------------------------------------------------
+# ALL QUESTIONS ANSWERED BEWLOW  oracle.install.db.config.starterdb.password.SYSTEM=
+# ALL QUESTIONS ANSWERED BEWLOW  
+# ALL QUESTIONS ANSWERED BEWLOW  #-------------------------------------------------------------------------------
+# ALL QUESTIONS ANSWERED BEWLOW  # Specify the DBSNMP password for the starter database.
+# ALL QUESTIONS ANSWERED BEWLOW  #-------------------------------------------------------------------------------
+# ALL QUESTIONS ANSWERED BEWLOW  oracle.install.db.config.starterdb.password.DBSNMP=
+# ALL QUESTIONS ANSWERED BEWLOW  
+# ALL QUESTIONS ANSWERED BEWLOW  #-------------------------------------------------------------------------------
+# ALL QUESTIONS ANSWERED BEWLOW  # Specify the PDBADMIN password required for creation of Pluggable Database in the Container Database.
+# ALL QUESTIONS ANSWERED BEWLOW  #-------------------------------------------------------------------------------
+# ALL QUESTIONS ANSWERED BEWLOW  oracle.install.db.config.starterdb.password.PDBADMIN=
+# ALL QUESTIONS ANSWERED BEWLOW  
+# ALL QUESTIONS ANSWERED BEWLOW  #-------------------------------------------------------------------------------
+# ALL QUESTIONS ANSWERED BEWLOW  # Specify the management option to use for managing the database.
+# ALL QUESTIONS ANSWERED BEWLOW  # Options are:
+# ALL QUESTIONS ANSWERED BEWLOW  # 1. CLOUD_CONTROL - If you want to manage your database with Enterprise Manager Cloud Control along with Database Express.
+# ALL QUESTIONS ANSWERED BEWLOW  # 2. DEFAULT   -If you want to manage your database using the default Database Express option.
+# ALL QUESTIONS ANSWERED BEWLOW  #-------------------------------------------------------------------------------
+# ALL QUESTIONS ANSWERED BEWLOW  oracle.install.db.config.starterdb.managementOption=DEFAULT
+# ALL QUESTIONS ANSWERED BEWLOW  
+# ALL QUESTIONS ANSWERED BEWLOW  #-------------------------------------------------------------------------------
+# ALL QUESTIONS ANSWERED BEWLOW  # Specify the OMS host to connect to Cloud Control.
+# ALL QUESTIONS ANSWERED BEWLOW  # Applicable only when oracle.install.db.config.starterdb.managementOption=CLOUD_CONTROL
+# ALL QUESTIONS ANSWERED BEWLOW  #-------------------------------------------------------------------------------
+# ALL QUESTIONS ANSWERED BEWLOW  oracle.install.db.config.starterdb.omsHost=
+# ALL QUESTIONS ANSWERED BEWLOW  
+# ALL QUESTIONS ANSWERED BEWLOW  #-------------------------------------------------------------------------------
+# ALL QUESTIONS ANSWERED BEWLOW  # Specify the OMS port to connect to Cloud Control.
+# ALL QUESTIONS ANSWERED BEWLOW  # Applicable only when oracle.install.db.config.starterdb.managementOption=CLOUD_CONTROL
+# ALL QUESTIONS ANSWERED BEWLOW  #-------------------------------------------------------------------------------
+# ALL QUESTIONS ANSWERED BEWLOW  oracle.install.db.config.starterdb.omsPort=0
+# ALL QUESTIONS ANSWERED BEWLOW  
+# ALL QUESTIONS ANSWERED BEWLOW  #-------------------------------------------------------------------------------
+# ALL QUESTIONS ANSWERED BEWLOW  # Specify the EM Admin user name to use to connect to Cloud Control.
+# ALL QUESTIONS ANSWERED BEWLOW  # Applicable only when oracle.install.db.config.starterdb.managementOption=CLOUD_CONTROL
+# ALL QUESTIONS ANSWERED BEWLOW  #-------------------------------------------------------------------------------
+# ALL QUESTIONS ANSWERED BEWLOW  oracle.install.db.config.starterdb.emAdminUser=
+# ALL QUESTIONS ANSWERED BEWLOW  
+# ALL QUESTIONS ANSWERED BEWLOW  #-------------------------------------------------------------------------------
+# ALL QUESTIONS ANSWERED BEWLOW  # Specify the EM Admin password to use to connect to Cloud Control.
+# ALL QUESTIONS ANSWERED BEWLOW  # Applicable only when oracle.install.db.config.starterdb.managementOption=CLOUD_CONTROL
+# ALL QUESTIONS ANSWERED BEWLOW  #-------------------------------------------------------------------------------
+# ALL QUESTIONS ANSWERED BEWLOW  oracle.install.db.config.starterdb.emAdminPassword=
+# ALL QUESTIONS ANSWERED BEWLOW  
+# ALL QUESTIONS ANSWERED BEWLOW  ###############################################################################
+# ALL QUESTIONS ANSWERED BEWLOW  #                                                                             #
+# ALL QUESTIONS ANSWERED BEWLOW  # SPECIFY RECOVERY OPTIONS                                 	              #
+# ALL QUESTIONS ANSWERED BEWLOW  # ------------------------------------		                              #
+# ALL QUESTIONS ANSWERED BEWLOW  # Recovery options for the database can be mentioned using the entries below  #
+# ALL QUESTIONS ANSWERED BEWLOW  #                                                                             #
+# ALL QUESTIONS ANSWERED BEWLOW  ###############################################################################
+# ALL QUESTIONS ANSWERED BEWLOW  
+# ALL QUESTIONS ANSWERED BEWLOW  #------------------------------------------------------------------------------
+# ALL QUESTIONS ANSWERED BEWLOW  # This variable is to be set to false if database recovery is not required. Else
+# ALL QUESTIONS ANSWERED BEWLOW  # this can be set to true.
+# ALL QUESTIONS ANSWERED BEWLOW  #-------------------------------------------------------------------------------
+# ALL QUESTIONS ANSWERED BEWLOW  oracle.install.db.config.starterdb.enableRecovery=false
+# ALL QUESTIONS ANSWERED BEWLOW  
+# ALL QUESTIONS ANSWERED BEWLOW  #-------------------------------------------------------------------------------
+# ALL QUESTIONS ANSWERED BEWLOW  # Specify the type of storage to use for the database.
+# ALL QUESTIONS ANSWERED BEWLOW  # It can be one of the following:
+# ALL QUESTIONS ANSWERED BEWLOW  #   - FILE_SYSTEM_STORAGE
+# ALL QUESTIONS ANSWERED BEWLOW  #   - ASM_STORAGE
+# ALL QUESTIONS ANSWERED BEWLOW  #-------------------------------------------------------------------------------
+# ALL QUESTIONS ANSWERED BEWLOW  oracle.install.db.config.starterdb.storageType=
+# ALL QUESTIONS ANSWERED BEWLOW  
+# ALL QUESTIONS ANSWERED BEWLOW  #-------------------------------------------------------------------------------
+# ALL QUESTIONS ANSWERED BEWLOW  # Specify the database file location which is a directory for datafiles, control
+# ALL QUESTIONS ANSWERED BEWLOW  # files, redo logs.
+# ALL QUESTIONS ANSWERED BEWLOW  #
+# ALL QUESTIONS ANSWERED BEWLOW  # Applicable only when oracle.install.db.config.starterdb.storage=FILE_SYSTEM_STORAGE
+# ALL QUESTIONS ANSWERED BEWLOW  #-------------------------------------------------------------------------------
+# ALL QUESTIONS ANSWERED BEWLOW  oracle.install.db.config.starterdb.fileSystemStorage.dataLocation=
+# ALL QUESTIONS ANSWERED BEWLOW  
+# ALL QUESTIONS ANSWERED BEWLOW  #-------------------------------------------------------------------------------
+# ALL QUESTIONS ANSWERED BEWLOW  # Specify the recovery location.
+# ALL QUESTIONS ANSWERED BEWLOW  #
+# ALL QUESTIONS ANSWERED BEWLOW  # Applicable only when oracle.install.db.config.starterdb.storage=FILE_SYSTEM_STORAGE
+# ALL QUESTIONS ANSWERED BEWLOW  #-------------------------------------------------------------------------------
+# ALL QUESTIONS ANSWERED BEWLOW  oracle.install.db.config.starterdb.fileSystemStorage.recoveryLocation=
+# ALL QUESTIONS ANSWERED BEWLOW  
+# ALL QUESTIONS ANSWERED BEWLOW  #-------------------------------------------------------------------------------
+# ALL QUESTIONS ANSWERED BEWLOW  # Specify the existing ASM disk groups to be used for storage.
+# ALL QUESTIONS ANSWERED BEWLOW  #
+# ALL QUESTIONS ANSWERED BEWLOW  # Applicable only when oracle.install.db.config.starterdb.storageType=ASM_STORAGE
+# ALL QUESTIONS ANSWERED BEWLOW  #-------------------------------------------------------------------------------
+# ALL QUESTIONS ANSWERED BEWLOW  oracle.install.db.config.asm.diskGroup=
+# ALL QUESTIONS ANSWERED BEWLOW  
+# ALL QUESTIONS ANSWERED BEWLOW  #-------------------------------------------------------------------------------
+# ALL QUESTIONS ANSWERED BEWLOW  # Specify the password for ASMSNMP user of the ASM instance.
+# ALL QUESTIONS ANSWERED BEWLOW  #
+# ALL QUESTIONS ANSWERED BEWLOW  # Applicable only when oracle.install.db.config.starterdb.storage=ASM_STORAGE
+# ALL QUESTIONS ANSWERED BEWLOW  #-------------------------------------------------------------------------------
+# ALL QUESTIONS ANSWERED BEWLOW  oracle.install.db.config.asm.ASMSNMPPassword=
+# ALL QUESTIONS ANSWERED BEWLOW  
+# ALL QUESTIONS ANSWERED BEWLOW  #------------------------------------------------------------------------------
+# ALL QUESTIONS ANSWERED BEWLOW  # Specify the My Oracle Support Account Username.
+# ALL QUESTIONS ANSWERED BEWLOW  #
+# ALL QUESTIONS ANSWERED BEWLOW  #  Example   : MYORACLESUPPORT_USERNAME=abc@oracle.com
+# ALL QUESTIONS ANSWERED BEWLOW  #------------------------------------------------------------------------------
+# ALL QUESTIONS ANSWERED BEWLOW  MYORACLESUPPORT_USERNAME=
+# ALL QUESTIONS ANSWERED BEWLOW  
+# ALL QUESTIONS ANSWERED BEWLOW  #------------------------------------------------------------------------------
+# ALL QUESTIONS ANSWERED BEWLOW  # Specify the My Oracle Support Account Username password.
+# ALL QUESTIONS ANSWERED BEWLOW  #
+# ALL QUESTIONS ANSWERED BEWLOW  # Example    : MYORACLESUPPORT_PASSWORD=password
+# ALL QUESTIONS ANSWERED BEWLOW  #------------------------------------------------------------------------------
+# ALL QUESTIONS ANSWERED BEWLOW  MYORACLESUPPORT_PASSWORD=
+# ALL QUESTIONS ANSWERED BEWLOW  
+# ALL QUESTIONS ANSWERED BEWLOW  #------------------------------------------------------------------------------
+# ALL QUESTIONS ANSWERED BEWLOW  # Specify whether to enable the user to set the password for
+# ALL QUESTIONS ANSWERED BEWLOW  # My Oracle Support credentials. The value can be either true or false.
+# ALL QUESTIONS ANSWERED BEWLOW  # If left blank it will be assumed to be false.
+# ALL QUESTIONS ANSWERED BEWLOW  #
+# ALL QUESTIONS ANSWERED BEWLOW  # Example    : SECURITY_UPDATES_VIA_MYORACLESUPPORT=true
+# ALL QUESTIONS ANSWERED BEWLOW  #------------------------------------------------------------------------------
+# ALL QUESTIONS ANSWERED BEWLOW  SECURITY_UPDATES_VIA_MYORACLESUPPORT=false
+# ALL QUESTIONS ANSWERED BEWLOW  
+# ALL QUESTIONS ANSWERED BEWLOW  #------------------------------------------------------------------------------
+# ALL QUESTIONS ANSWERED BEWLOW  # Specify whether user doesn't want to configure Security Updates.
+# ALL QUESTIONS ANSWERED BEWLOW  # The value for this variable should be true if you don't want to configure
+# ALL QUESTIONS ANSWERED BEWLOW  # Security Updates, false otherwise.
+# ALL QUESTIONS ANSWERED BEWLOW  #
+# ALL QUESTIONS ANSWERED BEWLOW  # The value can be either true or false. If left blank it will be assumed
+# ALL QUESTIONS ANSWERED BEWLOW  # to be false.
+# ALL QUESTIONS ANSWERED BEWLOW  #
+# ALL QUESTIONS ANSWERED BEWLOW  # Example    : DECLINE_SECURITY_UPDATES=false
+# ALL QUESTIONS ANSWERED BEWLOW  #------------------------------------------------------------------------------
+# ALL QUESTIONS ANSWERED BEWLOW  DECLINE_SECURITY_UPDATES=true
+# ALL QUESTIONS ANSWERED BEWLOW  
+# ALL QUESTIONS ANSWERED BEWLOW  #------------------------------------------------------------------------------
+# ALL QUESTIONS ANSWERED BEWLOW  # Specify the Proxy server name. Length should be greater than zero.
+# ALL QUESTIONS ANSWERED BEWLOW  #
+# ALL QUESTIONS ANSWERED BEWLOW  # Example    : PROXY_HOST=proxy.domain.com
+# ALL QUESTIONS ANSWERED BEWLOW  #------------------------------------------------------------------------------
+# ALL QUESTIONS ANSWERED BEWLOW  PROXY_HOST=
+# ALL QUESTIONS ANSWERED BEWLOW  
+# ALL QUESTIONS ANSWERED BEWLOW  #------------------------------------------------------------------------------
+# ALL QUESTIONS ANSWERED BEWLOW  # Specify the proxy port number. Should be Numeric and at least 2 chars.
+# ALL QUESTIONS ANSWERED BEWLOW  #
+# ALL QUESTIONS ANSWERED BEWLOW  # Example    : PROXY_PORT=25
+# ALL QUESTIONS ANSWERED BEWLOW  #------------------------------------------------------------------------------
+# ALL QUESTIONS ANSWERED BEWLOW  PROXY_PORT=
+# ALL QUESTIONS ANSWERED BEWLOW  
+# ALL QUESTIONS ANSWERED BEWLOW  #------------------------------------------------------------------------------
+# ALL QUESTIONS ANSWERED BEWLOW  # Specify the proxy user name. Leave PROXY_USER and PROXY_PWD
+# ALL QUESTIONS ANSWERED BEWLOW  # blank if your proxy server requires no authentication.
+# ALL QUESTIONS ANSWERED BEWLOW  #
+# ALL QUESTIONS ANSWERED BEWLOW  # Example    : PROXY_USER=username
+# ALL QUESTIONS ANSWERED BEWLOW  #------------------------------------------------------------------------------
+# ALL QUESTIONS ANSWERED BEWLOW  PROXY_USER=
+# ALL QUESTIONS ANSWERED BEWLOW  
+# ALL QUESTIONS ANSWERED BEWLOW  #------------------------------------------------------------------------------
+# ALL QUESTIONS ANSWERED BEWLOW  # Specify the proxy password. Leave PROXY_USER and PROXY_PWD
+# ALL QUESTIONS ANSWERED BEWLOW  # blank if your proxy server requires no authentication.
+# ALL QUESTIONS ANSWERED BEWLOW  #
+# ALL QUESTIONS ANSWERED BEWLOW  # Example    : PROXY_PWD=password
+# ALL QUESTIONS ANSWERED BEWLOW  #------------------------------------------------------------------------------
+# ALL QUESTIONS ANSWERED BEWLOW  PROXY_PWD=
+# ALL QUESTIONS ANSWERED BEWLOW  
+# ALL QUESTIONS ANSWERED BEWLOW  #------------------------------------------------------------------------------
+# ALL QUESTIONS ANSWERED BEWLOW  # Specify the Oracle Support Hub URL.
+# ALL QUESTIONS ANSWERED BEWLOW  #
+# ALL QUESTIONS ANSWERED BEWLOW  # Example    : COLLECTOR_SUPPORTHUB_URL=https://orasupporthub.company.com:8080/
+# ALL QUESTIONS ANSWERED BEWLOW  #------------------------------------------------------------------------------
+# ALL QUESTIONS ANSWERED BEWLOW  COLLECTOR_SUPPORTHUB_URL=
+
+oracle.install.responseFileVersion=/oracle/install/rspfmt_dbinstall_response_schema_v12.2.0
+#oracle.install.option=INSTALL_DB_SWONLY
+oracle.install.option=INSTALL_DB_AND_CONFIG
+#ORACLE_HOSTNAME=localhost
+UNIX_GROUP_NAME=oinstall
+INVENTORY_LOCATION=/u01/app/oraInventory
+SELECTED_LANGUAGES=en
+ORACLE_HOME=/u01/app/oracle/product/12.2.0.1.0
+ORACLE_BASE=/u01/app/oracle
+oracle.install.db.InstallEdition=EE
+oracle.install.db.OSDBA_GROUP=dba
+oracle.install.db.OSOPER_GROUP=dba
+oracle.install.db.OSBACKUPDBA_GROUP=dba
+oracle.install.db.OSDGDBA_GROUP=dba
+oracle.install.db.OSKMDBA_GROUP=dba
+oracle.install.db.OSRACDBA_GROUP=dba
+SECURITY_UPDATES_VIA_MYORACLESUPPORT=false
+DECLINE_SECURITY_UPDATES=true
+oracle.installer.autoupdates.option=SKIP_UPDATES
+ORACLE_HOME=/u01/app/oracle/product/12.2.0.1.0/dbhome_1
+oracle.install.db.config.starterdb.type=GENERAL_PURPOSE
+oracle.install.db.config.starterdb.globalDBName=ORCL
+oracle.install.db.config.starterdb.SID=ORCL
+oracle.install.db.ConfigureAsContainerDB=false
+oracle.install.db.config.starterdb.memoryLimit=7168
+oracle.install.db.config.starterdb.password.ALL=OraPasswd1
+oracle.install.db.config.starterdb.password.SYS=OraPasswd1
+oracle.install.db.config.starterdb.password.SYSTEM=OraPasswd1
+oracle.install.db.config.starterdb.password.DBSNMP=OraPasswd1
+oracle.install.db.config.starterdb.password.PDBADMIN=OraPasswd1
+oracle.install.db.config.starterdb.managementOption=DEFAULT
+oracle.install.db.config.starterdb.storageType=FILE_SYSTEM_STORAGE
+oracle.install.db.config.starterdb.fileSystemStorage.dataLocation=/u01/app/oracle/oradata
+oracle.install.db.config.starterdb.fileSystemStorage.recoveryLocation=/u01/app/oracle/recovery_area
