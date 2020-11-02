@@ -33,3 +33,19 @@ Runs MySQL in a local Docker container, so we can learn how to handle it when we
 ***04_MySQL_terraform-aws-rds-aurora-clustered***
 
 Runs MySQL in AWS with cluster capabilities, so we can start collect repeatable metrics about speed, capacity, etc. for this database engine.
+
+***05_Cassandra_Local***
+
+Runs Cassandra in a local Docker container, so we can learn how to handle it when we go to AWS.
+
+***06_Cassandra_AWS***
+
+Runs Cassandra in an AWS EC2 instance, so we can start collect repeatable metrics about speed, capacity, etc. for this database engine.
+
+***07_Oracle_Local***
+
+Runs Oracle in a local Docker container, so we can learn how to handle it when we go to AWS.  We will want to show the difference in performance between Oracle and the other databases under consideration.
+
+***08_Oracle_AWS***
+
+Runs Oracle in an AWS EC2 instance, so we can start collect repeatable metrics about speed, capacity, etc. for this database engine.  We will want to show the difference in performance between Oracle and the other databases under consideration.
