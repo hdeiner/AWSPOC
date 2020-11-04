@@ -1,3 +1,5 @@
+package Translator;
+
 import org.antlr.v4.runtime.*;
 
 public abstract class PlSqlLexerBase extends Lexer
