@@ -1,0 +1,25 @@
+version: '3.1'
+
+services:
+
+  mongodb_service:
+    image: mongo:latest
+    container_name: mongodb_container
+#    environment:
+#      MONGO_INITDB_ROOT_USERNAME: root
+#      MONGO_INITDB_ROOT_PASSWORD: password
+    volumes:
+      - mongo_data:/var/lib/mongo/data
+    restart: unless-stopped
+    ports:
+      - 27017:27017
+      - 28017:28017 # for web browser
+    networks:
+      container_network:
+
+networks:
+  container_network:
+    driver: bridge
+
+volumes:
+  mongo_data:
