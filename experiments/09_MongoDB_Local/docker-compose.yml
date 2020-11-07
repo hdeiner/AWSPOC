@@ -12,8 +12,9 @@ services:
       - mongo_data:/var/lib/mongo/data
     restart: unless-stopped
     ports:
-      - 27017:27017
-      - 28017:28017 # for web browser
+      - 27017:27017 # mongod
+      - 27018:27018 # sharded cluster
+      - 27019:27019 # configsvr cluster
     networks:
       container_network:
 

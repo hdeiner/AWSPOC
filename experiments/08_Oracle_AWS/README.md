@@ -26,7 +26,7 @@ figlet -w 200 -f small "Startup Oracle AWS"
 terraform init
 terraform apply -auto-approve
 ```
-The terraform.aws_instance.tf is the most im=nteresting of the terraform scripts because it does does all of the heavy lifting through provisiong.
+The terraform.aws_instance.tf is the most interesting of the terraform scripts because it does does all of the heavy lifting through provisiong.
 
 The reason for doing the provisioning of the actual database, setting up the DDL using Liquibase, and loading sample data is that I don't want to install local clients (such as sqlplus) on the invoking machine.
 ```hcl-terraform
@@ -50,8 +50,8 @@ resource "aws_instance" "oracle_ec2_instance" {
       host = self.public_dns
       private_key = file("~/.ssh/id_rsa")
     }
-    source      = "provision.oracle.sh"
-    destination = "/tmp/provision.oracle.sh"
+    source      = "provision.mongodb.sh"
+    destination = "/tmp/provision.mongodb.sh"
   }
   provisioner "remote-exec" {
     connection {
@@ -101,7 +101,7 @@ resource "aws_instance" "oracle_ec2_instance" {
       host = self.public_dns
       private_key = file("~/.ssh/id_rsa")
     }
-    inline = ["chmod +x /tmp/provision.oracle.sh", "/tmp/provision.oracle.sh"]
+    inline = ["chmod +x /tmp/provision.mongodb.sh", "/tmp/provision.mongodb.sh"]
   }
   provisioner "file" {
     connection {
@@ -299,7 +299,7 @@ figlet -w 200 -f small "Check Oracle AWS"
 sudo -u oracle bash -c 'source /home/oracle/.bash_profile ; echo "select * from DERIVEDFACT;" | sqlplus system/OraPasswd1@localhost:1521/ORCL'
 sudo -u oracle bash -c 'source /home/oracle/.bash_profile ; echo "select * from MEMBERHEALTHSTATE;" | sqlplus system/OraPasswd1@localhost:1521/ORCL'
 ```
-This is what the console looks like when the script is executed.  It takes about 2 minutes.  But it is completely repeatable, and doesn't require any manual intervention.  It's the way our DBAs should create Oracle instances, regardless of the environment.  Everything is in Git, and anyone can use it.
+This is what the console looks like when the script is executed.  It takes about 12 minutes.  But it is completely repeatable, and doesn't require any manual intervention.  It's the way our DBAs should create Oracle instances, regardless of the environment.  Everything is in Git, and anyone can use it.
 ![01_startup_console_01](README_assets/01_startup_console_01.png)\
 ![01_startup_console_02](README_assets/01_startup_console_02.png)\
 ![01_startup_console_03](README_assets/01_startup_console_03.png)\
