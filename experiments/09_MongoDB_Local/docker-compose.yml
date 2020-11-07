@@ -12,9 +12,19 @@ services:
       - mongo_data:/var/lib/mongo/data
     restart: unless-stopped
     ports:
-      - 27017:27017 # mongod
-      - 27018:27018 # sharded cluster
-      - 27019:27019 # configsvr cluster
+      - 27017:27017
+      - 28017:28017 # for web browser
+    networks:
+      container_network:
+
+  mongoclient_service:
+    image: mongoclient/mongoclient:latest
+    container_name: mongoclient_container
+    volumes:
+      - mongoclient_data:/var/lib/mongoclient/data
+    restart: unless-stopped
+    ports:
+      - 3000:3000
     networks:
       container_network:
 
@@ -24,3 +34,4 @@ networks:
 
 volumes:
   mongo_data:
+  mongoclient_data:

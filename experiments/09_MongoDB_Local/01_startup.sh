@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 
-figlet -w 160 -f small "Startup MongoDB Locally"
+figlet -w 160 -f small "Startup MongoDB/MongoClient Locally"
 docker volume rm 09_mongodb_local_mongo_data
+docker volume rm 09_mongodb_local_mongoclient_data
 docker-compose -f docker-compose.yml up -d
 
 figlet -w 160 -f small "Wait For MongoDB To Start"
