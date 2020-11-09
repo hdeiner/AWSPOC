@@ -1,0 +1,30 @@
+version: '3.1'
+
+services:
+
+  ignite_service:
+    image: apacheignite/ignite
+    container_name: ignite_container
+    volumes:
+      - ignite_data:/opt/ignite/
+    restart: unless-stopped
+    ports:
+      - 10800:10800              # Default port for thin client communication
+      - 11211:11211              # Default JDBC port
+      - 47100:47100              # Default local communication port
+      - 47400:47400/udp          #
+      - 47500:47500              # Default local discovery port
+      - 8080:8080                # Default REST API port
+      - 49128:49128              # Default JMX connection port
+      - 31100-31200:31100-31200  # Default time server port
+      - 48100-48200:48100-48200  # Default shared memory port
+
+    networks:
+      container_network:
+
+networks:
+  container_network:
+    driver: bridge
+
+volumes:
+  ignite_data:

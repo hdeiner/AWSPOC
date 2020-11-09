@@ -1,0 +1,4 @@
+make.sql outputs script ddl.sql to create all the listed tables
+
+USAGE: connect to Oracle sqlplus, run make.sql
+       SQL> @make.sql
