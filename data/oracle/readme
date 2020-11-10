@@ -1,0 +1,4 @@
+make.sql extracts data in csv format for the list of tables defined in make.sql
+
+USAGE: connect to Oracle sqlplus, run make.sql
+       SQL> @make.sql

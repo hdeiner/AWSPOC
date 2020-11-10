@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 
 figlet -w 200 -f small "ANTLR Lexer and Parser Generation"
+#rm -rf PlSqlTranslator-1.0-SNAPSHOT.jar
+#rm -rf target
+#mkdir target
 rm -rf generated
 mkdir generated
 java -jar antlr-4.7.1-complete.jar -listener -visitor -Werror -package Translator -o generated PlSqlLexer.g4
