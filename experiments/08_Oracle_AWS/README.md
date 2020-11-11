@@ -50,8 +50,8 @@ resource "aws_instance" "oracle_ec2_instance" {
       host = self.public_dns
       private_key = file("~/.ssh/id_rsa")
     }
-    source      = "provision.ignite.sh"
-    destination = "/tmp/provision.ignite.sh"
+    source      = "provision.oracle.sh"
+    destination = "/tmp/provision.oracle.sh"
   }
   provisioner "remote-exec" {
     connection {
@@ -101,7 +101,7 @@ resource "aws_instance" "oracle_ec2_instance" {
       host = self.public_dns
       private_key = file("~/.ssh/id_rsa")
     }
-    inline = ["chmod +x /tmp/provision.ignite.sh", "/tmp/provision.ignite.sh"]
+    inline = ["chmod +x /tmp/provision.oracle.sh", "/tmp/provision.oracle.sh"]
   }
   provisioner "file" {
     connection {
