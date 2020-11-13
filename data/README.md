@@ -98,3 +98,42 @@ gpg2 --list-keys
 ```
 This is what the console looks like when the script is executed.  It takes less than a minute (on a rebooted system), is completely repeatable, and doesn't require any manual intervention.  
 ![create_GPG_key](README_assets/create_GPG_key.png)\
+
+### encrypt_and_send_to_S3.sh
+This script is run whenever new csv files are place in the oracle directory.  It encrypts the file and uploads it to the S3 bucket used to hold AWSPOC artifacts.
+
+<B>Note that once the csv file from the oracle directory is encrypted and uploaded to S3, it is removed from the oracle directory.</B>
+```bash
+#!/usr/bin/env bash
+
+cd oracle ; ls -1 *.csv > ../.filesToEncrypt ; cd ..
+
+cat .filesToEncrypt |
+  while read LINE;
+    do
+      echo "Working on ${LINE}"
+      gpg2 --batch --passphrase xyzzy --symmetric --cipher-algo AES256 --output ${LINE} <  oracle/${LINE}
+      aws s3 cp ${LINE} s3://health-engine-aws-poc/${LINE}
+      rm ${LINE}
+      rm oracle/{LINE}
+    done
+
+rm .filesToEncrypt
+```
+This is what the console looks like when the script is executed.  It takes less than a minute (on a rebooted system), is completely repeatable, and doesn't require any manual intervention.  
+![encrypt_and_send_to_S3_console](README_assets/encrypt_and_send_to_S3_console.png)\
+
+And this is what the AWS S3 console looks like after the script is executed.    
+![encrypt_and_send_to_S3_aws_s3_console](README_assets/encrypt_and_send_to_S3_aws_s3_console.png)\
+
+### transfer_from_s3_and_decrypt.sh
+This script is run whenever a csv file is needed in a test environment. It brings the file from the S3 bucket used to hold project artifacts and decrypts the file.
+
+<B>Note: You are responsible for removing the csv file when you're done with it.</B>
+```bash
+#!/usr/bin/env bash
+
+aws s3 cp s3://health-engine-aws-poc/$1 $1.gpg
+gpg2 --decrypt --batch --passphrase xyzzy $1.gpg > $1
+rm $1.gpg
+```

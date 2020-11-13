@@ -1,0 +1,142 @@
+CLASSPATH:../conf:../../../shared_libs/*:../lib/*
+JAVA_HOME : /Library/Java/JavaVirtualMachines/jdk-14.0.2.jdk/Contents/Home
+Java HotSpot(TM) 64-Bit Server VM warning: Ignoring option UseConcMarkSweepGC; support was removed in 14.0
+log4j: Parsing for [root] with value=[INFO,R,stdout].
+log4j: Level token is [INFO].
+log4j: Category root set to INFO
+log4j: Parsing appender named "R".
+log4j: Parsing layout options for "R".
+log4j: Setting property [conversionPattern] to [%5p [%d][%t] - %m%n].
+log4j: End of parsing for "R".
+log4j: Setting property [file] to [../logs/cecachesvr.log].
+log4j: Setting property [maxBackupIndex] to [10].
+log4j: Setting property [threshold] to [INFO].
+log4j: Setting property [maxFileSize] to [200000KB].
+log4j: setFile called: ../logs/cecachesvr.log, true
+log4j: setFile ended
+log4j: Parsed "R" options.
+log4j: Parsing appender named "stdout".
+log4j: Parsing layout options for "stdout".
+log4j: Setting property [conversionPattern] to [%5p [%d] - %m%n].
+log4j: End of parsing for "stdout".
+log4j: Parsed "stdout" options.
+log4j: Parsing for [org.springframework] with value=[WARN,R].
+log4j: Level token is [WARN].
+log4j: Category org.springframework set to WARN
+log4j: Parsing appender named "R".
+log4j: Appender "R" was already parsed.
+log4j: Handling log4j.additivity.org.springframework=[null]
+log4j: Parsing for [performance] with value=[INFO,CE_PERF].
+log4j: Level token is [INFO].
+log4j: Category performance set to INFO
+log4j: Parsing appender named "CE_PERF".
+log4j: Parsing layout options for "CE_PERF".
+log4j: Setting property [conversionPattern] to [%5p [%d][%t] - %m%n].
+log4j: End of parsing for "CE_PERF".
+log4j: Setting property [maxFileSize] to [100MB].
+log4j: Setting property [maxBackupIndex] to [10].
+log4j: Setting property [file] to [../logs/cacheserver_perf.log].
+log4j: setFile called: ../logs/cacheserver_perf.log, true
+log4j: setFile ended
+log4j: Parsed "CE_PERF" options.
+log4j: Handling log4j.additivity.performance=[null]
+log4j: Parsing for [com.opensymphony] with value=[WARN,R].
+log4j: Level token is [WARN].
+log4j: Category com.opensymphony set to WARN
+log4j: Parsing appender named "R".
+log4j: Appender "R" was already parsed.
+log4j: Handling log4j.additivity.com.opensymphony=[null]
+log4j: Finished configuring.
+ INFO [2020-10-28 15:28:52,605] - *******************************************************************
+ INFO [2020-10-28 15:28:52,605] - * Loaded CECacheServer Configuration properties:
+ INFO [2020-10-28 15:28:52,605] - *******************************************************************
+ INFO [2020-10-28 15:28:52,606] - RMI_PORT              = 12400
+ INFO [2020-10-28 15:28:52,606] - DB_DRIVER_CLASSNAME   = org.apache.cassandra.cql.jdbc.CassandraDriver
+ INFO [2020-10-28 15:28:52,606] - DB_CONNECTION_STRING  = jdbc:cassandra://localhost:9042/testdatabase;DefaultKeyspace=testdatabase
+ INFO [2020-10-28 15:28:52,606] - DB_USER               = cassandra
+ INFO [2020-10-28 15:28:52,606] - DB_PWD                = ***************
+ INFO [2020-10-28 15:28:52,606] - DB_CONN_POOL_SIZE     = 50
+ INFO [2020-10-28 15:28:52,606] - SQL_SUFFIX            = _120
+ INFO [2020-10-28 15:28:52,606] - CACHE_PEER_LISTENER   = hostname=localhost, port=12405, socketTimeoutMillis=120000
+ INFO [2020-10-28 15:28:52,606] - CONFIGURABLE_TABLE_LIST   = derivedfact,memberhealthstate
+ INFO [2020-10-28 15:28:52,606] - CACHE_PEER_PROVIDER_1 = azbuvdv1ceapp13.activehealth.loc:12415/Diagnostic,Drug,Drg,DrugAttribute,GCNSequence,Lab,Procedure,Provider,Utilization,ProviderExtract,MemberExtract,AdminCachesGroup,Supplier
+ INFO [2020-10-28 15:28:52,606] - CACHE_PEER_PROVIDER_2 = azbuvdv1ceapp14.activehealth.loc:12415/Diagnostic,Drug,Drg,DrugAttribute,GCNSequence,Lab,Procedure,Provider,Utilization,ProviderExtract,MemberExtract,AdminCachesGroup,Supplier
+ INFO [2020-10-28 15:28:52,606] - CACHE_PEER_PROVIDER_3 = azbuvdv1ceapp10.activehealth.loc:12415/Diagnostic,Drug,Drg,DrugAttribute,GCNSequence,Lab,Procedure,Provider,Utilization,ProviderExtract,MemberExtract,AdminCachesGroup,Supplier
+ INFO [2020-10-28 15:28:52,606] - CACHE_PEER_PROVIDER_4 = azbuvdv1ceapp15.activehealth.loc:12435/AdminCachesGroup,AccountPackage,HealthState,Rule,Supplier,ProviderSpeciality,ProviderExtract,MemberExtract
+ INFO [2020-10-28 15:28:52,606] - CACHE_PEER_PROVIDER_5 = azbuvdv1ceapp16.activehealth.loc:12435/AdminCachesGroup,AccountPackage,HealthState,Rule,Supplier,ProviderSpeciality,ProviderExtract,MemberExtract
+ INFO [2020-10-28 15:28:52,606] - CACHE_PEER_PROVIDER_6 = azbuvdv1ceapp09.activehealth.loc:12435/AdminCachesGroup,AccountPackage,HealthState,Rule,Supplier,ProviderSpeciality,ProviderExtract,MemberExtract
+ INFO [2020-10-28 15:28:52,607] - CACHE_PEER_PROVIDER_7 = azbuvdv1ceapp08.activehealth.loc:12435/AdminCachesGroup,AccountPackage,HealthState,Rule,Supplier,ProviderSpeciality,ProviderExtract,MemberExtract
+ INFO [2020-10-28 15:28:52,607] - CACHE_PEER_PROVIDER_8 = azbuvdv1ceapp17.activehealth.loc:12445/AdminCachesGroup,AccountPackage,HealthState,Rule,Supplier
+ INFO [2020-10-28 15:28:52,607] - CACHE_PEER_PROVIDER_9 = azbuvdv1ceapp17.activehealth.loc:12455/Provider,Utilization,Diagnostic,Drug,Drg,Lab,Procedure,DrugAttribute,GCNSequence,ProviderSpeciality,ProviderExtract,MemberExtract,AdminCachesGroup,Supplier,AccountPackage,HealthState,Rule
+ INFO [2020-10-28 15:28:52,607] - CACHE_PEER_PROVIDER_10 = 
+ INFO [2020-10-28 15:28:52,607] - CACHE_PEER_PROVIDER_11 = 
+ INFO [2020-10-28 15:28:52,607] - CACHE_PEER_PROVIDER_12 = 
+ INFO [2020-10-28 15:28:52,607] - CACHE_PEER_PROVIDER_13 = 
+ INFO [2020-10-28 15:28:52,607] - CACHE_PEER_PROVIDER_14 = 
+ INFO [2020-10-28 15:28:52,607] - CACHE_PEER_PROVIDER_15 = 
+ INFO [2020-10-28 15:28:52,607] - CACHE_PEER_PROVIDER_16 = 
+ INFO [2020-10-28 15:28:52,607] - CACHE_PEER_PROVIDER_17 = 
+ INFO [2020-10-28 15:28:52,607] - CACHE_PEER_PROVIDER_18 = 
+ INFO [2020-10-28 15:28:52,607] - CACHE_PEER_PROVIDER_19 = 
+ INFO [2020-10-28 15:28:52,607] - CACHE_PEER_PROVIDER_20 = 
+ INFO [2020-10-28 15:28:52,607] - CACHE_PEER_PROVIDER_21 = 
+ INFO [2020-10-28 15:28:52,607] - CACHE_PEER_PROVIDER_22 = 
+ INFO [2020-10-28 15:28:52,607] - CACHE_PEER_PROVIDER_23 = 
+ INFO [2020-10-28 15:28:52,608] - CACHE_PEER_PROVIDER_24 = 
+ INFO [2020-10-28 15:28:52,608] - CACHE_PEER_PROVIDER_25 = 
+ INFO [2020-10-28 15:28:52,608] - CACHE_PEER_PROVIDER_26 = 
+ INFO [2020-10-28 15:28:52,608] - CACHE_PEER_PROVIDER_27 = 
+ INFO [2020-10-28 15:28:52,608] - CACHE_PEER_PROVIDER_28 = 
+ INFO [2020-10-28 15:28:52,608] - CACHE_PEER_PROVIDER_29 = 
+ INFO [2020-10-28 15:28:52,608] - CACHE_PEER_PROVIDER_30 = 
+ INFO [2020-10-28 15:28:52,608] - *******************************************************************
+ INFO [2020-10-28 15:28:52,608] - Starting loadConfigurableTableList
+ INFO [2020-10-28 15:28:52,608] - CONFIGURABLE_TABLE_LIST: [derivedfact, memberhealthstate]
+ INFO [2020-10-28 15:28:52,609] - Completed loadConfigurableTableList
+WARNING: An illegal reflective access operation has occurred
+WARNING: Illegal reflective access by org.bouncycastle.jcajce.provider.drbg.DRBG (file:/Users/N133325/Desktop/HealthEngineAWSPOC_RemoteGithub/HealthEngineAWSPOC/src/application/shared_libs/bcprov-jdk15on-1.60.jar) to constructor sun.security.provider.Sun()
+WARNING: Please consider reporting this to the maintainers of org.bouncycastle.jcajce.provider.drbg.DRBG
+WARNING: Use --illegal-access=warn to enable warnings of further illegal reflective access operations
+WARNING: All illegal access operations will be denied in a future release
+ WARN [2020-10-28 15:28:53,279] - Exception encountered during context initialization - cancelling refresh attempt: org.springframework.beans.factory.BeanCreationException: Error creating bean with name 'oppScoreCategoryDAO' defined in class path resource [META-INF/cecacheserver-beans-cassandra.xml]: Cannot resolve reference to bean 'xmlDataSource' while setting bean property 'dataSource'; nested exception is org.springframework.beans.factory.BeanCreationException: Error creating bean with name 'xmlDataSource' defined in class path resource [META-INF/cecacheserver-beans-cassandra.xml]: Error setting property values; nested exception is org.springframework.beans.NotWritablePropertyException: Invalid property 'maxActive' of bean class [org.apache.commons.dbcp2.BasicDataSource]: Bean property 'maxActive' is not writable or has an invalid setter method. Does the parameter type of the setter match the return type of the getter?
+ERROR [2020-10-28 15:28:53,280] - Unable to load Spring Configuration from META-INF/cecacheserver-beans-cassandra.xml Exiting!!! 
+org.springframework.beans.factory.BeanCreationException: Error creating bean with name 'oppScoreCategoryDAO' defined in class path resource [META-INF/cecacheserver-beans-cassandra.xml]: Cannot resolve reference to bean 'xmlDataSource' while setting bean property 'dataSource'; nested exception is org.springframework.beans.factory.BeanCreationException: Error creating bean with name 'xmlDataSource' defined in class path resource [META-INF/cecacheserver-beans-cassandra.xml]: Error setting property values; nested exception is org.springframework.beans.NotWritablePropertyException: Invalid property 'maxActive' of bean class [org.apache.commons.dbcp2.BasicDataSource]: Bean property 'maxActive' is not writable or has an invalid setter method. Does the parameter type of the setter match the return type of the getter?
+	at org.springframework.beans.factory.support.BeanDefinitionValueResolver.resolveReference(BeanDefinitionValueResolver.java:359)
+	at org.springframework.beans.factory.support.BeanDefinitionValueResolver.resolveValueIfNecessary(BeanDefinitionValueResolver.java:108)
+	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.applyPropertyValues(AbstractAutowireCapableBeanFactory.java:1533)
+	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.populateBean(AbstractAutowireCapableBeanFactory.java:1280)
+	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.doCreateBean(AbstractAutowireCapableBeanFactory.java:551)
+	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.createBean(AbstractAutowireCapableBeanFactory.java:481)
+	at org.springframework.beans.factory.support.AbstractBeanFactory$1.getObject(AbstractBeanFactory.java:312)
+	at org.springframework.beans.factory.support.DefaultSingletonBeanRegistry.getSingleton(DefaultSingletonBeanRegistry.java:230)
+	at org.springframework.beans.factory.support.AbstractBeanFactory.doGetBean(AbstractBeanFactory.java:308)
+	at org.springframework.beans.factory.support.AbstractBeanFactory.getBean(AbstractBeanFactory.java:197)
+	at org.springframework.beans.factory.support.DefaultListableBeanFactory.preInstantiateSingletons(DefaultListableBeanFactory.java:764)
+	at org.springframework.context.support.AbstractApplicationContext.finishBeanFactoryInitialization(AbstractApplicationContext.java:867)
+	at org.springframework.context.support.AbstractApplicationContext.refresh(AbstractApplicationContext.java:542)
+	at org.springframework.context.support.ClassPathXmlApplicationContext.<init>(ClassPathXmlApplicationContext.java:139)
+	at org.springframework.context.support.ClassPathXmlApplicationContext.<init>(ClassPathXmlApplicationContext.java:83)
+	at net.ahm.careengine.cecacheserver.util.CECacheServerConfiguration$FactoryHolder.<clinit>(CECacheServerConfiguration.java:52)
+	at net.ahm.careengine.cecacheserver.util.CECacheServerConfiguration.getBean(CECacheServerConfiguration.java:223)
+	at net.ahm.careengine.cecacheserver.CECacheServer.<init>(CECacheServer.java:28)
+	at net.ahm.careengine.cecacheserver.CECacheServer.main(CECacheServer.java:22)
+Caused by: org.springframework.beans.factory.BeanCreationException: Error creating bean with name 'xmlDataSource' defined in class path resource [META-INF/cecacheserver-beans-cassandra.xml]: Error setting property values; nested exception is org.springframework.beans.NotWritablePropertyException: Invalid property 'maxActive' of bean class [org.apache.commons.dbcp2.BasicDataSource]: Bean property 'maxActive' is not writable or has an invalid setter method. Does the parameter type of the setter match the return type of the getter?
+	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.applyPropertyValues(AbstractAutowireCapableBeanFactory.java:1570)
+	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.populateBean(AbstractAutowireCapableBeanFactory.java:1280)
+	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.doCreateBean(AbstractAutowireCapableBeanFactory.java:551)
+	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.createBean(AbstractAutowireCapableBeanFactory.java:481)
+	at org.springframework.beans.factory.support.AbstractBeanFactory$1.getObject(AbstractBeanFactory.java:312)
+	at org.springframework.beans.factory.support.DefaultSingletonBeanRegistry.getSingleton(DefaultSingletonBeanRegistry.java:230)
+	at org.springframework.beans.factory.support.AbstractBeanFactory.doGetBean(AbstractBeanFactory.java:308)
+	at org.springframework.beans.factory.support.AbstractBeanFactory.getBean(AbstractBeanFactory.java:197)
+	at org.springframework.beans.factory.support.BeanDefinitionValueResolver.resolveReference(BeanDefinitionValueResolver.java:351)
+	... 18 more
+Caused by: org.springframework.beans.NotWritablePropertyException: Invalid property 'maxActive' of bean class [org.apache.commons.dbcp2.BasicDataSource]: Bean property 'maxActive' is not writable or has an invalid setter method. Does the parameter type of the setter match the return type of the getter?
+	at org.springframework.beans.BeanWrapperImpl.createNotWritablePropertyException(BeanWrapperImpl.java:239)
+	at org.springframework.beans.AbstractNestablePropertyAccessor.processLocalProperty(AbstractNestablePropertyAccessor.java:435)
+	at org.springframework.beans.AbstractNestablePropertyAccessor.setPropertyValue(AbstractNestablePropertyAccessor.java:290)
+	at org.springframework.beans.AbstractNestablePropertyAccessor.setPropertyValue(AbstractNestablePropertyAccessor.java:278)
+	at org.springframework.beans.AbstractPropertyAccessor.setPropertyValues(AbstractPropertyAccessor.java:95)
+	at org.springframework.beans.AbstractPropertyAccessor.setPropertyValues(AbstractPropertyAccessor.java:75)
+	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.applyPropertyValues(AbstractAutowireCapableBeanFactory.java:1566)
+	... 26 more
