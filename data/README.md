@@ -97,7 +97,23 @@ rm foo
 gpg2 --list-keys
 ```
 This is what the console looks like when the script is executed.  It takes less than a minute (on a rebooted system), is completely repeatable, and doesn't require any manual intervention.  
-![create_GPG_key](README_assets/create_GPG_key.png)\
+![create_GPG_key](README_assets/create_GPG_key.png)
+
+### export_GPG_keys.sh
+This script is run when the GPG key creator wants others to run decryption or encryption using the project's private and public keys.
+
+<B>Note that the files created from this command (HealthEngine.AWSPOC.public.key and HealthEngine.AWSPOC.private.key) must never be added to the repository.  That would sorta defeat the purpose!</B>
+```bash
+#!/usr/bin/env bash
+
+figlet -w 160 -f small "Export GPG2 Public and Private Keys"
+figlet -w 160 -f slant "NEVER CHECK THESE INTO GIT"
+
+gpg2 --export -a "Howard Deiner" > HealthEngine.AWSPOC.public.key
+echo 'xyzzy' | gpg2 --batch --yes --pinentry-mode loopback --passphrase-fd 0 --export-secret-key -a "Howard Deiner"  > HealthEngine.AWSPOC.private.key
+```
+This is what the console looks like when the script is executed.  It takes less than a minute (on a rebooted system), is completely repeatable, and doesn't require any manual intervention.  
+![export_GPG_keys](README_assets/export_GPG_keys.png)
 
 ### encrypt_and_send_to_S3.sh
 This script is run whenever new csv files are place in the oracle directory.  It encrypts the file and uploads it to the S3 bucket used to hold AWSPOC artifacts.
@@ -121,10 +137,10 @@ cat .filesToEncrypt |
 rm .filesToEncrypt
 ```
 This is what the console looks like when the script is executed.  It takes less than a minute (on a rebooted system), is completely repeatable, and doesn't require any manual intervention.  
-![encrypt_and_send_to_S3_console](README_assets/encrypt_and_send_to_S3_console.png)\
+![encrypt_and_send_to_S3_console](README_assets/encrypt_and_send_to_S3_console.png)
 
 And this is what the AWS S3 console looks like after the script is executed.    
-![encrypt_and_send_to_S3_aws_s3_console](README_assets/encrypt_and_send_to_S3_aws_s3_console.png)\
+![encrypt_and_send_to_S3_aws_s3_console](README_assets/encrypt_and_send_to_S3_aws_s3_console.png)
 
 ### transfer_from_s3_and_decrypt.sh
 This script is run whenever a csv file is needed in a test environment. It brings the file from the S3 bucket used to hold project artifacts and decrypts the file.
