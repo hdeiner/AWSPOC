@@ -115,6 +115,33 @@ echo 'xyzzy' | gpg2 --batch --yes --pinentry-mode loopback --passphrase-fd 0 --e
 This is what the console looks like when the script is executed.  It takes less than a minute (on a rebooted system), is completely repeatable, and doesn't require any manual intervention.  
 ![export_GPG_keys](README_assets/export_GPG_keys.png)
 
+### export_GPG_keys.sh
+This script is run when a person has public and private keys that we sent outchannel and wishes to run decryption or encryption using them with the project's encrypted artifacts.
+
+```bash
+#!/usr/bin/env bash
+
+figlet -w 160 -f small "Import GPG2 Public and Private Keys"
+
+figlet -w 160 -f small "Before Import"
+figlet -w 160 -f small "Public"
+gpg2 --list-public-keys
+figlet -w 160 -f small "Private"
+gpg2 --list-secret-keys
+
+gpg2 --import < $1
+gpg2 --import < $2
+#echo 'xyzzy' | gpg2 --batch --yes --pinentry-mode loopback --passphrase-fd 0 --import-secret-key -a "Howard Deiner"  < $2
+
+figlet -w 160 -f small "After Import"
+figlet -w 160 -f small "Public"
+gpg2 --list-public-keys
+figlet -w 160 -f small "Private"
+gpg2 --list-secret-keys
+```
+This is what the console looks like when the script is executed.  It takes less than a minute (on a rebooted system), is completely repeatable, and doesn't require any manual intervention.  
+![import_GPG_keys](README_assets/import_GPG_keys.png)
+
 ### encrypt_and_send_to_S3.sh
 This script is run whenever new csv files are place in the oracle directory.  It encrypts the file and uploads it to the S3 bucket used to hold AWSPOC artifacts.
 
