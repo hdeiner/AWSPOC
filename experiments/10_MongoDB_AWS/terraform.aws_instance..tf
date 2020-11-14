@@ -18,6 +18,37 @@ resource "aws_instance" "mongodb_ec2_instance" {
   provisioner "local-exec" {
     command = "aws ec2 wait instance-status-ok --region ${regex("[a-z]+[^a-z][a-z]+[^a-z][0-9]+",self.availability_zone)} --instance-ids ${aws_instance.mongodb_ec2_instance[count.index].id}"
   }
+  provisioner "remote-exec" {
+    connection {
+      type = "ssh"
+      user = "ubuntu"
+      host = self.public_dns
+      private_key = file("~/.ssh/id_rsa")
+    }
+    inline = [
+      "mkdir -p /home/ubuntu/.aws",
+    ]
+  }
+  provisioner "file" {
+    connection {
+      type = "ssh"
+      user = "ubuntu"
+      host = self.public_dns
+      private_key = file("~/.ssh/id_rsa")
+    }
+    source = "~/.aws/config"
+    destination = "/home/ubuntu/.aws/config"
+  }
+  provisioner "file" {
+    connection {
+      type = "ssh"
+      user = "ubuntu"
+      host = self.public_dns
+      private_key = file("~/.ssh/id_rsa")
+    }
+    source = "~/.aws/credentials"
+    destination = "/home/ubuntu/.aws/credentials"
+  }
   provisioner "file" {
     connection {
       type = "ssh"
@@ -44,8 +75,11 @@ resource "aws_instance" "mongodb_ec2_instance" {
       host = self.public_dns
       private_key = file("~/.ssh/id_rsa")
     }
-    source      = "../../src/db/DERIVEDFACT.csv"
-    destination = "/tmp/DERIVEDFACT.csv"
+    source      = "../../data/import_GPG_keys.sh"
+    destination = "/tmp/import_GPG_keys.sh"
+  }
+  provisioner "local-exec" {
+    command = "../../data/export_GPG_keys.sh"
   }
   provisioner "file" {
     connection {
@@ -54,8 +88,40 @@ resource "aws_instance" "mongodb_ec2_instance" {
       host = self.public_dns
       private_key = file("~/.ssh/id_rsa")
     }
-    source      = "../../src/db/MEMBERHEALTHSTATE.csv"
-    destination = "/tmp/MEMBERHEALTHSTATE.csv"
+    source      = "HealthEngine.AWSPOC.public.key"
+    destination = "/tmp/HealthEngine.AWSPOC.public.key"
+  }
+  provisioner "file" {
+    connection {
+      type = "ssh"
+      user = "ubuntu"
+      host = self.public_dns
+      private_key = file("~/.ssh/id_rsa")
+    }
+    source      = "HealthEngine.AWSPOC.private.key"
+    destination = "/tmp/HealthEngine.AWSPOC.private.key"
+  }
+  provisioner "local-exec" {
+    command = "rm HealthEngine.AWSPOC.public.key HealthEngine.AWSPOC.private.key"
+  }
+  provisioner "file" {
+    connection {
+      type = "ssh"
+      user = "ubuntu"
+      host = self.public_dns
+      private_key = file("~/.ssh/id_rsa")
+    }
+    source      = "../../data/transfer_from_s3_and_decrypt.sh"
+    destination = "/tmp/transfer_from_s3_and_decrypt.sh"
+  }
+  provisioner "remote-exec" {
+    connection {
+      type = "ssh"
+      user = "ubuntu"
+      host = self.public_dns
+      private_key = file("~/.ssh/id_rsa")
+    }
+    inline = ["chmod +x /tmp/import_GPG_keys.sh", "/tmp/import_GPG_keys.sh /tmp/HealthEngine.AWSPOC.public.key /tmp/HealthEngine.AWSPOC.private.key", "chmod +x /tmp/transfer_from_s3_and_decrypt.sh","rm /tmp/import_GPG_keys.sh /tmp/*.key"]
   }
   provisioner "file" {
     connection {

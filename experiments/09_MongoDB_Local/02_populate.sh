@@ -12,16 +12,17 @@ figlet -w 160 -f small "Get Data from S3 Bucket"
 ../../data/transfer_from_s3_and_decrypt.sh ce.ProductOpportunityPoints.csv
 ../../data/transfer_from_s3_and_decrypt.sh ce.Recommendation.csv
 
-echo "Clinical_Condition"
 figlet -w 160 -f small "Populate MongoDB Locally"
+
+echo "Clinical_Condition"
 # add header
 sed -i '1 i\CLINICAL_CONDITION_COD|CLINICAL_CONDITION_NAM|INSERTED_BY|REC_INSERT_DATE|REC_UPD_DATE|UPDATED_BY|CLINICALCONDITIONCLASSCD|CLINICALCONDITIONTYPECD|CLINICALCONDITIONABBREV' ce.Clinical_Condition.csv
 # convert bars to tabs
 sed -i 's/|/\t/g' ce.Clinical_Condition.csv
 # get rid of ^M (return characters)
 tr -d $'\r' < ce.Clinical_Condition.csv > ce.Clinical_Condition.csv.mod
-docker cp ce.Clinical_Condition.csv.mod mongodb_container:/tmp/ce.Clinical_Condition
-docker exec mongodb_container bash -c "mongoimport --type tsv -d testdatabase -c Clinical_Condition --headerline /tmp/ce.Clinical_Condition"
+docker cp ce.Clinical_Condition.csv.mod mongodb_container:/tmp/ce.Clinical_Condition.csv
+docker exec mongodb_container bash -c "mongoimport --type tsv -d testdatabase -c Clinical_Condition --headerline /tmp/ce.Clinical_Condition.csv"
 
 echo "DerivedFact"
 # add header
