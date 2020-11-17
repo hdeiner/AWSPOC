@@ -111,6 +111,66 @@ then
   tr -d $'\r' < ce.MedicalFindingType.csv > ce.MedicalFindingType.csv.mod
   echo 'COPY FROM '\'ce.MedicalFindingType.csv.mod\'' INTO SQL_CE_MEDICALFINDINGTYPE(MEDICALFINDINGTYPECD,MEDICALFINDINGTYPEDESC,INSERTEDBY,RECORDINSERTDT,RECORDUPDTDT,UPDTDBY,HEALTHSTATEAPPLICABLEFLAG) FORMAT CSV;' | ./apache-ignite-2.9.0-bin/bin/sqlline.sh -u jdbc:ignite:thin://127.0.0.1
 
+  echo "Import ce.ProductFinding.csv"
+  /tmp/transfer_from_s3_and_decrypt.sh ce.ProductFinding.csv
+  # convert comas to semi-colons
+  sed --in-place --regexp-extended 's/,/;/g' ce.ProductFinding.csv
+  # convert bars to commas
+  sed --in-place 's/|/,/g' ce.ProductFinding.csv
+  # get rid of timestamps and decimals after timestamp
+  sed --in-place --regexp-extended 's/ [0-9]+[0-9]+\:[0-9]+[0-9]+\:[0-9]+\.[0-9]+//g' ce.ProductFinding.csv
+  # remove blanks at start of line
+  sed --in-place --regexp-extended 's/^ *//g' ce.ProductFinding.csv
+  # remove blanks before commas
+  sed --in-place --regexp-extended 's/[ ]+,/,/g' ce.ProductFinding.csv
+  # remove blanks after commas
+  sed --in-place --regexp-extended 's/,[ ]+/,/g' ce.ProductFinding.csv
+  # remove blanks at end of line
+  sed --in-place --regexp-extended 's/ *$//g' ce.ProductFinding.csv
+  # get rid of ^M (return characters)
+  tr -d $'\r' < ce.ProductFinding.csv > ce.ProductFinding.csv.mod
+  echo 'COPY FROM '\'ce.ProductFinding.csv.mod\'' INTO SQL_CE_PRODUCTFINDING(PRODUCTFINDINGID,PRODUCTFINDINGNM,SEVERITYLEVELCD,PRODUCTFINDINGTYPECD,PRODUCTMNEMONICCD,SUBPRODUCTMNEMONICCD,INSERTEDBY,RECORDINSERTDT,RECORDUPDTDT,UPDTDBY) FORMAT CSV;' | ./apache-ignite-2.9.0-bin/bin/sqlline.sh -u jdbc:ignite:thin://127.0.0.1
+
+  echo "Import ce.ProductFindingType.csv"
+  /tmp/transfer_from_s3_and_decrypt.sh ce.ProductFindingType.csv
+  # convert comas to semi-colons
+  sed --in-place --regexp-extended 's/,/;/g' ce.ProductFindingType.csv
+  # convert bars to commas
+  sed --in-place 's/|/,/g' ce.ProductFindingType.csv
+  # get rid of timestamps and decimals after timestamp
+  sed --in-place --regexp-extended 's/ [0-9]+[0-9]+\:[0-9]+[0-9]+\:[0-9]+\.[0-9]+//g' ce.ProductFindingType.csv
+  # remove blanks at start of line
+  sed --in-place --regexp-extended 's/^ *//g' ce.ProductFindingType.csv
+  # remove blanks before commas
+  sed --in-place --regexp-extended 's/[ ]+,/,/g' ce.ProductFindingType.csv
+  # remove blanks after commas
+  sed --in-place --regexp-extended 's/,[ ]+/,/g' ce.ProductFindingType.csv
+  # remove blanks at end of line
+  sed --in-place --regexp-extended 's/ *$//g' ce.ProductFindingType.csv
+  # get rid of ^M (return characters)
+  tr -d $'\r' < ce.ProductFindingType.csv > ce.ProductFindingType.csv.mod
+  echo 'COPY FROM '\'ce.ProductFindingType.csv.mod\'' INTO SQL_CE_PRODUCTFINDINGTYPE(PRODUCTFINDINGTYPECD,PRODUCTFINDINGTYPEDESC,INSERTEDBY,RECORDINSERTDT,RECORDUPDTDT,UPDTDBY) FORMAT CSV;' | ./apache-ignite-2.9.0-bin/bin/sqlline.sh -u jdbc:ignite:thin://127.0.0.1
+
+  echo "Import ce.OpportunityPointsDiscr.csv"
+  /tmp/transfer_from_s3_and_decrypt.sh ce.OpportunityPointsDiscr.csv
+  # convert comas to semi-colons
+  sed --in-place --regexp-extended 's/,/;/g' ce.OpportunityPointsDiscr.csv
+  # convert bars to commas
+  sed --in-place 's/|/,/g' ce.OpportunityPointsDiscr.csv
+  # get rid of timestamps and decimals after timestamp
+  sed --in-place --regexp-extended 's/ [0-9]+[0-9]+\:[0-9]+[0-9]+\:[0-9]+\.[0-9]+//g' ce.OpportunityPointsDiscr.csv
+  # remove blanks at start of line
+  sed --in-place --regexp-extended 's/^ *//g' ce.OpportunityPointsDiscr.csv
+  # remove blanks before commas
+  sed --in-place --regexp-extended 's/[ ]+,/,/g' ce.OpportunityPointsDiscr.csv
+  # remove blanks after commas
+  sed --in-place --regexp-extended 's/,[ ]+/,/g' ce.OpportunityPointsDiscr.csv
+  # remove blanks at end of line
+  sed --in-place --regexp-extended 's/ *$//g' ce.OpportunityPointsDiscr.csv
+  # get rid of ^M (return characters)
+  tr -d $'\r' < ce.OpportunityPointsDiscr.csv > ce.OpportunityPointsDiscr.csv.mod
+  echo 'COPY FROM '\'ce.OpportunityPointsDiscr.csv.mod\'' INTO SQL_CE_OPPORTUNITYPOINTSDISCR(OPPORTUNITYPOINTSDISCRCD,OPPORTUNITYPOINTSDISCNM,INSERTEDBY,RECORDINSERTDT,RECORDUPDTDT,UPDTDBY) FORMAT CSV;' | ./apache-ignite-2.9.0-bin/bin/sqlline.sh -u jdbc:ignite:thin://127.0.0.1
+
   echo "Import ce.ProductOpportunityPoints.csv"
   /tmp/transfer_from_s3_and_decrypt.sh ce.ProductOpportunityPoints.csv
   # convert comas to semi-colons

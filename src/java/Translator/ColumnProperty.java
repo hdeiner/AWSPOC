@@ -6,6 +6,7 @@ public class ColumnProperty {
 	private String defaultValue;
 	private String defaultValueComputed;
 	private boolean isPrimaryKey;
+	private boolean notNullEnable;
 
 	public String getColumnName() {
 		return columnName;
@@ -47,6 +48,14 @@ public class ColumnProperty {
 		this.isPrimaryKey = isPrimaryKey;
 	}
 
+	public boolean isNotNullEnable() {
+		return notNullEnable;
+	}
+
+	public void setNotNullEnable(boolean notNullEnable) {
+		this.notNullEnable = notNullEnable;
+	}
+
 	@Override
 	public int hashCode() {
 		final int prime = 31;
@@ -56,6 +65,7 @@ public class ColumnProperty {
 		result = prime * result + ((defaultValue == null) ? 0 : defaultValue.hashCode());
 		result = prime * result + ((defaultValueComputed == null) ? 0 : defaultValueComputed.hashCode());
 		result = prime * result + (isPrimaryKey ? 1231 : 1237);
+		result = prime * result + (notNullEnable ? 1231 : 1237);
 		return result;
 	}
 
@@ -90,6 +100,8 @@ public class ColumnProperty {
 			return false;
 		if (isPrimaryKey != other.isPrimaryKey)
 			return false;
+		if (notNullEnable != other.notNullEnable)
+			return false;
 		return true;
 	}
 
@@ -97,7 +109,7 @@ public class ColumnProperty {
 	public String toString() {
 		return "ColumnProperty [columnName=" + columnName + ", columnDataType=" + columnDataType + ", defaultValue="
 				+ defaultValue + ", defaultValueComputed=" + defaultValueComputed + ", isPrimaryKey=" + isPrimaryKey
-				+ "]";
+				+ ", notNullEnable=" + notNullEnable + "]";
 	}
 
 }
