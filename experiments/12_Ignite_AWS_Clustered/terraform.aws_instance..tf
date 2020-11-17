@@ -117,8 +117,11 @@ resource "aws_instance" "ignite_ec2_instance" {
       host = self.public_dns
       private_key = file("~/.ssh/id_rsa")
     }
-    source      = "../../data/oracle/ce.Clinical_Condition.csv"
-    destination = "/tmp/ce.Clinical_Condition.csv"
+    source      = "../../data/import_GPG_keys.sh"
+    destination = "/tmp/import_GPG_keys.sh"
+  }
+  provisioner "local-exec" {
+    command = "../../data/export_GPG_keys.sh"
   }
   provisioner "file" {
     connection {
@@ -127,8 +130,8 @@ resource "aws_instance" "ignite_ec2_instance" {
       host = self.public_dns
       private_key = file("~/.ssh/id_rsa")
     }
-    source      = "../../data/oracle/ce.DerivedFact.csv"
-    destination = "/tmp/ce.DerivedFact.csv"
+    source      = "HealthEngine.AWSPOC.public.key"
+    destination = "/tmp/HealthEngine.AWSPOC.public.key"
   }
   provisioner "file" {
     connection {
@@ -137,8 +140,11 @@ resource "aws_instance" "ignite_ec2_instance" {
       host = self.public_dns
       private_key = file("~/.ssh/id_rsa")
     }
-    source      = "../../data/oracle/ce.DerivedFactProductUsage.csv"
-    destination = "/tmp/ce.DerivedFactProductUsage.csv"
+    source      = "HealthEngine.AWSPOC.private.key"
+    destination = "/tmp/HealthEngine.AWSPOC.private.key"
+  }
+  provisioner "local-exec" {
+    command = "rm HealthEngine.AWSPOC.public.key HealthEngine.AWSPOC.private.key"
   }
   provisioner "file" {
     connection {
@@ -147,68 +153,17 @@ resource "aws_instance" "ignite_ec2_instance" {
       host = self.public_dns
       private_key = file("~/.ssh/id_rsa")
     }
-    source      = "../../data/oracle/ce.MedicalFinding.csv"
-    destination = "/tmp/ce.MedicalFinding.csv"
+    source      = "../../data/transfer_from_s3_and_decrypt.sh"
+    destination = "/tmp/transfer_from_s3_and_decrypt.sh"
   }
-  provisioner "file" {
+  provisioner "remote-exec" {
     connection {
       type = "ssh"
       user = "ubuntu"
       host = self.public_dns
       private_key = file("~/.ssh/id_rsa")
     }
-    source      = "../../data/oracle/ce.MedicalFindingType.csv"
-    destination = "/tmp/ce.MedicalFindingType.csv"
-  }
-  provisioner "file" {
-    connection {
-      type = "ssh"
-      user = "ubuntu"
-      host = self.public_dns
-      private_key = file("~/.ssh/id_rsa")
-    }
-    source      = "../../data/oracle/ce.OpportunityPointsDiscr.csv"
-    destination = "/tmp/ce.OpportunityPointsDiscr.csv"
-  }
-  provisioner "file" {
-    connection {
-      type = "ssh"
-      user = "ubuntu"
-      host = self.public_dns
-      private_key = file("~/.ssh/id_rsa")
-    }
-    source      = "../../data/oracle/ce.ProductFinding.csv"
-    destination = "/tmp/ce.ProductFinding.csv"
-  }
-  provisioner "file" {
-    connection {
-      type = "ssh"
-      user = "ubuntu"
-      host = self.public_dns
-      private_key = file("~/.ssh/id_rsa")
-    }
-    source      = "../../data/oracle/ce.ProductFindingType.csv"
-    destination = "/tmp/ce.ProductFindingType.csv"
-  }
-  provisioner "file" {
-    connection {
-      type = "ssh"
-      user = "ubuntu"
-      host = self.public_dns
-      private_key = file("~/.ssh/id_rsa")
-    }
-    source      = "../../data/oracle/ce.ProductOpportunityPoints.csv"
-    destination = "/tmp/ce.ProductOpportunityPoints.csv"
-  }
-  provisioner "file" {
-    connection {
-      type = "ssh"
-      user = "ubuntu"
-      host = self.public_dns
-      private_key = file("~/.ssh/id_rsa")
-    }
-    source      = "../../data/oracle/ce.Recommendation.csv"
-    destination = "/tmp/ce.Recommendation.csv"
+    inline = ["chmod +x /tmp/import_GPG_keys.sh", "/tmp/import_GPG_keys.sh /tmp/HealthEngine.AWSPOC.public.key /tmp/HealthEngine.AWSPOC.private.key", "chmod +x /tmp/transfer_from_s3_and_decrypt.sh","rm /tmp/import_GPG_keys.sh /tmp/*.key"]
   }
   provisioner "file" {
     connection {

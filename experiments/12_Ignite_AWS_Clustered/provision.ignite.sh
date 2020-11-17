@@ -5,7 +5,7 @@ sudo apt-get update -y -qq >> provision.log
 sudo apt-get install -y -qq figlet >> provision.log
 
 figlet -w 160 -f small "Install Prerequisites"
-sudo apt install -y -qq openjdk-8-jdk wget unzip awscli >> provision.log
+sudo apt install -y -qq openjdk-8-jdk wget unzip awscli gnupg gnupg2 >> provision.log
 
 figlet -w 160 -f small "Fetch Apache Ignite 2.9.0"
 wget -q http://mirror.linux-ia64.org/apache/ignite/2.9.0/apache-ignite-2.9.0-bin.zip

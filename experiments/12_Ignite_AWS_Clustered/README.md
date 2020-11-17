@@ -152,8 +152,11 @@ resource "aws_instance" "ignite_ec2_instance" {
       host = self.public_dns
       private_key = file("~/.ssh/id_rsa")
     }
-    source      = "../../data/oracle/ce.Clinical_Condition.csv"
-    destination = "/tmp/ce.Clinical_Condition.csv"
+    source      = "../../data/import_GPG_keys.sh"
+    destination = "/tmp/import_GPG_keys.sh"
+  }
+  provisioner "local-exec" {
+    command = "../../data/export_GPG_keys.sh"
   }
   provisioner "file" {
     connection {
@@ -162,8 +165,8 @@ resource "aws_instance" "ignite_ec2_instance" {
       host = self.public_dns
       private_key = file("~/.ssh/id_rsa")
     }
-    source      = "../../data/oracle/ce.DerivedFact.csv"
-    destination = "/tmp/ce.DerivedFact.csv"
+    source      = "HealthEngine.AWSPOC.public.key"
+    destination = "/tmp/HealthEngine.AWSPOC.public.key"
   }
   provisioner "file" {
     connection {
@@ -172,8 +175,11 @@ resource "aws_instance" "ignite_ec2_instance" {
       host = self.public_dns
       private_key = file("~/.ssh/id_rsa")
     }
-    source      = "../../data/oracle/ce.DerivedFactProductUsage.csv"
-    destination = "/tmp/ce.DerivedFactProductUsage.csv"
+    source      = "HealthEngine.AWSPOC.private.key"
+    destination = "/tmp/HealthEngine.AWSPOC.private.key"
+  }
+  provisioner "local-exec" {
+    command = "rm HealthEngine.AWSPOC.public.key HealthEngine.AWSPOC.private.key"
   }
   provisioner "file" {
     connection {
@@ -182,68 +188,17 @@ resource "aws_instance" "ignite_ec2_instance" {
       host = self.public_dns
       private_key = file("~/.ssh/id_rsa")
     }
-    source      = "../../data/oracle/ce.MedicalFinding.csv"
-    destination = "/tmp/ce.MedicalFinding.csv"
+    source      = "../../data/transfer_from_s3_and_decrypt.sh"
+    destination = "/tmp/transfer_from_s3_and_decrypt.sh"
   }
-  provisioner "file" {
+  provisioner "remote-exec" {
     connection {
       type = "ssh"
       user = "ubuntu"
       host = self.public_dns
       private_key = file("~/.ssh/id_rsa")
     }
-    source      = "../../data/oracle/ce.MedicalFindingType.csv"
-    destination = "/tmp/ce.MedicalFindingType.csv"
-  }
-  provisioner "file" {
-    connection {
-      type = "ssh"
-      user = "ubuntu"
-      host = self.public_dns
-      private_key = file("~/.ssh/id_rsa")
-    }
-    source      = "../../data/oracle/ce.OpportunityPointsDiscr.csv"
-    destination = "/tmp/ce.OpportunityPointsDiscr.csv"
-  }
-  provisioner "file" {
-    connection {
-      type = "ssh"
-      user = "ubuntu"
-      host = self.public_dns
-      private_key = file("~/.ssh/id_rsa")
-    }
-    source      = "../../data/oracle/ce.ProductFinding.csv"
-    destination = "/tmp/ce.ProductFinding.csv"
-  }
-  provisioner "file" {
-    connection {
-      type = "ssh"
-      user = "ubuntu"
-      host = self.public_dns
-      private_key = file("~/.ssh/id_rsa")
-    }
-    source      = "../../data/oracle/ce.ProductFindingType.csv"
-    destination = "/tmp/ce.ProductFindingType.csv"
-  }
-  provisioner "file" {
-    connection {
-      type = "ssh"
-      user = "ubuntu"
-      host = self.public_dns
-      private_key = file("~/.ssh/id_rsa")
-    }
-    source      = "../../data/oracle/ce.ProductOpportunityPoints.csv"
-    destination = "/tmp/ce.ProductOpportunityPoints.csv"
-  }
-  provisioner "file" {
-    connection {
-      type = "ssh"
-      user = "ubuntu"
-      host = self.public_dns
-      private_key = file("~/.ssh/id_rsa")
-    }
-    source      = "../../data/oracle/ce.Recommendation.csv"
-    destination = "/tmp/ce.Recommendation.csv"
+    inline = ["chmod +x /tmp/import_GPG_keys.sh", "/tmp/import_GPG_keys.sh /tmp/HealthEngine.AWSPOC.public.key /tmp/HealthEngine.AWSPOC.private.key", "chmod +x /tmp/transfer_from_s3_and_decrypt.sh","rm /tmp/import_GPG_keys.sh /tmp/*.key"]
   }
   provisioner "file" {
     connection {
@@ -275,7 +230,7 @@ sudo apt-get update -y -qq >> provision.log
 sudo apt-get install -y -qq figlet >> provision.log
 
 figlet -w 160 -f small "Install Prerequisites"
-sudo apt install -y -qq openjdk-8-jdk wget unzip awscli >> provision.log
+sudo apt install -y -qq openjdk-8-jdk wget unzip awscli gnupg gnupg2 >> provision.log
 
 figlet -w 160 -f small "Fetch Apache Ignite 2.9.0"
 wget -q http://mirror.linux-ia64.org/apache/ignite/2.9.0/apache-ignite-2.9.0-bin.zip
@@ -348,121 +303,188 @@ while true ; do
   sleep 5
 done
 ```
-The script that is run on the EC2 instance (02_populate.sh) is also worthy of note, as it runs on each instance in the Ignite cluster.  It has to see if another cluster has already defined the schema and then if another instance has loaded data into the cluster.
+The script that is run on the EC2 instance (02_populate.sh) is also worthy of note, as it runs on each instance in the Ignite cluster.  While it's not hard to allow the load to be shared among all the cluster members to populate the cluster, you will find code that has each cluster member except the first to inhibit doing any Ignite loading, so that performance measuring can be more easily assessed.  You will also find significant work done using sed, tr, and paste to transform the | seperated fields into true csv files.
 ```bash
 #!/usr/bin/env bash
 
 figlet -w 200 -f slant "This is run on AWS ONLY during startup"
 
-figlet -w 160 -f small "Populate Ignite Schema AWS Cluster"
-echo '!tables' | ./apache-ignite-2.9.0-bin/bin/sqlline.sh --color=false -u jdbc:ignite:thin://127.0.0.1 > .results
-result=$(grep -cE 'SQL_CE_' .results)
-if [ $result == 0 ] ; then
+aws ec2 describe-instances --region "us-east-1" --instance-id "`curl -s http://169.254.169.254/latest/meta-data/instance-id`" --query 'Reservations[].Instances[].[Tags[0].Value]' --output text > .instanceName
+result=$(grep -cE 'Ignite Instance 000' .instanceName)
+if [ $result == 1 ]
+then
+  figlet -w 160 -f small "Populate Ignite Schema AWS Cluster"
+
+  echo "Apply Schema"
   ./apache-ignite-2.9.0-bin/bin/sqlline.sh -u jdbc:ignite:thin://127.0.0.1 -f /tmp/ddl.sql
+
+  echo "Import ce.Clinical_Condition.csv"
+  /tmp/transfer_from_s3_and_decrypt.sh ce.Clinical_Condition.csv
+  # convert comas to semi-colons
+  sed --in-place --regexp-extended 's/,/;/g' ce.Clinical_Condition.csv
+  # convert bars to commas
+  sed --in-place 's/|/,/g' ce.Clinical_Condition.csv
+  # get rid of timestamps
+  sed --in-place --regexp-extended 's/ [0-9]+[0-9]+\:[0-9]+[0-9]+\:[0-9]+//g' ce.Clinical_Condition.csv
+  # get rid of ^M (return characters)
+  # remove blanks at start of line
+  sed --in-place --regexp-extended 's/^ *//g' ce.Clinical_Condition.csv
+  # remove blanks before commas
+  sed --in-place --regexp-extended 's/[ ]+,/,/g' ce.Clinical_Condition.csv
+  # remove blanks after commas
+  sed --in-place --regexp-extended 's/,[ ]+/,/g' ce.Clinical_Condition.csv
+  # remove blanks at end of line
+  sed --in-place --regexp-extended 's/ *$//g' ce.Clinical_Condition.csv
+  tr -d $'\r' < ce.Clinical_Condition.csv > ce.Clinical_Condition.csv.mod
+  echo 'COPY FROM '\'ce.Clinical_Condition.csv.mod\'' INTO SQL_CE_CLINICAL_CONDITION(CLINICAL_CONDITION_COD,CLINICAL_CONDITION_NAM,INSERTED_BY,REC_INSERT_DATE,REC_UPD_DATE,UPDATED_BY,CLINICALCONDITIONCLASSCD,CLINICALCONDITIONTYPECD,CLINICALCONDITIONABBREV) FORMAT CSV;' | ./apache-ignite-2.9.0-bin/bin/sqlline.sh -u jdbc:ignite:thin://127.0.0.1
+
+  echo "Import ce.DerivedFact.csv"
+  /tmp/transfer_from_s3_and_decrypt.sh ce.DerivedFact.csv
+  # convert comas to semi-colons
+  sed --in-place --regexp-extended 's/,/;/g' ce.DerivedFact.csv
+  # convert bars to commas
+  sed --in-place 's/|/,/g' ce.DerivedFact.csv
+  # get rid of timestamps and decimals after timestamp
+  sed --in-place --regexp-extended 's/ [0-9]+[0-9]+\:[0-9]+[0-9]+\:[0-9]+\.[0-9]+//g' ce.DerivedFact.csv
+  # remove blanks at start of line
+  sed --in-place --regexp-extended 's/^ *//g' ce.DerivedFact.csv
+  # remove blanks before commas
+  sed --in-place --regexp-extended 's/[ ]+,/,/g' ce.DerivedFact.csv
+  # remove blanks after commas
+  sed --in-place --regexp-extended 's/,[ ]+/,/g' ce.DerivedFact.csv
+  # remove blanks at end of line
+  sed --in-place --regexp-extended 's/ *$//g' ce.DerivedFact.csv
+  # get rid of ^M (return characters)
+  tr -d $'\r' < ce.DerivedFact.csv > ce.DerivedFact.csv.mod
+  echo 'COPY FROM '\'ce.DerivedFact.csv.mod\'' INTO SQL_CE_DERIVEDFACT(DERIVEDFACTID,DERIVEDFACTTRACKINGID,DERIVEDFACTTYPEID,INSERTEDBY,RECORDINSERTDT,RECORDUPDTDT,UPDTDBY) FORMAT CSV;' | ./apache-ignite-2.9.0-bin/bin/sqlline.sh -u jdbc:ignite:thin://127.0.0.1
+
+  echo "Import ce.DerivedFactProductUsage.csv"
+  /tmp/transfer_from_s3_and_decrypt.sh ce.DerivedFactProductUsage.csv
+  # convert comas to semi-colons
+  sed --in-place --regexp-extended 's/,/;/g' ce.DerivedFactProductUsage.csv
+  # convert bars to commas
+  sed --in-place 's/|/,/g' ce.DerivedFactProductUsage.csv
+  # get rid of timestamps and decimals after timestamp
+  sed --in-place --regexp-extended 's/ [0-9]+[0-9]+\:[0-9]+[0-9]+\:[0-9]+\.[0-9]+//g' ce.DerivedFactProductUsage.csv
+  # remove blanks at start of line
+  sed --in-place --regexp-extended 's/^ *//g' ce.DerivedFactProductUsage.csv
+  # remove blanks before commas
+  sed --in-place --regexp-extended 's/[ ]+,/,/g' ce.DerivedFactProductUsage.csv
+  # remove blanks after commas
+  sed --in-place --regexp-extended 's/,[ ]+/,/g' ce.DerivedFactProductUsage.csv
+  # remove blanks at end of line
+  sed --in-place --regexp-extended 's/ *$//g' ce.DerivedFactProductUsage.csv
+  # get rid of ^M (return characters)
+  tr -d $'\r' < ce.DerivedFactProductUsage.csv > ce.DerivedFactProductUsage.csv.mod
+  echo 'COPY FROM '\'ce.DerivedFactProductUsage.csv.mod\'' INTO SQL_CE_DERIVEDFACTPRODUCTUSAGE(DERIVEDFACTPRODUCTUSAGEID,DERIVEDFACTID,PRODUCTMNEMONICCD,INSERTEDBY,RECORDINSERTDT,RECORDUPDTDT,UPDTDBY) FORMAT CSV;' | ./apache-ignite-2.9.0-bin/bin/sqlline.sh -u jdbc:ignite:thin://127.0.0.1
+
+  echo "Import ce.MedicalFinding.csv"
+  /tmp/transfer_from_s3_and_decrypt.sh ce.MedicalFinding.csv
+  # convert comas to semi-colons
+  sed --in-place --regexp-extended 's/,/;/g' ce.MedicalFinding.csv
+  # convert bars to commas
+  sed --in-place 's/|/,/g' ce.MedicalFinding.csv
+  # get rid of timestamps and decimals after timestamp
+  sed --in-place --regexp-extended 's/ [0-9]+[0-9]+\:[0-9]+[0-9]+\:[0-9]+\.[0-9]+//g' ce.MedicalFinding.csv
+  # remove blanks at start of line
+  sed --in-place --regexp-extended 's/^ *//g' ce.MedicalFinding.csv
+  # remove blanks before commas
+  sed --in-place --regexp-extended 's/[ ]+,/,/g' ce.MedicalFinding.csv
+  # remove blanks after commas
+  sed --in-place --regexp-extended 's/,[ ]+/,/g' ce.MedicalFinding.csv
+  # remove blanks at end of line
+  sed --in-place --regexp-extended 's/ *$//g' ce.MedicalFinding.csv
+  # get rid of ^M (return characters)
+  tr -d $'\r' < ce.MedicalFinding.csv > ce.MedicalFinding.csv.mod
+  echo 'COPY FROM '\'ce.MedicalFinding.csv.mod\'' INTO SQL_CE_MEDICALFINDING(MEDICALFINDINGID,MEDICALFINDINGTYPECD,MEDICALFINDINGNM,SEVERITYLEVELCD,IMPACTABLEFLG,CLINICAL_CONDITION_COD,INSERTEDBY,RECORDINSERTDT,RECORDUPDTDT,UPDTDBY,ACTIVEFLG,OPPORTUNITYPOINTSDISCRCD) FORMAT CSV;' | ./apache-ignite-2.9.0-bin/bin/sqlline.sh -u jdbc:ignite:thin://127.0.0.1
+
+  echo "Import ce.MedicalFindingType.csv"
+  /tmp/transfer_from_s3_and_decrypt.sh ce.MedicalFindingType.csv
+  # convert comas to semi-colons
+  sed --in-place --regexp-extended 's/,/;/g' ce.MedicalFindingType.csv
+  # convert bars to commas
+  sed --in-place 's/|/,/g' ce.MedicalFindingType.csv
+  # get rid of timestamps and decimals after timestamp
+  sed --in-place --regexp-extended 's/ [0-9]+[0-9]+\:[0-9]+[0-9]+\:[0-9]+\.[0-9]+//g' ce.MedicalFindingType.csv
+  # remove blanks at start of line
+  sed --in-place --regexp-extended 's/^ *//g' ce.MedicalFindingType.csv
+  # remove blanks before commas
+  sed --in-place --regexp-extended 's/[ ]+,/,/g' ce.MedicalFindingType.csv
+  # remove blanks after commas
+  sed --in-place --regexp-extended 's/,[ ]+/,/g' ce.MedicalFindingType.csv
+  # remove blanks at end of line
+  sed --in-place --regexp-extended 's/ *$//g' ce.MedicalFindingType.csv
+  # get rid of ^M (return characters)
+  tr -d $'\r' < ce.MedicalFindingType.csv > ce.MedicalFindingType.csv.mod
+  echo 'COPY FROM '\'ce.MedicalFindingType.csv.mod\'' INTO SQL_CE_MEDICALFINDINGTYPE(MEDICALFINDINGTYPECD,MEDICALFINDINGTYPEDESC,INSERTEDBY,RECORDINSERTDT,RECORDUPDTDT,UPDTDBY,HEALTHSTATEAPPLICABLEFLAG) FORMAT CSV;' | ./apache-ignite-2.9.0-bin/bin/sqlline.sh -u jdbc:ignite:thin://127.0.0.1
+
+  echo "Import ce.ProductOpportunityPoints.csv"
+  /tmp/transfer_from_s3_and_decrypt.sh ce.ProductOpportunityPoints.csv
+  # convert comas to semi-colons
+  sed --in-place --regexp-extended 's/,/;/g' ce.ProductOpportunityPoints.csv
+  # convert bars to commas
+  sed --in-place 's/|/,/g' ce.ProductOpportunityPoints.csv
+  # get rid of timestamps and decimals after timestamp
+  sed --in-place --regexp-extended 's/ [0-9]+[0-9]+\:[0-9]+[0-9]+\:[0-9]+\.[0-9]+//g' ce.ProductOpportunityPoints.csv
+  # remove blanks at start of line
+  sed --in-place --regexp-extended 's/^ *//g' ce.ProductOpportunityPoints.csv
+  # remove blanks before commas
+  sed --in-place --regexp-extended 's/[ ]+,/,/g' ce.ProductOpportunityPoints.csv
+  # remove blanks after commas
+  sed --in-place --regexp-extended 's/,[ ]+/,/g' ce.ProductOpportunityPoints.csv
+  # remove blanks at end of line
+  sed --in-place --regexp-extended 's/ *$//g' ce.ProductOpportunityPoints.csv
+  # get rid of ^M (return characters)
+  tr -d $'\r' < ce.ProductOpportunityPoints.csv > ce.ProductOpportunityPoints.csv.mod
+  echo 'COPY FROM '\'ce.ProductOpportunityPoints.csv.mod\'' INTO SQL_CE_PRODUCTOPPORTUNITYPOINTS(OPPORTUNITYPOINTSDISCCD,EFFECTIVESTARTDT,OPPORTUNITYPOINTSNBR,EFFECTIVEENDDT,DERIVEDFACTPRODUCTUSAGEID,INSERTEDBY,RECORDINSERTDT,RECORDUPDTDT,UPDTDBY) FORMAT CSV;' | ./apache-ignite-2.9.0-bin/bin/sqlline.sh -u jdbc:ignite:thin://127.0.0.1
+
+  echo "Import ce.Recommendation.csv"
+  /tmp/transfer_from_s3_and_decrypt.sh ce.Recommendation.csv
+# get rid of ^M (return characters)
+  tr -d $'\r' < ce.Recommendation.csv > ce.Recommendation.csv.mod
+  # Merge every other line in ce.Recommendation together with a comma between them
+  paste - - - -d'|' < ce.Recommendation.csv.mod > ce.Recommendation.csv
+  # convert comas to semi-colons
+  sed --in-place --regexp-extended 's/,/;/g' ce.Recommendation.csv
+  # convert bars to commas
+  sed --in-place 's/|/,/g' ce.Recommendation.csv
+  # get rid of timestamps and decimals after timestamp
+  sed --in-place --regexp-extended 's/ [0-9]+[0-9]+\:[0-9]+[0-9]+\:[0-9]+\.[0-9]+//g' ce.Recommendation.csv
+  # remove blanks at start of line
+  sed --in-place --regexp-extended 's/^ *//g' ce.Recommendation.csv
+  # remove blanks before commas
+  sed --in-place --regexp-extended 's/[ ]+,/,/g' ce.Recommendation.csv
+  # remove blanks after commas
+  sed --in-place --regexp-extended 's/,[ ]+/,/g' ce.Recommendation.csv
+  # remove blanks at end of line
+  sed --in-place --regexp-extended 's/ *$//g' ce.Recommendation.csv
+  echo 'COPY FROM '\'ce.Recommendation.csv\'' INTO SQL_CE_RECOMMENDATION(RECOMMENDATIONSKEY,RECOMMENDATIONID,RECOMMENDATIONCODE,RECOMMENDATIONDESC,RECOMMENDATIONTYPE,CCTYPE,CLINICALREVIEWTYPE,AGERANGEID,ACTIONCODE,THERAPEUTICCLASS,MDCCODE,MCCCODE,PRIVACYCATEGORY,INTERVENTION,RECOMMENDATIONFAMILYID,RECOMMENDPRECE_ENCE_ROUPID,INBOUNDCOMMUNICATIONROUTE,SEVERITY,PRIMARYDIAGNOSIS,SECONDARYDIAGNOSIS,ADVERSEEVENT,ICMCONDITIONID,WELLNESSFLAG,VBFELIGIBLEFLAG,COMMUNICATIONRANKING,PRECE_ENCE_ANKING,PATIENTDERIVEDFLAG,LABREQUIREDFLAG,UTILIZATIONTEXTAVAILABLEF,SENSITIVEMESSAGEFLAG,HIGHIMPACTFLAG,ICMLETTERFLAG,REQCLINICIANCLOSINGFLAG,OPSIMPELMENTATIONPHASE,SEASONALFLAG,SEASONALSTARTDT,SEASONALENDDT,EFFECTIVESTARTDT,EFFECTIVEENDDT,RECORDINSERTDT,RECORDUPDTDT,INSERTEDBY,UPDTDBY,STANDARDRUNFLAG,INTERVENTIONFEEDBACKFAMILYID,CONDITIONFEEDBACKFAMILYID,ASHWELLNESSELIGIBILITYFLAG,HEALTHADVOCACYELIGIBILITYFLAG) FORMAT CSV;' | ./apache-ignite-2.9.0-bin/bin/sqlline.sh -u jdbc:ignite:thin://127.0.0.1
+
+  figlet -w 160 -f small "Check Ignite AWS Cluster"
+  echo 'SELECT TOP 10 * FROM SQL_CE_CLINICAL_CONDITION;' | ./apache-ignite-2.9.0-bin/bin/sqlline.sh --color=true -u jdbc:ignite:thin://127.0.0.1
+  echo 'SELECT COUNT(*) FROM SQL_CE_CLINICAL_CONDITION;' | ./apache-ignite-2.9.0-bin/bin/sqlline.sh --color=true -u jdbc:ignite:thin://127.0.0.1
+  echo 'SELECT TOP 10 * FROM SQL_CE_DERIVEDFACT;' | ./apache-ignite-2.9.0-bin/bin/sqlline.sh --color=true -u jdbc:ignite:thin://127.0.0.1
+  echo 'SELECT COUNT(*) FROM SQL_CE_DERIVEDFACT;' | ./apache-ignite-2.9.0-bin/bin/sqlline.sh --color=true -u jdbc:ignite:thin://127.0.0.1
+  echo 'SELECT TOP 10 * FROM SQL_CE_DERIVEDFACTPRODUCTUSAGE;' | ./apache-ignite-2.9.0-bin/bin/sqlline.sh --color=true -u jdbc:ignite:thin://127.0.0.1
+  echo 'SELECT COUNT(*) FROM SQL_CE_DERIVEDFACTPRODUCTUSAGE;' | ./apache-ignite-2.9.0-bin/bin/sqlline.sh --color=true -u jdbc:ignite:thin://127.0.0.1
+  echo 'SELECT TOP 10 * FROM SQL_CE_MEDICALFINDING;' | ./apache-ignite-2.9.0-bin/bin/sqlline.sh --color=true -u jdbc:ignite:thin://127.0.0.1
+  echo 'SELECT COUNT(*) FROM SQL_CE_MEDICALFINDING;' | ./apache-ignite-2.9.0-bin/bin/sqlline.sh --color=true -u jdbc:ignite:thin://127.0.0.1
+  echo 'SELECT TOP 10 * FROM SQL_CE_MEDICALFINDINGTYPE;' | ./apache-ignite-2.9.0-bin/bin/sqlline.sh --color=true -u jdbc:ignite:thin://127.0.0.1
+  echo 'SELECT COUNT(*) FROM SQL_CE_MEDICALFINDINGTYPE;' | ./apache-ignite-2.9.0-bin/bin/sqlline.sh --color=true -u jdbc:ignite:thin://127.0.0.1
+  echo 'SELECT TOP 10 * FROM SQL_CE_OPPORTUNITYPOINTSDISCR;' | ./apache-ignite-2.9.0-bin/bin/sqlline.sh --color=true -u jdbc:ignite:thin://127.0.0.1
+  echo 'SELECT COUNT(*) FROM SQL_CE_OPPORTUNITYPOINTSDISCR;' | ./apache-ignite-2.9.0-bin/bin/sqlline.sh --color=true -u jdbc:ignite:thin://127.0.0.1
+  echo 'SELECT TOP 10 * FROM SQL_CE_PRODUCTFINDING;' | ./apache-ignite-2.9.0-bin/bin/sqlline.sh --color=true -u jdbc:ignite:thin://127.0.0.1
+  echo 'SELECT COUNT(*) FROM SQL_CE_PRODUCTFINDING;' | ./apache-ignite-2.9.0-bin/bin/sqlline.sh --color=true -u jdbc:ignite:thin://127.0.0.1
+  echo 'SELECT TOP 10 * FROM SQL_CE_PRODUCTFINDINGTYPE;' | ./apache-ignite-2.9.0-bin/bin/sqlline.sh --color=true -u jdbc:ignite:thin://127.0.0.1
+  echo 'SELECT COUNT(*) FROM SQL_CE_PRODUCTFINDINGTYPE;' | ./apache-ignite-2.9.0-bin/bin/sqlline.sh --color=true -u jdbc:ignite:thin://127.0.0.1
+  echo 'SELECT TOP 10 * FROM SQL_CE_PRODUCTOPPORTUNITYPOINTS;' | ./apache-ignite-2.9.0-bin/bin/sqlline.sh --color=true -u jdbc:ignite:thin://127.0.0.1
+  echo 'SELECT COUNT(*) FROM SQL_CE_PRODUCTOPPORTUNITYPOINTS;' | ./apache-ignite-2.9.0-bin/bin/sqlline.sh --color=true -u jdbc:ignite:thin://127.0.0.1
+  echo 'SELECT TOP 10 * FROM SQL_CE_RECOMMENDATION;' | ./apache-ignite-2.9.0-bin/bin/sqlline.sh --color=true -u jdbc:ignite:thin://127.0.0.1
+  echo 'SELECT COUNT(*) FROM SQL_CE_RECOMMENDATION;' | ./apache-ignite-2.9.0-bin/bin/sqlline.sh --color=true -u jdbc:ignite:thin://127.0.0.1
+  rm *.csv *.mod
+else
+  figlet -w 160 -f small "only run on 000 instance"
 fi
-
-echo 'SELECT COUNT(*) FROM SQL_CE_CLINICAL_CONDITION;' | ./apache-ignite-2.9.0-bin/bin/sqlline.sh --color=false -u jdbc:ignite:thin://127.0.0.1 > .results
-result=$(grep -cE ' 0   ' .results)
-if [ $result == 1 ] ; then
-  sed -i 's/|/,/g' /tmp/ce.Clinical_Condition.csv
-  echo 'COPY FROM '\'/tmp/ce.Clinical_Condition.csv\'' INTO SQL_CE_CLINICAL_CONDITION(CLINICAL_CONDITION_COD,CLINICAL_CONDITION_NAM) FORMAT CSV;' | ./apache-ignite-2.9.0-bin/bin/sqlline.sh -u jdbc:ignite:thin://127.0.0.1
-fi
-
-echo 'SELECT COUNT(*) FROM SQL_CE_DERIVEDFACT;' | ./apache-ignite-2.9.0-bin/bin/sqlline.sh --color=false -u jdbc:ignite:thin://127.0.0.1 > .results
-result=$(grep -cE ' 0   ' .results)
-if [ $result == 1 ] ; then
-  sed -i 's/|/,/g' /tmp/ce.DerivedFact.csv
-  echo 'COPY FROM '\'/tmp/ce.DerivedFact.csv\'' INTO SQL_CE_DERIVEDFACT(DERIVEDFACTID,DERIVEDFACTTRACKINGID,DERIVEDFACTTYPEID ) FORMAT CSV;' | ./apache-ignite-2.9.0-bin/bin/sqlline.sh -u jdbc:ignite:thin://127.0.0.1
-fi
-
-echo 'SELECT COUNT(*) FROM SQL_CE_DERIVEDFACTPRODUCTUSAGE;' | ./apache-ignite-2.9.0-bin/bin/sqlline.sh --color=false -u jdbc:ignite:thin://127.0.0.1 > .results
-result=$(grep -cE ' 0   ' .results)
-if [ $result == 1 ] ; then
-  sed -i 's/|/,/g' /tmp/ce.DerivedFactProductUsage.csv
-  echo 'COPY FROM '\'/tmp/ce.DerivedFactProductUsage.csv\'' INTO SQL_CE_DERIVEDFACTPRODUCTUSAGE(DERIVEDFACTPRODUCTUSAGEID,DERIVEDFACTID,PRODUCTMNEMONICCD,INSERTEDBY) FORMAT CSV;' | ./apache-ignite-2.9.0-bin/bin/sqlline.sh -u jdbc:ignite:thin://127.0.0.1
-fi
-
-echo 'SELECT COUNT(*) FROM SQL_CE_MEDICALFINDING;' | ./apache-ignite-2.9.0-bin/bin/sqlline.sh --color=false -u jdbc:ignite:thin://127.0.0.1 > .results
-result=$(grep -cE ' 0   ' .results)
-if [ $result == 1 ] ; then
-  sed -ir 's/ *|/|/g' /tmp/ce.MedicalFinding.csv   # remove blanks before |
-  sed -ir 's/| */|/g' /tmp/ce.MedicalFinding.csv   # remove blanks after |
-  sed -ir 's/^ *//g' /tmp/ce.MedicalFinding.csv    # remove beining of line blanks
-  # some of the input fields have commas - must properly make them suitable for csv import
-  sed -i 's/,/:/g' /tmp/ce.MedicalFinding.csv      # change commas to colons
-  sed -i 's/|/,/g' /tmp/ce.MedicalFinding.csv      # change bars to commas
-  # NOT PULLING IN ALL FIELDS!!
-  echo 'COPY FROM '\'/tmp/ce.MedicalFinding.csv\'' INTO SQL_CE_MEDICALFINDING(MEDICALFINDINGID,MEDICALFINDINGTYPECD) FORMAT CSV;' | ./apache-ignite-2.9.0-bin/bin/sqlline.sh -u jdbc:ignite:thin://127.0.0.1
-fi
-
-echo 'SELECT COUNT(*) FROM SQL_CE_MEDICALFINDINGTYPE;' | ./apache-ignite-2.9.0-bin/bin/sqlline.sh --color=false -u jdbc:ignite:thin://127.0.0.1 > .results
-result=$(grep -cE ' 0   ' .results)
-if [ $result == 1 ] ; then
-  sed -i 's/|/,/g' /tmp/ce.MedicalFindingType.csv
-  echo 'COPY FROM '\'/tmp/ce.MedicalFindingType.csv\'' INTO SQL_CE_MEDICALFINDINGTYPE(MEDICALFINDINGTYPECD,MEDICALFINDINGTYPEDESC) FORMAT CSV;' | ./apache-ignite-2.9.0-bin/bin/sqlline.sh -u jdbc:ignite:thin://127.0.0.1
-fi
-
-echo 'SELECT COUNT(*) FROM SQL_CE_OPPORTUNITYPOINTSDISCR;' | ./apache-ignite-2.9.0-bin/bin/sqlline.sh --color=false -u jdbc:ignite:thin://127.0.0.1 > .results
-result=$(grep -cE ' 0   ' .results)
-if [ $result == 1 ] ; then
-  sed -i 's/|/,/g' /tmp/ce.OpportunityPointsDiscr.csv
-  echo 'COPY FROM '\'/tmp/ce.OpportunityPointsDiscr.csv\'' INTO SQL_CE_OPPORTUNITYPOINTSDISCR(OPPORTUNITYPOINTSDISCRCD,OPPORTUNITYPOINTSDISCNM) FORMAT CSV;' | ./apache-ignite-2.9.0-bin/bin/sqlline.sh -u jdbc:ignite:thin://127.0.0.1
-fi
-
-echo 'SELECT COUNT(*) FROM SQL_CE_PRODUCTFINDING;' | ./apache-ignite-2.9.0-bin/bin/sqlline.sh --color=false -u jdbc:ignite:thin://127.0.0.1 > .results
-result=$(grep -cE ' 0   ' .results)
-if [ $result == 1 ] ; then
-  sed -i 's/|/,/g' /tmp/ce.ProductFinding.csv
-  # NOT PULLING IN ALL FIELDS!!
-  echo 'COPY FROM '\'/tmp/ce.ProductFinding.csv\'' INTO SQL_CE_PRODUCTFINDING(PRODUCTFINDINGID,PRODUCTFINDINGNM,SEVERITYLEVELCD,PRODUCTFINDINGTYPECD,PRODUCTMNEMONICCD,SUBPRODUCTMNEMONICCD,INSERTEDBY) FORMAT CSV;' | ./apache-ignite-2.9.0-bin/bin/sqlline.sh -u jdbc:ignite:thin://127.0.0.1
-fi
-
-echo 'SELECT COUNT(*) FROM SQL_CE_PRODUCTFINDINGTYPE;' | ./apache-ignite-2.9.0-bin/bin/sqlline.sh --color=false -u jdbc:ignite:thin://127.0.0.1 > .results
-result=$(grep -cE ' 0   ' .results)
-if [ $result == 1 ] ; then
-  sed -i 's/|/,/g' /tmp/ce.ProductFindingType.csv
-  # NOT PULLING IN ALL FIELDS!!
-  echo 'COPY FROM '\'/tmp/ce.ProductFindingType.csv\'' INTO SQL_CE_PRODUCTFINDINGTYPE(PRODUCTFINDINGTYPECD,PRODUCTFINDINGTYPEDESC) FORMAT CSV;' | ./apache-ignite-2.9.0-bin/bin/sqlline.sh -u jdbc:ignite:thin://127.0.0.1
-fi
-
-echo 'SELECT COUNT(*) FROM SQL_CE_PRODUCTOPPORTUNITYPOINTS;' | ./apache-ignite-2.9.0-bin/bin/sqlline.sh --color=false -u jdbc:ignite:thin://127.0.0.1 > .results
-result=$(grep -cE ' 0   ' .results)
-if [ $result == 1 ] ; then
-  sed -i 's/|/,/g' /tmp/ce.ProductOpportunityPoints.csv
-  # NOT PULLING IN ALL FIELDS!!
-  echo 'COPY FROM '\'/tmp/ce.ProductOpportunityPoints.csv\'' INTO SQL_CE_PRODUCTOPPORTUNITYPOINTS(OPPORTUNITYPOINTSDISCCD) FORMAT CSV;' | ./apache-ignite-2.9.0-bin/bin/sqlline.sh -u jdbc:ignite:thin://127.0.0.1
-fi
-
-figlet -w 160 -f small "Check Ignite AWS Cluster"
-echo 'SELECT TOP 10 * FROM SQL_CE_CLINICAL_CONDITION;' | ./apache-ignite-2.9.0-bin/bin/sqlline.sh --color=true -u jdbc:ignite:thin://127.0.0.1
-echo 'SELECT COUNT(*) FROM SQL_CE_CLINICAL_CONDITION;' | ./apache-ignite-2.9.0-bin/bin/sqlline.sh --color=true -u jdbc:ignite:thin://127.0.0.1
-
-echo 'SELECT TOP 10 * FROM SQL_CE_DERIVEDFACT;' | ./apache-ignite-2.9.0-bin/bin/sqlline.sh --color=true -u jdbc:ignite:thin://127.0.0.1
-echo 'SELECT COUNT(*) FROM SQL_CE_DERIVEDFACT;' | ./apache-ignite-2.9.0-bin/bin/sqlline.sh --color=true -u jdbc:ignite:thin://127.0.0.1
-
-echo 'SELECT TOP 10 * FROM SQL_CE_DERIVEDFACTPRODUCTUSAGE;' | ./apache-ignite-2.9.0-bin/bin/sqlline.sh --color=true -u jdbc:ignite:thin://127.0.0.1
-echo 'SELECT COUNT(*) FROM SQL_CE_DERIVEDFACTPRODUCTUSAGE;' | ./apache-ignite-2.9.0-bin/bin/sqlline.sh --color=true -u jdbc:ignite:thin://127.0.0.1
-
-echo 'SELECT TOP 10 * FROM SQL_CE_MEDICALFINDING;' | ./apache-ignite-2.9.0-bin/bin/sqlline.sh --color=true -u jdbc:ignite:thin://127.0.0.1
-echo 'SELECT COUNT(*) FROM SQL_CE_MEDICALFINDING;' | ./apache-ignite-2.9.0-bin/bin/sqlline.sh --color=true -u jdbc:ignite:thin://127.0.0.1
-
-echo 'SELECT TOP 10 * FROM SQL_CE_MEDICALFINDINGTYPE;' | ./apache-ignite-2.9.0-bin/bin/sqlline.sh --color=true -u jdbc:ignite:thin://127.0.0.1
-echo 'SELECT COUNT(*) FROM SQL_CE_MEDICALFINDINGTYPE;' | ./apache-ignite-2.9.0-bin/bin/sqlline.sh --color=true -u jdbc:ignite:thin://127.0.0.1
-
-echo 'SELECT TOP 10 * FROM SQL_CE_OPPORTUNITYPOINTSDISCR;' | ./apache-ignite-2.9.0-bin/bin/sqlline.sh --color=true -u jdbc:ignite:thin://127.0.0.1
-echo 'SELECT COUNT(*) FROM SQL_CE_OPPORTUNITYPOINTSDISCR;' | ./apache-ignite-2.9.0-bin/bin/sqlline.sh --color=true -u jdbc:ignite:thin://127.0.0.1
-
-echo 'SELECT TOP 10 * FROM SQL_CE_PRODUCTFINDING;' | ./apache-ignite-2.9.0-bin/bin/sqlline.sh --color=true -u jdbc:ignite:thin://127.0.0.1
-echo 'SELECT COUNT(*) FROM SQL_CE_PRODUCTFINDING;' | ./apache-ignite-2.9.0-bin/bin/sqlline.sh --color=true -u jdbc:ignite:thin://127.0.0.1
-
-echo 'SELECT TOP 10 * FROM SQL_CE_PRODUCTFINDINGTYPE;' | ./apache-ignite-2.9.0-bin/bin/sqlline.sh --color=true -u jdbc:ignite:thin://127.0.0.1
-echo 'SELECT COUNT(*) FROM SQL_CE_PRODUCTFINDINGTYPE;' | ./apache-ignite-2.9.0-bin/bin/sqlline.sh --color=true -u jdbc:ignite:thin://127.0.0.1
-
-echo 'SELECT TOP 10 * FROM SQL_CE_PRODUCTOPPORTUNITYPOINTS;' | ./apache-ignite-2.9.0-bin/bin/sqlline.sh --color=true -u jdbc:ignite:thin://127.0.0.1
-echo 'SELECT COUNT(*) FROM SQL_CE_PRODUCTOPPORTUNITYPOINTS;' | ./apache-ignite-2.9.0-bin/bin/sqlline.sh --color=true -u jdbc:ignite:thin://127.0.0.1
-
-echo 'SELECT TOP 10 * FROM SQL_CE_RECOMMENDATION;' | ./apache-ignite-2.9.0-bin/bin/sqlline.sh --color=true -u jdbc:ignite:thin://127.0.0.1
-echo 'SELECT COUNT(*) FROM SQL_CE_RECOMMENDATION;' | ./apache-ignite-2.9.0-bin/bin/sqlline.sh --color=true -u jdbc:ignite:thin://127.0.0.1
 ```
 This is what the console looks like when the script is executed.  It takes about 12 minutes, is completely repeatable, and doesn't require any manual intervention.  
 ![01_startup_console_01](README_assets/01_startup_console_01.png)\
@@ -493,12 +515,6 @@ This is what the console looks like when the script is executed.  It takes about
 ![01_startup_console_26](README_assets/01_startup_console_26.png)\
 ![01_startup_console_27](README_assets/01_startup_console_27.png)\
 ![01_startup_console_28](README_assets/01_startup_console_28.png)\
-![01_startup_console_29](README_assets/01_startup_console_29.png)\
-![01_startup_console_30](README_assets/01_startup_console_30.png)\
-![01_startup_console_31](README_assets/01_startup_console_31.png)\
-![01_startup_console_32](README_assets/01_startup_console_32.png)\
-![01_startup_console_33](README_assets/01_startup_console_33.png)\
-![01_startup_console_34](README_assets/01_startup_console_34.png)\
 <BR/>
 If we were to peruse the AWS Console EC2 Dashboard, here's what we will see.
 ![01_startup_aws_console_ec2_dashboard_01](README_assets/01_startup_aws_console_ec2_dashboard_01.png)\
