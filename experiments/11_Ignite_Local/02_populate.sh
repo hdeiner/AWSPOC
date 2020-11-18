@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-!
+
 figlet -w 160 -f small "Populate Ignite Schema Locally"
 docker cp ../../src/db/changeset.ignite.sql ignite_container:/tmp/ddl.sql
 docker exec ignite_container bash -c "./apache-ignite/bin/sqlline.sh -u jdbc:ignite:thin://127.0.0.1 -f /tmp/ddl.sql"

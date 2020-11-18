@@ -16,7 +16,7 @@ cd ..
 rm -rf figlet-2.2.5 figlet-2.2.5.tar.gz
 
 figlet -w 160 -f small "Install Oracle Prerequisites"
-sudo yum install oracle-database-server-12cR2-preinstall zip unzip awscli java-1.8.0-openjdk -q -y
+sudo yum install oracle-database-server-12cR2-preinstall zip unzip gnupg gnupg2 awscli java-1.8.0-openjdk -q -y
 
 figlet -w 160 -f small "Create Oracle User"
 sudo echo -e "FuckMeAgain\nFuckMeAgain" | sudo passwd oracle
