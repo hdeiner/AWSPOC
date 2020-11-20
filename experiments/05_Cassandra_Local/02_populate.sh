@@ -11,7 +11,7 @@ EOF'
 chmod +x .script
 command time -v ./.script 2> .results
 ../../getExperimentalResults.sh
-../../getDataAsCSVline.sh .results "Howard Deiner" "Update Cassanda Schema" >> Experimental\ Results.csv
+../../getDataAsCSVline.sh .results "Howard Deiner" "Local Update Cassanda Schema" >> Experimental\ Results.csv
 ../../putExperimentalResults.sh
 rm .script .results Experimental\ Results.csv
 

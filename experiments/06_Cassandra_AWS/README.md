@@ -33,14 +33,23 @@ Rather than rewrite each SQL DDL into each database's dialect, I will use a tool
 Unhappily, Liquibase support for Cassandra does not support the changeset.xml format yet.  That still seems to be under active development.  Never the less, we can use Liquibase with just the native cqlsh client, and achieve the same goals.  
 
 ### 01_startup.sh
-This script uses terraform to provision an AWS EC2 instance.  Normally, I would run the 02_populate.sh script locally to put the database together.  However, there are some issues I am having getting remote connection against the Cassandra server.  Until that is fixed, I am doing all the work directly on the server.  This will be fixed. 
+This script uses terraform to provision an AWS EC2 instance.  The 02_populate.sh script is run on the server so that there are no client to server delays due to networking.  It also keeps us from having to run everything rigth now through a Cassandra client.  
 
 ```bash
 #!/usr/bin/env bash
 
+bash -c 'cat << "EOF" > .script
+#!/usr/bin/env bash
 figlet -w 200 -f small "Startup Cassandra on AWS"
 terraform init
 terraform apply -auto-approve
+EOF'
+chmod +x .script
+command time -v ./.script 2> .results
+../../getExperimentalResults.sh
+../../getDataAsCSVline.sh .results "Howard Deiner" "AWS Startup Cassandra (Client Side)" >> Experimental\ Results.csv
+../../putExperimentalResults.sh
+rm .script .results Experimental\ Results.csv
 ```
 It's probably of interest to see the major script called terraform.aws_instance.tf
 
@@ -59,6 +68,43 @@ resource "aws_instance" "cassandra_ec2_instance" {
     iops                  = 500
     delete_on_termination = true
   }
+  tags = {
+    Name = "Cassandra Instance"
+  }
+  provisioner "local-exec" {
+    command = "aws ec2 wait instance-status-ok --region ${regex("[a-z]+[^a-z][a-z]+[^a-z][0-9]+",self.availability_zone)} --instance-ids ${aws_instance.cassandra_ec2_instance.id}"
+  }
+  provisioner "remote-exec" {
+    connection {
+      type = "ssh"
+      user = "ubuntu"
+      host = self.public_dns
+      private_key = file("~/.ssh/id_rsa")
+    }
+    inline = [
+      "mkdir -p /home/ubuntu/.aws",
+    ]
+  }
+  provisioner "file" {
+    connection {
+      type = "ssh"
+      user = "ubuntu"
+      host = self.public_dns
+      private_key = file("~/.ssh/id_rsa")
+    }
+    source = "~/.aws/config"
+    destination = "/home/ubuntu/.aws/config"
+  }
+  provisioner "file" {
+    connection {
+      type = "ssh"
+      user = "ubuntu"
+      host = self.public_dns
+      private_key = file("~/.ssh/id_rsa")
+    }
+    source = "~/.aws/credentials"
+    destination = "/home/ubuntu/.aws/credentials"
+  }
   provisioner "remote-exec" {
     connection {
       type = "ssh"
@@ -67,26 +113,6 @@ resource "aws_instance" "cassandra_ec2_instance" {
       private_key = file("~/.ssh/id_rsa")
     }
     script = "provision.cassandra.sh"
-  }
-  provisioner "file" {
-    connection {
-      type = "ssh"
-      user = "ubuntu"
-      host = self.public_dns
-      private_key = file("~/.ssh/id_rsa")
-    }
-    source      = "../../src/db/DERIVEDFACT.csv"
-    destination = "/tmp/DERIVEDFACT.csv"
-  }
-  provisioner "file" {
-    connection {
-      type = "ssh"
-      user = "ubuntu"
-      host = self.public_dns
-      private_key = file("~/.ssh/id_rsa")
-    }
-    source      = "../../src/db/MEMBERHEALTHSTATE.csv"
-    destination = "/tmp/MEMBERHEALTHSTATE.csv"
   }
   provisioner "file" {
     connection {
@@ -128,6 +154,229 @@ resource "aws_instance" "cassandra_ec2_instance" {
     source      = "../../liquibase_drivers/liquibase-cassandra-4.0.0.2.jar"
     destination = "/tmp/liquibase-cassandra-4.0.0.2.jar"
   }
+  provisioner "file" {
+    connection {
+      type = "ssh"
+      user = "ubuntu"
+      host = self.public_dns
+      private_key = file("~/.ssh/id_rsa")
+    }
+    source      = "../../data/import_GPG_keys.sh"
+    destination = "/tmp/import_GPG_keys.sh"
+  }
+  provisioner "local-exec" {
+    command = "../../data/export_GPG_keys.sh"
+  }
+  provisioner "file" {
+    connection {
+      type = "ssh"
+      user = "ubuntu"
+      host = self.public_dns
+      private_key = file("~/.ssh/id_rsa")
+    }
+    source      = "HealthEngine.AWSPOC.public.key"
+    destination = "/tmp/HealthEngine.AWSPOC.public.key"
+  }
+  provisioner "file" {
+    connection {
+      type = "ssh"
+      user = "ubuntu"
+      host = self.public_dns
+      private_key = file("~/.ssh/id_rsa")
+    }
+    source      = "HealthEngine.AWSPOC.private.key"
+    destination = "/tmp/HealthEngine.AWSPOC.private.key"
+  }
+  provisioner "local-exec" {
+    command = "rm HealthEngine.AWSPOC.public.key HealthEngine.AWSPOC.private.key"
+  }
+  provisioner "file" {
+    connection {
+      type = "ssh"
+      user = "ubuntu"
+      host = self.public_dns
+      private_key = file("~/.ssh/id_rsa")
+    }
+    source      = "../../data/transfer_from_s3_and_decrypt.sh"
+    destination = "/tmp/transfer_from_s3_and_decrypt.sh"
+  }
+  provisioner "remote-exec" {
+    connection {
+      type = "ssh"
+      user = "ubuntu"
+      host = self.public_dns
+      private_key = file("~/.ssh/id_rsa")
+    }
+    inline = [
+      "chmod +x /tmp/import_GPG_keys.sh",
+      "/tmp/import_GPG_keys.sh /tmp/HealthEngine.AWSPOC.public.key /tmp/HealthEngine.AWSPOC.private.key",
+      "rm /tmp/import_GPG_keys.sh /tmp/HealthEngine.AWSPOC.public.key /tmp/HealthEngine.AWSPOC.private.key",
+      "chmod +x /tmp/transfer_from_s3_and_decrypt.sh"
+    ]
+  }
+  provisioner "file" {
+    connection {
+      type = "ssh"
+      user = "ubuntu"
+      host = self.public_dns
+      private_key = file("~/.ssh/id_rsa")
+    }
+    source      = "../../getExperimentalResults.sh"
+    destination = "/tmp/getExperimentalResults.sh"
+  }
+  provisioner "file" {
+    connection {
+      type = "ssh"
+      user = "ubuntu"
+      host = self.public_dns
+      private_key = file("~/.ssh/id_rsa")
+    }
+    source      = "../../getDataAsCSVline.sh"
+    destination = "/tmp/getDataAsCSVline.sh"
+  }
+  provisioner "file" {
+    connection {
+      type = "ssh"
+      user = "ubuntu"
+      host = self.public_dns
+      private_key = file("~/.ssh/id_rsa")
+    }
+    source      = "../../putExperimentalResults.sh"
+    destination = "/tmp/putExperimentalResults.sh"
+  }
+  provisioner "remote-exec" {
+    connection {
+      type = "ssh"
+      user = "ubuntu"
+      host = self.public_dns
+      private_key = file("~/.ssh/id_rsa")
+    }
+    inline = [
+      "chmod +x /tmp/getExperimentalResults.sh",
+      "chmod +x /tmp/getDataAsCSVline.sh",
+      "chmod +x /tmp/putExperimentalResults.sh"
+    ]
+  }
+  provisioner "file" {
+    connection {
+      type = "ssh"
+      user = "ubuntu"
+      host = self.public_dns
+      private_key = file("~/.ssh/id_rsa")
+    }
+    source      = "../../transform_Oracle_ce.ClinicalCondition_to_csv.sh"
+    destination = "/tmp/transform_Oracle_ce.ClinicalCondition_to_csv.sh"
+  }
+  provisioner "file" {
+    connection {
+      type = "ssh"
+      user = "ubuntu"
+      host = self.public_dns
+      private_key = file("~/.ssh/id_rsa")
+    }
+    source      = "../../transform_Oracle_ce.DerivedFact_to_csv.sh"
+    destination = "/tmp/transform_Oracle_ce.DerivedFact_to_csv.sh"
+  }
+  provisioner "file" {
+    connection {
+      type = "ssh"
+      user = "ubuntu"
+      host = self.public_dns
+      private_key = file("~/.ssh/id_rsa")
+    }
+    source      = "../../transform_Oracle_ce.DerivedFactProductUsage_to_csv.sh"
+    destination = "/tmp/transform_Oracle_ce.DerivedFactProductUsage_to_csv.sh"
+  }
+  provisioner "file" {
+    connection {
+      type = "ssh"
+      user = "ubuntu"
+      host = self.public_dns
+      private_key = file("~/.ssh/id_rsa")
+    }
+    source      = "../../transform_Oracle_ce.MedicalFinding_to_csv.sh"
+    destination = "/tmp/transform_Oracle_ce.MedicalFinding_to_csv.sh"
+  }
+  provisioner "file" {
+    connection {
+      type = "ssh"
+      user = "ubuntu"
+      host = self.public_dns
+      private_key = file("~/.ssh/id_rsa")
+    }
+    source      = "../../transform_Oracle_ce.MedicalFindingType_to_csv.sh"
+    destination = "/tmp/transform_Oracle_ce.MedicalFindingType_to_csv.sh"
+  }
+  provisioner "file" {
+    connection {
+      type = "ssh"
+      user = "ubuntu"
+      host = self.public_dns
+      private_key = file("~/.ssh/id_rsa")
+    }
+    source      = "../../transform_Oracle_ce.OpportunityPointsDiscr_to_csv.sh"
+    destination = "/tmp/transform_Oracle_ce.OpportunityPointsDiscr_to_csv.sh"
+  }
+  provisioner "file" {
+    connection {
+      type = "ssh"
+      user = "ubuntu"
+      host = self.public_dns
+      private_key = file("~/.ssh/id_rsa")
+    }
+    source      = "../../transform_Oracle_ce.ProductFinding_to_csv.sh"
+    destination = "/tmp/transform_Oracle_ce.ProductFinding_to_csv.sh"
+  }
+  provisioner "file" {
+    connection {
+      type = "ssh"
+      user = "ubuntu"
+      host = self.public_dns
+      private_key = file("~/.ssh/id_rsa")
+    }
+    source      = "../../transform_Oracle_ce.ProductFindingType_to_csv.sh"
+    destination = "/tmp/transform_Oracle_ce.ProductFindingType_to_csv.sh"
+  }
+  provisioner "file" {
+    connection {
+      type = "ssh"
+      user = "ubuntu"
+      host = self.public_dns
+      private_key = file("~/.ssh/id_rsa")
+    }
+    source      = "../../transform_Oracle_ce.ProductOpportunityPoints_to_csv.sh"
+    destination = "/tmp/transform_Oracle_ce.ProductOpportunityPoints_to_csv.sh"
+  }
+  provisioner "file" {
+    connection {
+      type = "ssh"
+      user = "ubuntu"
+      host = self.public_dns
+      private_key = file("~/.ssh/id_rsa")
+    }
+    source      = "../../transform_Oracle_ce.Recommendation_to_csv.sh"
+    destination = "/tmp/transform_Oracle_ce.Recommendation_to_csv.sh"
+  }
+  provisioner "remote-exec" {
+    connection {
+      type = "ssh"
+      user = "ubuntu"
+      host = self.public_dns
+      private_key = file("~/.ssh/id_rsa")
+    }
+    inline = [
+      "chmod +x /tmp/transform_Oracle_ce.ClinicalCondition_to_csv.sh",
+      "chmod +x /tmp/transform_Oracle_ce.DerivedFact_to_csv.sh",
+      "chmod +x /tmp/transform_Oracle_ce.DerivedFactProductUsage_to_csv.sh",
+      "chmod +x /tmp/transform_Oracle_ce.MedicalFinding_to_csv.sh",
+      "chmod +x /tmp/transform_Oracle_ce.MedicalFindingType_to_csv.sh",
+      "chmod +x /tmp/transform_Oracle_ce.OpportunityPointsDiscr_to_csv.sh",
+      "chmod +x /tmp/transform_Oracle_ce.ProductFinding_to_csv.sh",
+      "chmod +x /tmp/transform_Oracle_ce.ProductFindingType_to_csv.sh",
+      "chmod +x /tmp/transform_Oracle_ce.ProductOpportunityPoints_to_csv.sh",
+      "chmod +x /tmp/transform_Oracle_ce.Recommendation_to_csv.sh",
+    ]
+  }
   provisioner "remote-exec" {
     connection {
       type = "ssh"
@@ -136,9 +385,6 @@ resource "aws_instance" "cassandra_ec2_instance" {
       private_key = file("~/.ssh/id_rsa")
     }
     script = "02_populate.sh"
-  }
-  tags = {
-    Name = "Cassandra Instance"
   }
 }
 
@@ -168,27 +414,17 @@ This is what the console looks like when the script is executed.
 ![01_startup_console_04](README_assets/01_startup_console_04.png)\
 ![01_startup_console_05](README_assets/01_startup_console_05.png)\
 ![01_startup_console_06](README_assets/01_startup_console_06.png)\
-![01_startup_console_07](README_assets/01_startup_console_07.png)\
-![01_startup_console_08](README_assets/01_startup_console_08.png)\
-![01_startup_console_09](README_assets/01_startup_console_09.png)\
-![01_startup_console_10](README_assets/01_startup_console_10.png)\
-![01_startup_console_11](README_assets/01_startup_console_11.png)\
-![01_startup_console_12](README_assets/01_startup_console_12.png)\
-![01_startup_console_13](README_assets/01_startup_console_13.png)\
-![01_startup_console_14](README_assets/01_startup_console_14.png)\
-![01_startup_console_15](README_assets/01_startup_console_15.png)\
-![01_startup_console_16](README_assets/01_startup_console_16.png)\
-![01_startup_console_17](README_assets/01_startup_console_17.png)\
-![01_startup_console_18](README_assets/01_startup_console_18.png)\
-![01_startup_console_19](README_assets/01_startup_console_19.png)\
-![01_startup_console_20](README_assets/01_startup_console_20.png)\
-![01_startup_console_21](README_assets/01_startup_console_21.png)\
-![01_startup_console_22](README_assets/01_startup_console_22.png)\
-![01_startup_console_23](README_assets/01_startup_console_23.png)\
-![01_startup_console_24](README_assets/01_startup_console_24.png)\
-![01_startup_console_25](README_assets/01_startup_console_25.png)\
-![01_startup_console_26](README_assets/01_startup_console_26.png)\
-![01_startup_console_27](README_assets/01_startup_console_27.png)\
+![01_startup_console_07](README_assets/01_startup_console_06.png)\
+![01_startup_console_08](README_assets/01_startup_console_07.png)\
+![01_startup_console_09](README_assets/01_startup_console_08.png)\
+![01_startup_console_10](README_assets/01_startup_console_09.png)\
+![01_startup_console_11](README_assets/01_startup_console_10.png)\
+![01_startup_console_12](README_assets/01_startup_console_11.png)\
+![01_startup_console_13](README_assets/01_startup_console_12.png)\
+![01_startup_console_14](README_assets/01_startup_console_13.png)\
+![01_startup_console_15](README_assets/01_startup_console_14.png)\
+![01_startup_console_16](README_assets/01_startup_console_15.png)\
+![01_startup_console_17](README_assets/01_startup_console_16.png)\
 <BR/>
 If we were to peruse the AWS Console EC2 Dashboard for Instances, here's what we will see.
 ![01_startup_aws_ec2_dashboard_01](README_assets/01_startup_aws_ec2_dashboard_01.png)\
@@ -227,40 +463,350 @@ figlet -w 200 -f slant "This is run on AWS ONLY during startup"
 
 figlet -w 200 -f small "Populate Cassandra on AWS"
 
+bash -c 'cat << "EOF" > .script
+#!/usr/bin/env bash
 figlet -w 200 -f small "Create Cassandra Database (Keyspace) on AWS"
-cqlsh localhost 9042 -e "CREATE KEYSPACE IF NOT EXISTS testdatabase WITH replication = {'class': 'SimpleStrategy', 'replication_factor' : 1}"
-
+cqlsh localhost 9042 -e "CREATE KEYSPACE IF NOT EXISTS CE WITH replication = {'"'"'class'"'"': '"'"'SimpleStrategy'"'"', '"'"'replication_factor'"'"' : 1}"
 figlet -w 200 -f small "Create Cassandra Tables on AWS"
 cd /tmp
-java -jar liquibase.jar --driver=com.simba.cassandra.jdbc42.Driver --url="jdbc:cassandra://localhost:9042/testdatabase;DefaultKeyspace=testdatabase" --username=cassandra --password=cassandra --classpath="CassandraJDBC42.jar:liquibase-cassandra-4.0.0.2.jar" --changeLogFile=changeset.cassandra.sql --defaultSchemaName=testdatabase update
+java -jar liquibase.jar --driver=com.simba.cassandra.jdbc42.Driver --url="jdbc:cassandra://localhost:9042/CE;DefaultKeyspace=CE" --username=cassandra --password=cassandra --classpath="CassandraJDBC42.jar:liquibase-cassandra-4.0.0.2.jar" --changeLogFile=changeset.cassandra.sql --defaultSchemaName=CE update
 cd -
+EOF'
+chmod +x .script
+command time -v ./.script 2> .results
+/tmp/getExperimentalResults.sh
+/tmp/getDataAsCSVline.sh .results "Howard Deiner" "AWS Update Cassanda Schema" >> Experimental\ Results.csv
+/tmp/putExperimentalResults.sh
+rm .script .results Experimental\ Results.csv
 
-figlet -w 200 -f small "Load Cassandra Data on AWS"
-cqlsh localhost 9042 -e "COPY testdatabase.DERIVEDFACT (DERIVEDFACTID,DERIVEDFACTTRACKINGID,DERIVEDFACTTYPEID,INSERTEDBY,RECORDINSERTDT,RECORDUPDTDT,UPDTDBY) FROM '/tmp/DERIVEDFACT.csv' WITH DELIMITER=',' AND HEADER=TRUE"
-cqlsh localhost 9042 -e "COPY testdatabase.MEMBERHEALTHSTATE (MEMBERHEALTHSTATESKEY,EPISODEID,VERSIONNBR,STATETYPECD,STATECOMPONENTID,MEMBERID,HEALTHSTATESTATUSCD,HEALTHSTATESTATUSCHANGERSNCD,HEALTHSTATESTATUSCHANGEDT,HEALTHSTATECHANGEDT,SEVERITYLEVEL,COMPLETIONFLG,CLINICALREVIEWSTATUSCD,CLINICALREVIEWSTATUSDT,LASTEVALUATIONDT,VOIDFLG,INSERTEDBY,INSERTEDDT,UPDATEDBY,UPDATEDDT,SEVERITYSCORE,MASTERSUPPLIERID,YEARQTR,PDCSCOREPERC) FROM '/tmp/MEMBERHEALTHSTATE.csv' WITH DELIMITER=',' AND HEADER=TRUE"
+bash -c 'cat << "EOF" > .script
+#!/usr/bin/env bash
+figlet -w 240 -f small "Get Cassandra Data from S3 Bucket"
+cd /tmp
+./transfer_from_s3_and_decrypt.sh ce.ClinicalCondition.csv
+./transfer_from_s3_and_decrypt.sh ce.DerivedFact.csv
+./transfer_from_s3_and_decrypt.sh ce.DerivedFactProductUsage.csv
+./transfer_from_s3_and_decrypt.sh ce.MedicalFinding.csv
+./transfer_from_s3_and_decrypt.sh ce.MedicalFindingType.csv
+./transfer_from_s3_and_decrypt.sh ce.OpportunityPointsDiscr.csv
+./transfer_from_s3_and_decrypt.sh ce.ProductFinding.csv
+./transfer_from_s3_and_decrypt.sh ce.ProductFindingType.csv
+./transfer_from_s3_and_decrypt.sh ce.ProductOpportunityPoints.csv
+./transfer_from_s3_and_decrypt.sh ce.Recommendation.csv
+cd -
+EOF'
+chmod +x .script
+command time -v ./.script 2> .results
+/tmp/getExperimentalResults.sh
+/tmp/getDataAsCSVline.sh .results "Howard Deiner" "AWS Get Cassandra Data from S3 Bucket" >> Experimental\ Results.csv
+/tmp/putExperimentalResults.sh
+rm .script .results Experimental\ Results.csv
 
-figlet -w 200 -f small "Check Cassandra on AWS"
-cqlsh localhost 9042 -e "select * from testdatabase.DERIVEDFACT;"
-cqlsh localhost 9042 -e "select * from testdatabase.MEMBERHEALTHSTATE;"
+bash -c 'cat << "EOF" > .script
+#!/usr/bin/env bash
+figlet -w 240 -f small "Process S3 Data into Cassandra CSV File For Inport"
+cd /tmp
+./transform_Oracle_ce.ClinicalCondition_to_csv.sh
+./transform_Oracle_ce.DerivedFact_to_csv.sh
+./transform_Oracle_ce.DerivedFactProductUsage_to_csv.sh
+./transform_Oracle_ce.MedicalFinding_to_csv.sh
+./transform_Oracle_ce.MedicalFindingType_to_csv.sh
+./transform_Oracle_ce.OpportunityPointsDiscr_to_csv.sh
+./transform_Oracle_ce.ProductFinding_to_csv.sh
+./transform_Oracle_ce.ProductFindingType_to_csv.sh
+./transform_Oracle_ce.ProductOpportunityPoints_to_csv.sh
+./transform_Oracle_ce.Recommendation_to_csv.sh
+cd -
+EOF'
+chmod +x .script
+command time -v ./.script 2> .results
+/tmp/getExperimentalResults.sh
+/tmp/getDataAsCSVline.sh .results "Howard Deiner" "AWS Process S3 Data into Cassandra CSV File For Inport" >> Experimental\ Results.csv
+/tmp/putExperimentalResults.sh
+rm .script .results Experimental\ Results.csv
+
+bash -c 'cat << "EOF" > .script
+#!/usr/bin/env bash
+figlet -w 240 -f small "Load Cassandra Data"
+cd /tmp
+echo "CE.CLINICAL_CONDITION"
+cqlsh -e "COPY CE.CLINICAL_CONDITION (CLINICAL_CONDITION_COD,CLINICAL_CONDITION_NAM,INSERTED_BY,REC_INSERT_DATE,REC_UPD_DATE,UPDATED_BY,CLINICALCONDITIONCLASSCD,CLINICALCONDITIONTYPECD,CLINICALCONDITIONABBREV) FROM '"'"'ce.ClinicalCondition.csv'"'"' WITH DELIMITER='"'"','"'"' AND HEADER=TRUE"
+echo "CE.DERIVEDFACT"
+cqlsh -e "COPY CE.DERIVEDFACT (DERIVEDFACTID,DERIVEDFACTTRACKINGID,DERIVEDFACTTYPEID,INSERTEDBY,RECORDINSERTDT,RECORDUPDTDT,UPDTDBY) FROM '"'"'ce.DerivedFact.csv'"'"' WITH DELIMITER='"'"','"'"' AND HEADER=TRUE"
+echo "CE.DERIVEDFACTPRODUCTUSAGE"
+cqlsh -e "COPY CE.DERIVEDFACTPRODUCTUSAGE (DERIVEDFACTPRODUCTUSAGEID,DERIVEDFACTID,PRODUCTMNEMONICCD,INSERTEDBY,RECORDINSERTDT,RECORDUPDTDT,UPDTDBY) FROM '"'"'ce.DerivedFactProductUsage.csv'"'"' WITH DELIMITER='"'"','"'"' AND HEADER=TRUE"
+echo "CE.DERIVEDFACTPRODUCTUSAGE"
+cqlsh -e "COPY CE.DERIVEDFACTPRODUCTUSAGE (DERIVEDFACTPRODUCTUSAGEID,DERIVEDFACTID,PRODUCTMNEMONICCD,INSERTEDBY,RECORDINSERTDT,RECORDUPDTDT,UPDTDBY) FROM '"'"'ce.DerivedFactProductUsage.csv'"'"' WITH DELIMITER='"'"','"'"' AND HEADER=TRUE"
+echo "CE.MEDICALFINDING"
+cqlsh -e "COPY CE.MEDICALFINDING (MEDICALFINDINGID,MEDICALFINDINGTYPECD,MEDICALFINDINGNM,SEVERITYLEVELCD,IMPACTABLEFLG,CLINICAL_CONDITION_COD,INSERTEDBY,RECORDINSERTDT,RECORDUPDTDT,UPDTDBY,ACTIVEFLG,OPPORTUNITYPOINTSDISCRCD) FROM '"'"'ce.MedicalFinding.csv'"'"' WITH DELIMITER='"'"','"'"' AND HEADER=TRUE"
+echo "CE.MEDICALFINDINGTYPE"
+cqlsh -e "COPY CE.MEDICALFINDINGTYPE (MEDICALFINDINGTYPECD,MEDICALFINDINGTYPEDESC,INSERTEDBY,RECORDINSERTDT,RECORDUPDTDT,UPDTDBY,HEALTHSTATEAPPLICABLEFLAG) FROM '"'"'ce.MedicalFindingType.csv'"'"' WITH DELIMITER='"'"','"'"' AND HEADER=TRUE"
+echo "CE.OPPORTUNITYPOINTSDISCR"
+cqlsh -e "COPY CE.OPPORTUNITYPOINTSDISCR (OPPORTUNITYPOINTSDISCRCD,OPPORTUNITYPOINTSDISCNM,INSERTEDBY,RECORDINSERTDT,RECORDUPDTDT,UPDTDBY) FROM '"'"'ce.OpportunityPointsDiscr.csv'"'"' WITH DELIMITER='"'"','"'"' AND HEADER=TRUE"
+echo "CE.PRODUCTFINDING"
+cqlsh -e "COPY CE.PRODUCTFINDING (PRODUCTFINDINGID,PRODUCTFINDINGNM,SEVERITYLEVELCD,PRODUCTFINDINGTYPECD,PRODUCTMNEMONICCD,SUBPRODUCTMNEMONICCD,INSERTEDBY,RECORDINSERTDT,RECORDUPDTDT,UPDTDBY) FROM '"'"'ce.ProductFinding.csv'"'"' WITH DELIMITER='"'"','"'"' AND HEADER=TRUE"
+echo "CE.PRODUCTFINDINGTYPE"
+cqlsh -e "COPY CE.PRODUCTFINDINGTYPE (PRODUCTFINDINGTYPECD,PRODUCTFINDINGTYPEDESC,INSERTEDBY,RECORDINSERTDT,RECORDUPDTDT,UPDTDBY) FROM '"'"'ce.ProductFindingType.csv'"'"' WITH DELIMITER='"'"','"'"' AND HEADER=TRUE"
+echo "CE.PRODUCTOPPORTUNITYPOINTS"
+cqlsh -e "COPY CE.PRODUCTOPPORTUNITYPOINTS (OPPORTUNITYPOINTSDISCCD,EFFECTIVESTARTDT,OPPORTUNITYPOINTSNBR,EFFECTIVEENDDT,DERIVEDFACTPRODUCTUSAGEID,INSERTEDBY,RECORDINSERTDT,RECORDUPDTDT,UPDTDBY) FROM '"'"'ce.ProductOpportunityPoints.csv'"'"' WITH DELIMITER='"'"','"'"' AND HEADER=TRUE"
+echo "CE.RECOMMENDATION"
+cqlsh -e "COPY CE.RECOMMENDATION (RECOMMENDATIONSKEY,RECOMMENDATIONID,RECOMMENDATIONCODE,RECOMMENDATIONDESC,RECOMMENDATIONTYPE,CCTYPE,CLINICALREVIEWTYPE,AGERANGEID,ACTIONCODE,THERAPEUTICCLASS,MDCCODE,MCCCODE,PRIVACYCATEGORY,INTERVENTION,RECOMMENDATIONFAMILYID,RECOMMENDPRECEDENCEGROUPID,INBOUNDCOMMUNICATIONROUTE,SEVERITY,PRIMARYDIAGNOSIS,SECONDARYDIAGNOSIS,ADVERSEEVENT,ICMCONDITIONID,WELLNESSFLAG,VBFELIGIBLEFLAG,COMMUNICATIONRANKING,PRECEDENCERANKING,PATIENTDERIVEDFLAG,LABREQUIREDFLAG,UTILIZATIONTEXTAVAILABLEF,SENSITIVEMESSAGEFLAG,HIGHIMPACTFLAG,ICMLETTERFLAG,REQCLINICIANCLOSINGFLAG,OPSIMPELMENTATIONPHASE,SEASONALFLAG,SEASONALSTARTDT,SEASONALENDDT,EFFECTIVESTARTDT,EFFECTIVEENDDT,RECORDINSERTDT,RECORDUPDTDT,INSERTEDBY,UPDTDBY,STANDARDRUNFLAG,INTERVENTIONFEEDBACKFAMILYID,CONDITIONFEEDBACKFAMILYID,ASHWELLNESSELIGIBILITYFLAG,HEALTHADVOCACYELIGIBILITYFLAG) FROM '"'"'ce.Recommendation.csv'"'"' WITH DELIMITER='"'"','"'"' AND HEADER=TRUE"
+cd -
+EOF'
+chmod +x .script
+command time -v ./.script 2> .results
+/tmp/getExperimentalResults.sh
+/tmp/getDataAsCSVline.sh .results "Howard Deiner" "AWS Load Cassandra Data" >> Experimental\ Results.csv
+/tmp/putExperimentalResults.sh
+rm .script .results Experimental\ Results.csv
+
+bash -c 'cat << "EOF" > .script
+#!/usr/bin/env bash
+figlet -w 240 -f small "Test That Cassandra Data Loaded"
+echo "CE.CLINICAL_CONDITION"
+cqlsh  -e '"'"'select * from CE.CLINICAL_CONDITION LIMIT 2;'"'"'
+cqlsh  -e '"'"'select count(*) from CE.CLINICAL_CONDITION;'"'"'
+echo "CE.DERIVEDFACT"
+cqlsh  -e '"'"'select * from CE.DERIVEDFACT LIMIT 2;'"'"'
+cqlsh  -e '"'"'select count(*) from CE.DERIVEDFACT;'"'"'
+echo "CE.DERIVEDFACTPRODUCTUSAGE"
+cqlsh  -e '"'"'select * from CE.DERIVEDFACTPRODUCTUSAGE LIMIT 2;'"'"'
+cqlsh  -e '"'"'select count(*) from CE.DERIVEDFACTPRODUCTUSAGE;'"'"'
+echo "CE.MEDICALFINDING"
+cqlsh  -e '"'"'select * from CE.MEDICALFINDING LIMIT 2;'"'"'
+cqlsh  -e '"'"'select count(*) from CE.MEDICALFINDING;'"'"'
+echo "CE.MEDICALFINDINGTYPE"
+cqlsh  -e '"'"'select * from CE.MEDICALFINDINGTYPE LIMIT 2;'"'"'
+cqlsh  -e '"'"'select count(*) from CE.MEDICALFINDINGTYPE;'"'"'
+echo "CE.OPPORTUNITYPOINTSDISCR"
+cqlsh  -e '"'"'select * from CE.OPPORTUNITYPOINTSDISCR LIMIT 2;'"'"'
+cqlsh  -e '"'"'select count(*) from CE.OPPORTUNITYPOINTSDISCR;'"'"'
+echo "CE.PRODUCTFINDING"
+cqlsh  -e '"'"'select * from CE.PRODUCTFINDING LIMIT 2;'"'"'
+cqlsh  -e '"'"'select count(*) from CE.PRODUCTFINDING;'"'"'
+echo "CE.PRODUCTFINDINGTYPE"
+cqlsh  -e '"'"'select * from CE.PRODUCTFINDINGTYPE LIMIT 2;'"'"'
+cqlsh  -e '"'"'select count(*) from CE.PRODUCTFINDINGTYPE;'"'"'
+echo "CE.PRODUCTOPPORTUNITYPOINTS"
+cqlsh  -e '"'"'select * from CE.PRODUCTOPPORTUNITYPOINTS LIMIT 2;'"'"'
+cqlsh  -e '"'"'select count(*) from CE.PRODUCTOPPORTUNITYPOINTS;'"'"'
+echo "CE.RECOMMENDATION"
+cqlsh  -e '"'"'select * from CE.RECOMMENDATION WHERE recommendationskey;'"'"'
+cqlsh  -e '"'"'select count(*) from CE.RECOMMENDATION;'"'"'
+EOF'
+chmod +x .script
+command time -v ./.script 2> .results
+/tmp/getExperimentalResults.sh
+/tmp/getDataAsCSVline.sh .results "Howard Deiner" "AWS Test That Cassandra Data Loaded" >> Experimental\ Results.csv
+/tmp/putExperimentalResults.sh
+rm .script .results Experimental\ Results.csv *.csv
 ```
 It is also using this changeset.cassandrq.sql
 ```sql
 --liquibase formatted sql
 
---changeset howarddeiner:1
-CREATE TABLE testdatabase.DERIVEDFACT (
-    DERIVEDFACTID BIGINT PRIMARY KEY,
-    DERIVEDFACTTRACKINGID BIGINT,
-    DERIVEDFACTTYPEID BIGINT,
-    INSERTEDBY VARCHAR,
-    RECORDINSERTDT DATE,
-    RECORDUPDTDT DATE,
-    UPDTDBY VARCHAR
-)
--- rollback DROP TABLE testdatabase.DERIVEDFACT;
 
---changeset howarddeiner:2
-CREATE TABLE testdatabase.MEMBERHEALTHSTATE (
+
+--changeset CE:1
+CREATE TABLE CE.OPPORTUNITYPOINTSDISCR (
+	OPPORTUNITYPOINTSDISCNM VARCHAR,
+	INSERTEDBY VARCHAR,
+	RECORDINSERTDT DATE,
+	RECORDUPDTDT DATE,
+	UPDTDBY VARCHAR,
+	OPPORTUNITYPOINTSDISCRCD VARCHAR PRIMARY KEY
+)
+--rollback DROP TABLE CE.OPPORTUNITYPOINTSDISCR;
+
+
+--changeset CE:2
+CREATE TABLE CE.DERIVEDFACT (
+	DERIVEDFACTTRACKINGID BIGINT,
+	DERIVEDFACTTYPEID BIGINT,
+	INSERTEDBY VARCHAR,
+	RECORDINSERTDT DATE,
+	RECORDUPDTDT DATE,
+	UPDTDBY VARCHAR,
+	DERIVEDFACTID BIGINT PRIMARY KEY
+)
+--rollback DROP TABLE CE.DERIVEDFACT;
+
+
+--changeset CE:3
+CREATE TABLE CE.RECOMMENDATIONTEXT (
+	RECOMMENDATIONTEXTID BIGINT,
+	RECOMMENDATIONID BIGINT PRIMARY KEY,
+	LANGUAGECD VARCHAR,
+	RECOMMENDATIONTEXTTYPE VARCHAR,
+	MESSAGETYPE VARCHAR,
+	RECOMMENDATIONTITLE VARCHAR,
+	RECOMMENDATIONTEXT VARCHAR,
+	RECORDINSERTDT DATE,
+	RECORDUPDATEDT DATE,
+	INSERTEDBY VARCHAR,
+	UPDATEDBY VARCHAR,
+	DEFAULTIN VARCHAR
+)
+--rollback DROP TABLE CE.RECOMMENDATIONTEXT;
+
+
+--changeset CE:4
+CREATE TABLE CE.CLINICAL_CONDITION (
+	CLINICAL_CONDITION_NAM VARCHAR,
+	INSERTED_BY VARCHAR,
+	REC_INSERT_DATE DATE,
+	REC_UPD_DATE DATE,
+	UPDATED_BY VARCHAR,
+	CLINICALCONDITIONCLASSCD BIGINT,
+	CLINICALCONDITIONTYPECD VARCHAR,
+	CLINICALCONDITIONABBREV VARCHAR,
+	CLINICAL_CONDITION_COD BIGINT PRIMARY KEY
+)
+--rollback DROP TABLE CE.CLINICAL_CONDITION;
+
+
+--changeset CE:5
+CREATE TABLE CE.PRODUCTOPPORTUNITYPOINTS (
+	OPPORTUNITYPOINTSDISCCD VARCHAR PRIMARY KEY,
+	EFFECTIVESTARTDT DATE,
+	OPPORTUNITYPOINTSNBR BIGINT,
+	EFFECTIVEENDDT DATE,
+	DERIVEDFACTPRODUCTUSAGEID BIGINT,
+	INSERTEDBY VARCHAR,
+	RECORDINSERTDT DATE,
+	RECORDUPDTDT DATE,
+	UPDTDBY VARCHAR
+)
+--rollback DROP TABLE CE.PRODUCTOPPORTUNITYPOINTS;
+
+
+--changeset CE:6
+CREATE TABLE CE.MEDICALFINDING (
+	MEDICALFINDINGID BIGINT PRIMARY KEY,
+	MEDICALFINDINGTYPECD VARCHAR,
+	MEDICALFINDINGNM VARCHAR,
+	SEVERITYLEVELCD VARCHAR,
+	IMPACTABLEFLG VARCHAR,
+	CLINICAL_CONDITION_COD BIGINT,
+	INSERTEDBY VARCHAR,
+	RECORDINSERTDT DATE,
+	RECORDUPDTDT DATE,
+	UPDTDBY VARCHAR,
+	ACTIVEFLG VARCHAR,
+	OPPORTUNITYPOINTSDISCRCD VARCHAR
+)
+--rollback DROP TABLE CE.MEDICALFINDING;
+
+
+--changeset CE:7
+CREATE TABLE CE.DERIVEDFACTPRODUCTUSAGE (
+	DERIVEDFACTID BIGINT,
+	PRODUCTMNEMONICCD VARCHAR,
+	INSERTEDBY VARCHAR,
+	RECORDINSERTDT DATE,
+	RECORDUPDTDT DATE,
+	UPDTDBY VARCHAR,
+	DERIVEDFACTPRODUCTUSAGEID BIGINT PRIMARY KEY
+)
+--rollback DROP TABLE CE.DERIVEDFACTPRODUCTUSAGE;
+
+
+--changeset CE:8
+CREATE TABLE CE.PRODUCTFINDINGTYPE (
+	PRODUCTFINDINGTYPECD VARCHAR PRIMARY KEY,
+	PRODUCTFINDINGTYPEDESC VARCHAR,
+	INSERTEDBY VARCHAR,
+	RECORDINSERTDT DATE,
+	RECORDUPDTDT DATE,
+	UPDTDBY VARCHAR
+)
+--rollback DROP TABLE CE.PRODUCTFINDINGTYPE;
+
+
+--changeset CE:9
+CREATE TABLE CE.RECOMMENDATION (
+	RECOMMENDATIONSKEY BIGINT PRIMARY KEY,
+	RECOMMENDATIONID BIGINT,
+	RECOMMENDATIONCODE VARCHAR,
+	RECOMMENDATIONDESC VARCHAR,
+	RECOMMENDATIONTYPE VARCHAR,
+	CCTYPE VARCHAR,
+	CLINICALREVIEWTYPE VARCHAR,
+	AGERANGEID BIGINT,
+	ACTIONCODE VARCHAR,
+	THERAPEUTICCLASS VARCHAR,
+	MDCCODE VARCHAR,
+	MCCCODE VARCHAR,
+	PRIVACYCATEGORY VARCHAR,
+	INTERVENTION VARCHAR,
+	RECOMMENDATIONFAMILYID BIGINT,
+	RECOMMENDPRECEDENCEGROUPID BIGINT,
+	INBOUNDCOMMUNICATIONROUTE VARCHAR,
+	SEVERITY VARCHAR,
+	PRIMARYDIAGNOSIS VARCHAR,
+	SECONDARYDIAGNOSIS VARCHAR,
+	ADVERSEEVENT VARCHAR,
+	ICMCONDITIONID BIGINT,
+	WELLNESSFLAG VARCHAR,
+	VBFELIGIBLEFLAG VARCHAR,
+	COMMUNICATIONRANKING BIGINT,
+	PRECEDENCERANKING BIGINT,
+	PATIENTDERIVEDFLAG VARCHAR,
+	LABREQUIREDFLAG VARCHAR,
+	UTILIZATIONTEXTAVAILABLEF VARCHAR,
+	SENSITIVEMESSAGEFLAG VARCHAR,
+	HIGHIMPACTFLAG VARCHAR,
+	ICMLETTERFLAG VARCHAR,
+	REQCLINICIANCLOSINGFLAG VARCHAR,
+	OPSIMPELMENTATIONPHASE BIGINT,
+	SEASONALFLAG VARCHAR,
+	SEASONALSTARTDT DATE,
+	SEASONALENDDT DATE,
+	EFFECTIVESTARTDT DATE,
+	EFFECTIVEENDDT DATE,
+	RECORDINSERTDT DATE,
+	RECORDUPDTDT DATE,
+	INSERTEDBY VARCHAR,
+	UPDTDBY VARCHAR,
+	STANDARDRUNFLAG VARCHAR,
+	INTERVENTIONFEEDBACKFAMILYID BIGINT,
+	CONDITIONFEEDBACKFAMILYID BIGINT,
+	ASHWELLNESSELIGIBILITYFLAG VARCHAR,
+	HEALTHADVOCACYELIGIBILITYFLAG VARCHAR
+)
+--rollback DROP TABLE CE.RECOMMENDATION;
+
+
+--changeset CE:10
+CREATE TABLE CE.PRODUCTFINDING (
+	PRODUCTFINDINGID BIGINT PRIMARY KEY,
+	PRODUCTFINDINGNM VARCHAR,
+	SEVERITYLEVELCD VARCHAR,
+	PRODUCTFINDINGTYPECD VARCHAR,
+	PRODUCTMNEMONICCD VARCHAR,
+	SUBPRODUCTMNEMONICCD VARCHAR,
+	INSERTEDBY VARCHAR,
+	RECORDINSERTDT DATE,
+	RECORDUPDTDT DATE,
+	UPDTDBY VARCHAR
+)
+--rollback DROP TABLE CE.PRODUCTFINDING;
+
+
+--changeset CE:11
+CREATE TABLE CE.MEDICALFINDINGTYPE (
+	MEDICALFINDINGTYPEDESC VARCHAR,
+	INSERTEDBY VARCHAR,
+	RECORDINSERTDT DATE,
+	RECORDUPDTDT DATE,
+	UPDTDBY VARCHAR,
+	HEALTHSTATEAPPLICABLEFLAG VARCHAR,
+	MEDICALFINDINGTYPECD VARCHAR PRIMARY KEY
+)
+--rollback DROP TABLE CE.MEDICALFINDINGTYPE;
+
+--changeset CE:12
+CREATE TABLE CE.MEMBERHEALTHSTATE (
     MEMBERHEALTHSTATESKEY BIGINT PRIMARY KEY,
     EPISODEID BIGINT,
     VERSIONNBR BIGINT,
@@ -286,7 +832,7 @@ CREATE TABLE testdatabase.MEMBERHEALTHSTATE (
     YEARQTR BIGINT,
     PDCSCOREPERC BIGINT
 )
--- rollback DROP TABLE testdatabase.MEMBERHEALTHSTATE;
+-- rollback DROP TABLE CE.MEMBERHEALTHSTATE;
 ```
 
 ### 03_shutdown.sh
@@ -295,9 +841,20 @@ This script is brutely simple.  It uses terraform tp destroy everything created 
 ```bash
 #!/usr/bin/env bash
 
+bash -c 'cat << "EOF" > .script
+#!/usr/bin/env bash
 figlet -w 200 -f small "Shutdown Cassandra on AWS"
 terraform destroy -auto-approve
+EOF'
+chmod +x .script
+command time -v ./.script 2> .results
+../../getExperimentalResults.sh
+../../getDataAsCSVline.sh .results "Howard Deiner" "AWS Shutdown Cassandra  (Client Side)" >> Experimental\ Results.csv
+../../putExperimentalResults.sh
+rm .script .results Experimental\ Results.csv
 ```
 This is what the console looks like when the script is executed.
 ![03_shutdown_console_01](README_assets/03_shutdown_console_01.png)
 
+And just for laughs, here's the timings for this run.  All kept in a csv file in S3 at s3://health-engine-aws-poc/Experimental Results.csv
+![Experimental Results](README_assets/Experimental Results.png)\

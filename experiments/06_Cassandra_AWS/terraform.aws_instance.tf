@@ -11,6 +11,43 @@ resource "aws_instance" "cassandra_ec2_instance" {
     iops                  = 500
     delete_on_termination = true
   }
+  tags = {
+    Name = "Cassandra Instance"
+  }
+  provisioner "local-exec" {
+    command = "aws ec2 wait instance-status-ok --region ${regex("[a-z]+[^a-z][a-z]+[^a-z][0-9]+",self.availability_zone)} --instance-ids ${aws_instance.cassandra_ec2_instance.id}"
+  }
+  provisioner "remote-exec" {
+    connection {
+      type = "ssh"
+      user = "ubuntu"
+      host = self.public_dns
+      private_key = file("~/.ssh/id_rsa")
+    }
+    inline = [
+      "mkdir -p /home/ubuntu/.aws",
+    ]
+  }
+  provisioner "file" {
+    connection {
+      type = "ssh"
+      user = "ubuntu"
+      host = self.public_dns
+      private_key = file("~/.ssh/id_rsa")
+    }
+    source = "~/.aws/config"
+    destination = "/home/ubuntu/.aws/config"
+  }
+  provisioner "file" {
+    connection {
+      type = "ssh"
+      user = "ubuntu"
+      host = self.public_dns
+      private_key = file("~/.ssh/id_rsa")
+    }
+    source = "~/.aws/credentials"
+    destination = "/home/ubuntu/.aws/credentials"
+  }
   provisioner "remote-exec" {
     connection {
       type = "ssh"
@@ -19,26 +56,6 @@ resource "aws_instance" "cassandra_ec2_instance" {
       private_key = file("~/.ssh/id_rsa")
     }
     script = "provision.cassandra.sh"
-  }
-  provisioner "file" {
-    connection {
-      type = "ssh"
-      user = "ubuntu"
-      host = self.public_dns
-      private_key = file("~/.ssh/id_rsa")
-    }
-    source      = "../../src/db/DERIVEDFACT.csv"
-    destination = "/tmp/DERIVEDFACT.csv"
-  }
-  provisioner "file" {
-    connection {
-      type = "ssh"
-      user = "ubuntu"
-      host = self.public_dns
-      private_key = file("~/.ssh/id_rsa")
-    }
-    source      = "../../src/db/MEMBERHEALTHSTATE.csv"
-    destination = "/tmp/MEMBERHEALTHSTATE.csv"
   }
   provisioner "file" {
     connection {
@@ -80,6 +97,229 @@ resource "aws_instance" "cassandra_ec2_instance" {
     source      = "../../liquibase_drivers/liquibase-cassandra-4.0.0.2.jar"
     destination = "/tmp/liquibase-cassandra-4.0.0.2.jar"
   }
+  provisioner "file" {
+    connection {
+      type = "ssh"
+      user = "ubuntu"
+      host = self.public_dns
+      private_key = file("~/.ssh/id_rsa")
+    }
+    source      = "../../data/import_GPG_keys.sh"
+    destination = "/tmp/import_GPG_keys.sh"
+  }
+  provisioner "local-exec" {
+    command = "../../data/export_GPG_keys.sh"
+  }
+  provisioner "file" {
+    connection {
+      type = "ssh"
+      user = "ubuntu"
+      host = self.public_dns
+      private_key = file("~/.ssh/id_rsa")
+    }
+    source      = "HealthEngine.AWSPOC.public.key"
+    destination = "/tmp/HealthEngine.AWSPOC.public.key"
+  }
+  provisioner "file" {
+    connection {
+      type = "ssh"
+      user = "ubuntu"
+      host = self.public_dns
+      private_key = file("~/.ssh/id_rsa")
+    }
+    source      = "HealthEngine.AWSPOC.private.key"
+    destination = "/tmp/HealthEngine.AWSPOC.private.key"
+  }
+  provisioner "local-exec" {
+    command = "rm HealthEngine.AWSPOC.public.key HealthEngine.AWSPOC.private.key"
+  }
+  provisioner "file" {
+    connection {
+      type = "ssh"
+      user = "ubuntu"
+      host = self.public_dns
+      private_key = file("~/.ssh/id_rsa")
+    }
+    source      = "../../data/transfer_from_s3_and_decrypt.sh"
+    destination = "/tmp/transfer_from_s3_and_decrypt.sh"
+  }
+  provisioner "remote-exec" {
+    connection {
+      type = "ssh"
+      user = "ubuntu"
+      host = self.public_dns
+      private_key = file("~/.ssh/id_rsa")
+    }
+    inline = [
+      "chmod +x /tmp/import_GPG_keys.sh",
+      "/tmp/import_GPG_keys.sh /tmp/HealthEngine.AWSPOC.public.key /tmp/HealthEngine.AWSPOC.private.key",
+      "rm /tmp/import_GPG_keys.sh /tmp/HealthEngine.AWSPOC.public.key /tmp/HealthEngine.AWSPOC.private.key",
+      "chmod +x /tmp/transfer_from_s3_and_decrypt.sh"
+    ]
+  }
+  provisioner "file" {
+    connection {
+      type = "ssh"
+      user = "ubuntu"
+      host = self.public_dns
+      private_key = file("~/.ssh/id_rsa")
+    }
+    source      = "../../getExperimentalResults.sh"
+    destination = "/tmp/getExperimentalResults.sh"
+  }
+  provisioner "file" {
+    connection {
+      type = "ssh"
+      user = "ubuntu"
+      host = self.public_dns
+      private_key = file("~/.ssh/id_rsa")
+    }
+    source      = "../../getDataAsCSVline.sh"
+    destination = "/tmp/getDataAsCSVline.sh"
+  }
+  provisioner "file" {
+    connection {
+      type = "ssh"
+      user = "ubuntu"
+      host = self.public_dns
+      private_key = file("~/.ssh/id_rsa")
+    }
+    source      = "../../putExperimentalResults.sh"
+    destination = "/tmp/putExperimentalResults.sh"
+  }
+  provisioner "remote-exec" {
+    connection {
+      type = "ssh"
+      user = "ubuntu"
+      host = self.public_dns
+      private_key = file("~/.ssh/id_rsa")
+    }
+    inline = [
+      "chmod +x /tmp/getExperimentalResults.sh",
+      "chmod +x /tmp/getDataAsCSVline.sh",
+      "chmod +x /tmp/putExperimentalResults.sh"
+    ]
+  }
+  provisioner "file" {
+    connection {
+      type = "ssh"
+      user = "ubuntu"
+      host = self.public_dns
+      private_key = file("~/.ssh/id_rsa")
+    }
+    source      = "../../transform_Oracle_ce.ClinicalCondition_to_csv.sh"
+    destination = "/tmp/transform_Oracle_ce.ClinicalCondition_to_csv.sh"
+  }
+  provisioner "file" {
+    connection {
+      type = "ssh"
+      user = "ubuntu"
+      host = self.public_dns
+      private_key = file("~/.ssh/id_rsa")
+    }
+    source      = "../../transform_Oracle_ce.DerivedFact_to_csv.sh"
+    destination = "/tmp/transform_Oracle_ce.DerivedFact_to_csv.sh"
+  }
+  provisioner "file" {
+    connection {
+      type = "ssh"
+      user = "ubuntu"
+      host = self.public_dns
+      private_key = file("~/.ssh/id_rsa")
+    }
+    source      = "../../transform_Oracle_ce.DerivedFactProductUsage_to_csv.sh"
+    destination = "/tmp/transform_Oracle_ce.DerivedFactProductUsage_to_csv.sh"
+  }
+  provisioner "file" {
+    connection {
+      type = "ssh"
+      user = "ubuntu"
+      host = self.public_dns
+      private_key = file("~/.ssh/id_rsa")
+    }
+    source      = "../../transform_Oracle_ce.MedicalFinding_to_csv.sh"
+    destination = "/tmp/transform_Oracle_ce.MedicalFinding_to_csv.sh"
+  }
+  provisioner "file" {
+    connection {
+      type = "ssh"
+      user = "ubuntu"
+      host = self.public_dns
+      private_key = file("~/.ssh/id_rsa")
+    }
+    source      = "../../transform_Oracle_ce.MedicalFindingType_to_csv.sh"
+    destination = "/tmp/transform_Oracle_ce.MedicalFindingType_to_csv.sh"
+  }
+  provisioner "file" {
+    connection {
+      type = "ssh"
+      user = "ubuntu"
+      host = self.public_dns
+      private_key = file("~/.ssh/id_rsa")
+    }
+    source      = "../../transform_Oracle_ce.OpportunityPointsDiscr_to_csv.sh"
+    destination = "/tmp/transform_Oracle_ce.OpportunityPointsDiscr_to_csv.sh"
+  }
+  provisioner "file" {
+    connection {
+      type = "ssh"
+      user = "ubuntu"
+      host = self.public_dns
+      private_key = file("~/.ssh/id_rsa")
+    }
+    source      = "../../transform_Oracle_ce.ProductFinding_to_csv.sh"
+    destination = "/tmp/transform_Oracle_ce.ProductFinding_to_csv.sh"
+  }
+  provisioner "file" {
+    connection {
+      type = "ssh"
+      user = "ubuntu"
+      host = self.public_dns
+      private_key = file("~/.ssh/id_rsa")
+    }
+    source      = "../../transform_Oracle_ce.ProductFindingType_to_csv.sh"
+    destination = "/tmp/transform_Oracle_ce.ProductFindingType_to_csv.sh"
+  }
+  provisioner "file" {
+    connection {
+      type = "ssh"
+      user = "ubuntu"
+      host = self.public_dns
+      private_key = file("~/.ssh/id_rsa")
+    }
+    source      = "../../transform_Oracle_ce.ProductOpportunityPoints_to_csv.sh"
+    destination = "/tmp/transform_Oracle_ce.ProductOpportunityPoints_to_csv.sh"
+  }
+  provisioner "file" {
+    connection {
+      type = "ssh"
+      user = "ubuntu"
+      host = self.public_dns
+      private_key = file("~/.ssh/id_rsa")
+    }
+    source      = "../../transform_Oracle_ce.Recommendation_to_csv.sh"
+    destination = "/tmp/transform_Oracle_ce.Recommendation_to_csv.sh"
+  }
+  provisioner "remote-exec" {
+    connection {
+      type = "ssh"
+      user = "ubuntu"
+      host = self.public_dns
+      private_key = file("~/.ssh/id_rsa")
+    }
+    inline = [
+      "chmod +x /tmp/transform_Oracle_ce.ClinicalCondition_to_csv.sh",
+      "chmod +x /tmp/transform_Oracle_ce.DerivedFact_to_csv.sh",
+      "chmod +x /tmp/transform_Oracle_ce.DerivedFactProductUsage_to_csv.sh",
+      "chmod +x /tmp/transform_Oracle_ce.MedicalFinding_to_csv.sh",
+      "chmod +x /tmp/transform_Oracle_ce.MedicalFindingType_to_csv.sh",
+      "chmod +x /tmp/transform_Oracle_ce.OpportunityPointsDiscr_to_csv.sh",
+      "chmod +x /tmp/transform_Oracle_ce.ProductFinding_to_csv.sh",
+      "chmod +x /tmp/transform_Oracle_ce.ProductFindingType_to_csv.sh",
+      "chmod +x /tmp/transform_Oracle_ce.ProductOpportunityPoints_to_csv.sh",
+      "chmod +x /tmp/transform_Oracle_ce.Recommendation_to_csv.sh",
+    ]
+  }
   provisioner "remote-exec" {
     connection {
       type = "ssh"
@@ -88,9 +328,6 @@ resource "aws_instance" "cassandra_ec2_instance" {
       private_key = file("~/.ssh/id_rsa")
     }
     script = "02_populate.sh"
-  }
-  tags = {
-    Name = "Cassandra Instance"
   }
 }
 

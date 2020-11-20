@@ -9,6 +9,8 @@ sed --in-place --regexp-extended 's/,/;/g' ce.ProductOpportunityPoints.csv
 sed --in-place 's/|/,/g' ce.ProductOpportunityPoints.csv
 # get rid of timestamps and decimals after timestamp
 sed --in-place --regexp-extended 's/ [0-9]+[0-9]+\:[0-9]+[0-9]+\:[0-9]+\.[0-9]+//g' ce.ProductOpportunityPoints.csv
+# get rid of timestamps without decimals after timestamp
+sed --in-place --regexp-extended 's/ [0-9]+[0-9]+\:[0-9]+[0-9]+\:[0-9]+[0-9]+//g' ce.ProductOpportunityPoints.csv
 # remove blanks at start of line
 sed --in-place --regexp-extended 's/^ *//g' ce.ProductOpportunityPoints.csv
 # remove blanks before commas
