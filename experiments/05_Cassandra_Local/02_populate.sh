@@ -140,4 +140,4 @@ command time -v ./.script 2> .results
 ../../getExperimentalResults.sh
 ../../getDataAsCSVline.sh .results "Howard Deiner" "Local Test That Cassandra Data Loaded" >> Experimental\ Results.csv
 ../../putExperimentalResults.sh
-rm .script .results Experimental\ Results.csv *.csv
+rm .script .results *.csv

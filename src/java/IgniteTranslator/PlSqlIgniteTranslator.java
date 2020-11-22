@@ -1,4 +1,4 @@
-package CassandraTranslator;
+package IgniteTranslator;
 
 import Translator.ColumnProperty;
 import org.antlr.v4.runtime.*;
@@ -20,15 +20,13 @@ import Translator.PlSqlParser.Column_nameContext;
 import Translator.PlSqlParser.Inline_constraintContext;
 
 /*
- * The changeset.xml generated from this translator has been verifid for Cassandra
+ * The changeset.xml generated from this translator has been verifid for Ignite
  */
 
-public class PlSqlCassandraTranslator {
+public class PlSqlIgniteTranslator {
 	private static final char TAB_CHAR = '\t';
 	private static final char NEW_LINE_CHAR = '\n';
-	private static int mapValuesCount = 0;
-	private static int mapValuesSize = 0;
-	private static int changeSetCount = 0;
+	private static boolean firstColumn = true;
 
 	public static class XMLEmitter extends PlSqlParserBaseListener {
 		Map<String, List<Translator.ColumnProperty>> map = new HashMap();
@@ -163,56 +161,33 @@ public class PlSqlCassandraTranslator {
 		}
 
 		StringBuilder changeSet = new StringBuilder();
-		changeSet.append(createHeader());
 
 		// Construct createTable
 		for (Map.Entry<String, List<Translator.ColumnProperty>> entry : converter.map.entrySet()) {
-			mapValuesCount = 0;
 			changeSet.append(NEW_LINE_CHAR).append(NEW_LINE_CHAR);
-			changeSet.append(createChangeSetCount(++changeSetCount));
 			String key = entry.getKey();
 			changeSet.append(createTableStart(key));
 			List<Translator.ColumnProperty> value = entry.getValue();
-			mapValuesSize = value.size();
+			
+			firstColumn = true;
 			for (Translator.ColumnProperty column : value) {
-				mapValuesCount++;
+				changeSet.append(constructColumn(column));
+			}
+
+			// Add primary key constraint at the end
+			for (Translator.ColumnProperty column : value) {
 				if (column.isPrimaryKey()) {
-					changeSet.append(columnWithConstraint(column));
-				} else {
-					changeSet.append(columnWithoutConstraint(column));
+					changeSet.append(primaryKeyConstraint(key, column));
 				}
 			}
 
 			changeSet.append(createTableEnd());
-			changeSet.append(createRollback(key));
 
 		}
 
-		PrintWriter out = new PrintWriter("changeSet.cassandra.sql");
+		PrintWriter out = new PrintWriter("changeSet.ignite.sql");
 		out.println(changeSet.toString());
 		out.close();
-
-	}
-
-	private static String createHeader() {
-		StringBuilder sb = new StringBuilder();
-		sb.append("--liquibase formatted sql").append(NEW_LINE_CHAR).append(NEW_LINE_CHAR);
-
-		return sb.toString();
-	}
-
-	private static String createChangeSetCount(int count) {
-		StringBuilder sb = new StringBuilder();
-		sb.append("--changeset CE:").append(count).append(NEW_LINE_CHAR);
-
-		return sb.toString();
-	}
-
-	private static String createRollback(String tableName) {
-		StringBuilder sb = new StringBuilder();
-		sb.append(NEW_LINE_CHAR).append("--rollback DROP TABLE ").append(tableName).append(";").append(NEW_LINE_CHAR);
-
-		return sb.toString();
 	}
 
 	/**
@@ -222,8 +197,11 @@ public class PlSqlCassandraTranslator {
 	 * @return
 	 */
 	private static String createTableStart(String tableName) {
+		String[] schemeTable = tableName.split("\\.");
+		String schema = schemeTable[0];
+		String table = schemeTable[1];
 		StringBuilder sb = new StringBuilder();
-		sb.append("CREATE TABLE ").append(tableName).append(" (");
+		sb.append("CREATE TABLE ").append("SQL_").append(schema).append("_").append(table).append(" (");
 
 		return sb.toString();
 	}
@@ -235,70 +213,59 @@ public class PlSqlCassandraTranslator {
 	 */
 	private static String createTableEnd() {
 		StringBuilder sb = new StringBuilder();
-		sb.append(NEW_LINE_CHAR).append(")");
+		sb.append(NEW_LINE_CHAR).append(");");
 
 		return sb.toString();
 	}
 
 	/**
-	 * Construct column with primary key constraint
+	 * Construct column
 	 * 
 	 * @param column
 	 * @return
 	 */
-	private static String columnWithConstraint(Translator.ColumnProperty column) {
+	private static String constructColumn(Translator.ColumnProperty column) {
 		StringBuilder sb = new StringBuilder();
+		
+		// Don't add , if it is first column
+		if(!firstColumn) {
+			sb.append(",");
+		}
 		sb.append(NEW_LINE_CHAR).append(TAB_CHAR);
 
 		sb.append(column.getColumnName() + " ");
 
 		convertColumnDataType(sb, column);
-
-		sb.append(" PRIMARY KEY");
-
-		if (mapValuesCount != mapValuesSize) {
-			sb.append(",");
-		}
-
+		firstColumn = false;
 		return sb.toString();
 	}
 
-	/**
-	 * Construct column without primary key constraint
-	 * 
-	 * @param column
-	 * @return
-	 */
-	private static String columnWithoutConstraint(Translator.ColumnProperty column) {
+	private static String primaryKeyConstraint(String tableName, Translator.ColumnProperty column) {
 		StringBuilder sb = new StringBuilder();
+		sb.append(",");
 		sb.append(NEW_LINE_CHAR).append(TAB_CHAR);
 
-		sb.append(column.getColumnName() + " ");
-
-		convertColumnDataType(sb, column);
-
-		if (mapValuesCount != mapValuesSize) {
-			sb.append(",");
-		}
+		sb.append("CONSTRAINT ").append(tableName.split("\\.")[1]).append("_PK ").append("PRIMARY KEY").append("(");
+		sb.append(column.getColumnName()).append(")");
 
 		return sb.toString();
 	}
 
 	/**
-	 * Convert from Oracle ddl datatype to liquibase changeset datatype
+	 * Convert from Oracle ddl datatype to changeset datatype
 	 * 
 	 * @param sb
 	 * @param column
 	 */
 	private static void convertColumnDataType(StringBuilder sb, ColumnProperty column) {
-		String dataType = column.getColumnDataType();
-		if (dataType.contains("NUMBER")) {
-			sb.append("BIGINT");
-		} else if (dataType.contains("TIMESTAMP") || dataType.contains("DATE")) {
-			sb.append("DATE");
-		} else if (dataType.contains("VARCHAR") || dataType.contains("CHAR")) {
+		if(column.getColumnDataType().contains("VARCHAR")) {
 			sb.append("VARCHAR");
+		} else if(column.getColumnDataType().contains("NUMBER")) {
+			sb.append("BIGINT");
 		}
+		else {
+			sb.append(column.getColumnDataType());
+		}	
 	}
 
 }

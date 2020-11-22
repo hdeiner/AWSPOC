@@ -1,4 +1,4 @@
-package CassandraTranslator;
+package IgniteTranslator;
 
 import org.antlr.v4.runtime.*;
 

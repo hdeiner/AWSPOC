@@ -4,15 +4,41 @@ services:
   mysql_service:
     image: mysql:latest
     container_name: mysql_container
+    command: --default-authentication-plugin=mysql_native_password
     environment:
       MYSQL_ROOT_PASSWORD: password
     volumes:
       - mysql_data:/var/lib/mysql
+      - ./replacement_my.cnf:/etc/mysql/my.cnf
     restart: unless-stopped
     ports:
       - 3306:3306
     networks:
       container_network:
+
+  mysqlclient_service:
+    image: adminer
+    container_name: mysqlclient_container
+    volumes:
+      - mysqlclient_data:/var/lib/mysqlclient
+    restart: unless-stopped
+    ports:
+      - 8080:8080
+    networks:
+      container_network:
+
+  cecacheserver_service:
+    build: ../../src/application/CacheServerDocker/DockerImageForMySql
+    container_name: cecacheserver_formysql_container
+    volumes:
+      - cecacheserver_data:/var/lib/cecacheserver
+    restart: unless-stopped
+    ports:
+      - 12405:12405
+    networks:
+      container_network:
+    depends_on:
+      - mysql_service
 
 networks:
   container_network:
@@ -20,3 +46,6 @@ networks:
 
 volumes:
   mysql_data:
+  mysqlclient_data:
+  cecacheserver_data:
+

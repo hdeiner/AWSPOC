@@ -5,6 +5,8 @@ echo "MedicalFinding"
 sed -i '1 i\MEDICALFINDINGID|MEDICALFINDINGTYPECD|MEDICALFINDINGNM|SEVERITYLEVELCD|IMPACTABLEFLG|CLINICAL_CONDITION_COD|INSERTEDBY|RECORDINSERTDT|RECORDUPDTDT|UPDTDBY|ACTIVEFLG|OPPORTUNITYPOINTSDISCRCD' ce.MedicalFinding.csv
 # convert comas to semi-colons
 sed --in-place --regexp-extended 's/,/;/g' ce.MedicalFinding.csv
+# convert non-readable xBF to dash
+sed --in-place --regexp-extended 's/\xBF/-/g' ce.MedicalFinding.csv
 # convert bars to commas
 sed --in-place 's/|/,/g' ce.MedicalFinding.csv
 # get rid of timestamps and decimals after timestamp

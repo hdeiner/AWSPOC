@@ -1,4 +1,4 @@
-package CassandraTranslator;
+package IgniteTranslator;
 
 public class ColumnProperty {
 	private String columnName;
