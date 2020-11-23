@@ -22,7 +22,7 @@ In recognition of the sensitive nature of the data currently stored in the Oracl
 
 <table>
 <tr><th>local file name</th><th>AWS S3 URI</th></tr>
-<tr><td>ce.Clinical_Condition.csv</td><td>s3://health-engine-aws-poc/ce.Clinical_Condition.csv</td></tr>
+<tr><td>ce.ClinicalCondition.csv</td><td>s3://health-engine-aws-poc/ce.ClinicalCondition.csv</td></tr>
 <tr><td>ce.DerivedFact.csv</td><td>s3://health-engine-aws-poc/ce.DerivedFact.csv</td></tr>
 <tr><td>ce.DerivedFactProductUsage.csv</td><td>s3://health-engine-aws-poc/ce.DerivedFactProductUsage.csv</td></tr>
 <tr><td>ce.MedicalFinding.csv</td><td>s3://health-engine-aws-poc/ce.MedicalFinding.csv</td></tr>

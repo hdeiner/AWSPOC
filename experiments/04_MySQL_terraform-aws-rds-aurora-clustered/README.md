@@ -17,13 +17,49 @@
 #### Execution
 
 ### 01_startup.sh
-This script uses simple Terraform and applies it.  You get 14 resources of ready to go database.  
+This script uses simple Terraform and applies it.  You get 14 resources of ready to go database.  We also bring up a Local MySQL docker-composed instance, se we don't have to install MySQL on our machine to speak to the database in AWS, 
 ```bash
 #!/usr/bin/env bash
 
+bash -c 'cat << "EOF" > .script
+#!/usr/bin/env bash
 figlet -w 200 -f small "Startup MySQL Clustered on AWS RDS Aurora"
 terraform init
 terraform apply -auto-approve
+EOF'
+chmod +x .script
+command time -v ./.script 2> .results
+../../getExperimentalResults.sh
+../../getDataAsCSVline.sh .results "Howard Deiner" "AWS Startup MySQL (Client Side)" >> Experimental\ Results.csv
+../../putExperimentalResults.sh
+rm .script .results Experimental\ Results.csv
+
+bash -c 'cat << "EOF" > .script
+#!/usr/bin/env bash
+figlet -w 240 -f small "Startup MySQL/MySQLClient/CECacheServer Locally"
+docker volume rm 03_mysql_local_mysql_data
+docker volume rm 03_mysql_local_mysqlclient_data
+docker volume rm 03_mysql_local_cecacheserver_data
+docker-compose -f ../03_MySQL_Local/docker-compose.yml up -d
+figlet -w 160 -f small "Wait For MySQL To Start"
+while true ; do
+  docker logs mysql_container > stdout.txt 2> stderr.txt
+  result=$(grep -c "\[System\] \[MY-010931\] \[Server\] /usr/sbin/mysqld: ready for connections." stderr.txt)
+  if [ $result = 1 ] ; then
+    sleep 10 # it says it'"'"'s ready for connections, but not really
+    echo "MySQL has started"
+    break
+  fi
+  sleep 5
+done
+rm stdout.txt stderr.txt
+EOF'
+chmod +x .script
+command time -v ./.script 2> .results
+../../getExperimentalResults.sh
+../../getDataAsCSVline.sh .results "Howard Deiner" "AWS Startup MySQL Locally (Client Side)" >> Experimental\ Results.csv
+../../putExperimentalResults.sh
+rm .script .results Experimental\ Results.csv
 ```
 The one script that does all of the heavy lifting is below.
 ```hcl-terraform
@@ -162,38 +198,169 @@ And, finally, looking deeper into the AWS Console Database Monitoring, we'd see 
 ![01_startup_aws_console_rds_database_monitoring_01](README_assets/01_startup_aws_console_rds_database_monitoring_01.png)\
 <BR/>
 ### 02_populate.sh
-This script first uses the running AWS database to run psql to create a database for us.
+This script first uses the running AWS database and to runs mysql in the local docker instance to create a database on AWS for us.
 
 The script then creates a liquibase.properties to run liquibase to update the database to it's intended state.
 
-The script then demonstrates that the two tables created have data in them, all managed by liquibase.
+The script then downloads, decrypts, and processes the S3 files that hold the database data.
+
+And, finally, the script then demonstrates that database has the tables we created and has their data in them, done through IaC.
 ```bash
 #!/usr/bin/env bash
 
+bash -c 'cat << "EOF" > .script
+#!/usr/bin/env bash
 figlet -w 200 -f small "Populate MySQL Clustered on AWS RDS Aurora"
-echo `terraform output database_dns | grep -o '".*"' | cut -d '"' -f2` > .database_dns
-echo `terraform output database_port | grep -Eo '[0-9]{1,}' | cut -d '"' -f2` > .database_port
-echo `terraform output database_username | grep -o '".*"' | cut -d '"' -f2` > .database_username
-echo `terraform output database_password | grep -o '".*"' | cut -d '"' -f2` > .database_password
+echo `terraform output database_dns | grep -o '"'"'".*"'"'"' | cut -d '"'"'"'"'"' -f2` > .database_dns
+echo `terraform output database_port | grep -Eo '"'"'[0-9]{1,}'"'"' | cut -d '"'"'"'"'"' -f2` > .database_port
+echo `terraform output database_username | grep -o '"'"'".*"'"'"' | cut -d '"'"'"'"'"' -f2` > .database_username
+echo `terraform output database_password | grep -o '"'"'".*"'"'"' | cut -d '"'"'"'"'"' -f2` > .database_password
 
-echo "CREATE DATABASE testdatabase;" | mysql -h $(<.database_dns) -P $(<.database_port) -u $(<.database_username) --password=$(<.database_password)
+docker exec mysql_container echo '"'"'CREATE DATABASE CE;'"'"' | mysql -h $(<.database_dns) -P $(<.database_port) -u $(<.database_username) --password=$(<.database_password)
+#docker exec mysql_container echo '"'"'SHOW DATABASES;'"'"' | mysql -h $(<.database_dns) -P $(<.database_port) -u $(<.database_username) --password=$(<.database_password)
 
-echo 'changeLogFile: ../../src/db/changeset.xml' > liquibase.properties
-echo 'url:  jdbc:mysql://'$(<.database_dns)':'$(<.database_port)'/testdatabase?autoReconnect=true&verifyServerCertificate=false&useSSL=false' >> liquibase.properties
-echo 'username: '$(<.database_username) >> liquibase.properties
-echo 'password: '$(<.database_password) >> liquibase.properties
-echo 'driver:  org.gjt.mm.mysql.Driver' >> liquibase.properties
-echo 'classpath:  ../../liquibase_drivers/mysql-connector-java-5.1.48.jar' >> liquibase.properties
+cp ../../src/java/Translator/changeSet.xml changeSet.xml
+# fix <createTable tableName="CE. to become <createTable tableName="
+sed --in-place --regexp-extended '"'"'s/<createTable\ tableName\=\"CE\./<createTable\ tableName\=\"/g'"'"' changeSet.xml
+
+echo '"'"'changeLogFile: changeSet.xml'"'"' > liquibase.properties
+echo '"'"'url:  jdbc:mysql://'"'"'$(<.database_dns)'"'"':'"'"'$(<.database_port)'"'"'/CE?autoReconnect=true&verifyServerCertificate=false&useSSL=false'"'"' >> liquibase.properties
+echo '"'"'username: '"'"'$(<.database_username) >> liquibase.properties
+echo '"'"'password: '"'"'$(<.database_password) >> liquibase.properties
+echo '"'"'driver:  org.gjt.mm.mysql.Driver'"'"' >> liquibase.properties
+echo '"'"'classpath:  ../../liquibase_drivers/mysql-connector-java-5.1.48.jar'"'"' >> liquibase.properties
 liquibase update
 
-figlet -w 200 -f small "Check MySQL Clustered on AWS RDS Aurora"
-echo "select * from DERIVEDFACT;" | mysql -h $(<.database_dns) -P $(<.database_port) -u $(<.database_username) --password=$(<.database_password) testdatabase
-echo "select * from MEMBERHEALTHSTATE;" | mysql -h $(<.database_dns) -P $(<.database_port) -u $(<.database_username) --password=$(<.database_password) testdatabase
+EOF'
+chmod +x .script
+command time -v ./.script 2> .results
+../../getExperimentalResults.sh
+../../getDataAsCSVline.sh .results "Howard Deiner" "AWS Update MySQL Schema" >> Experimental\ Results.csv
+../../putExperimentalResults.sh
+rm .script .results Experimental\ Results.csv
 
-rm .database_dns .database_port .database_username .database_password liquibase.properties
+bash -c 'cat << "EOF" > .script
+#!/usr/bin/env bash
+figlet -w 240 -f small "Get MySQL Data from S3 Bucket"
+../../data/transfer_from_s3_and_decrypt.sh ce.ClinicalCondition.csv
+../../data/transfer_from_s3_and_decrypt.sh ce.DerivedFact.csv
+../../data/transfer_from_s3_and_decrypt.sh ce.DerivedFactProductUsage.csv
+../../data/transfer_from_s3_and_decrypt.sh ce.MedicalFinding.csv
+../../data/transfer_from_s3_and_decrypt.sh ce.MedicalFindingType.csv
+../../data/transfer_from_s3_and_decrypt.sh ce.OpportunityPointsDiscr.csv
+../../data/transfer_from_s3_and_decrypt.sh ce.ProductFinding.csv
+../../data/transfer_from_s3_and_decrypt.sh ce.ProductFindingType.csv
+../../data/transfer_from_s3_and_decrypt.sh ce.ProductOpportunityPoints.csv
+../../data/transfer_from_s3_and_decrypt.sh ce.Recommendation.csv
+EOF'
+chmod +x .script
+command time -v ./.script 2> .results
+../../getExperimentalResults.sh
+../../getDataAsCSVline.sh .results "Howard Deiner" "AWS Get MySQL Data from S3 Bucket" >> Experimental\ Results.csv
+../../putExperimentalResults.sh
+rm .script .results Experimental\ Results.csv
+
+bash -c 'cat << "EOF" > .script
+#!/usr/bin/env bash
+figlet -w 240 -f small "Process S3 Data into MySQL CSV File For Inport"
+../transform_Oracle_ce.ClinicalCondition_to_csv.sh
+../transform_Oracle_ce.DerivedFact_to_csv.sh
+../transform_Oracle_ce.DerivedFactProductUsage_to_csv.sh
+../transform_Oracle_ce.MedicalFinding_to_csv.sh
+../transform_Oracle_ce.MedicalFindingType_to_csv.sh
+../transform_Oracle_ce.OpportunityPointsDiscr_to_csv.sh
+../transform_Oracle_ce.ProductFinding_to_csv.sh
+../transform_Oracle_ce.ProductFindingType_to_csv.sh
+../transform_Oracle_ce.ProductOpportunityPoints_to_csv.sh
+../transform_Oracle_ce.Recommendation_to_csv.sh
+EOF'
+chmod +x .script
+command time -v ./.script 2> .results
+../../getExperimentalResults.sh
+../../getDataAsCSVline.sh .results "Howard Deiner" "AWS Process S3 Data into MySQL CSV File For Import" >> Experimental\ Results.csv
+../../putExperimentalResults.sh
+rm .script .results Experimental\ Results.csv
+
+bash -c 'cat << "EOF" > .script
+#!/usr/bin/env bash
+MYSQL='"'"'mysql -h '"'"'$(<.database_dns)'"'"' -P '"'"'$(<.database_port)'"'"' -u '"'"'$(<.database_username)'"'"' --password='"'"'$(<.database_password)'"'"' --local-infile'"'"'
+figlet -w 240 -f small "Load MySQL Data"
+echo "CE.CLINICAL_CONDITION"
+docker exec mysql_container echo '"'"'USE CE;LOAD DATA LOCAL INFILE "./ce.ClinicalCondition.csv" INTO TABLE CE.CLINICAL_CONDITION FIELDS TERMINATED BY "," LINES TERMINATED BY "\n" IGNORE 1 ROWS (CLINICAL_CONDITION_COD,CLINICAL_CONDITION_NAM,INSERTED_BY,REC_INSERT_DATE,REC_UPD_DATE,UPDATED_BY,@CLINICALCONDITIONCLASSCD,CLINICALCONDITIONTYPECD,CLINICALCONDITIONABBREV) SET CLINICALCONDITIONCLASSCD = IF(@CLINICALCONDITIONCLASSCD="",NULL,@CLINICALCONDITIONCLASSCD);'"'"' | $MYSQL
+echo "CE.DERIVEDFACT"
+docker exec mysql_container echo '"'"'USE CE;LOAD DATA LOCAL INFILE "./ce.DerivedFact.csv" INTO TABLE CE.DERIVEDFACT FIELDS TERMINATED BY "," LINES TERMINATED BY "\n" IGNORE 1 ROWS (DERIVEDFACTID,DERIVEDFACTTRACKINGID,DERIVEDFACTTYPEID,INSERTEDBY,RECORDINSERTDT,RECORDUPDTDT,UPDTDBY);'"'"' | $MYSQL
+echo "CE.DERIVEDFACTPRODUCTUSAGE"
+docker exec mysql_container echo '"'"'USE CE;LOAD DATA LOCAL INFILE "./ce.DerivedFactProductUsage.csv" INTO TABLE CE.DERIVEDFACTPRODUCTUSAGE FIELDS TERMINATED BY "," LINES TERMINATED BY "\n" IGNORE 1 ROWS (DERIVEDFACTPRODUCTUSAGEID,DERIVEDFACTID,PRODUCTMNEMONICCD,INSERTEDBY,RECORDINSERTDT,RECORDUPDTDT,UPDTDBY);'"'"' | $MYSQL
+echo "CE.MEDICALFINDING"
+docker exec mysql_container echo '"'"'USE CE;LOAD DATA LOCAL INFILE "./ce.MedicalFinding.csv" INTO TABLE CE.MEDICALFINDING FIELDS TERMINATED BY "," LINES TERMINATED BY "\n" IGNORE 1 ROWS (MEDICALFINDINGID,MEDICALFINDINGTYPECD,MEDICALFINDINGNM,SEVERITYLEVELCD,IMPACTABLEFLG,@CLINICAL_CONDITION_COD,INSERTEDBY,RECORDINSERTDT,RECORDUPDTDT,UPDTDBY,ACTIVEFLG,OPPORTUNITYPOINTSDISCRCD) SET CLINICAL_CONDITION_COD = IF(@CLINICAL_CONDITION_COD="",NULL,@CLINICAL_CONDITION_COD);'"'"' | $MYSQL
+echo "CE.MEDICALFINDINGTYPE"
+docker exec mysql_container echo '"'"'USE CE;LOAD DATA LOCAL INFILE "./ce.MedicalFindingType.csv" INTO TABLE CE.MEDICALFINDINGTYPE FIELDS TERMINATED BY "," LINES TERMINATED BY "\n" IGNORE 1 ROWS (MEDICALFINDINGTYPECD,MEDICALFINDINGTYPEDESC,INSERTEDBY,RECORDINSERTDT,RECORDUPDTDT,UPDTDBY,HEALTHSTATEAPPLICABLEFLAG);'"'"' | $MYSQL
+echo "CE.OPPORTUNITYPOINTSDISCR"
+docker exec mysql_container echo '"'"'USE CE;LOAD DATA LOCAL INFILE "./ce.OpportunityPointsDiscr.csv" INTO TABLE CE.OPPORTUNITYPOINTSDISCR FIELDS TERMINATED BY "," LINES TERMINATED BY "\n" IGNORE 1 ROWS (OPPORTUNITYPOINTSDISCRCD,OPPORTUNITYPOINTSDISCNM,INSERTEDBY,RECORDINSERTDT,RECORDUPDTDT,UPDTDBY);'"'"' | $MYSQL
+echo "CE.PRODUCTFINDING"
+docker exec mysql_container echo '"'"'USE CE;LOAD DATA LOCAL INFILE "./ce.ProductFinding.csv" INTO TABLE CE.PRODUCTFINDING FIELDS TERMINATED BY "," LINES TERMINATED BY "\n" IGNORE 1 ROWS (PRODUCTFINDINGID,PRODUCTFINDINGNM,SEVERITYLEVELCD,PRODUCTFINDINGTYPECD,PRODUCTMNEMONICCD,SUBPRODUCTMNEMONICCD,INSERTEDBY,RECORDINSERTDT,RECORDUPDTDT,UPDTDBY);'"'"' | $MYSQL
+echo "CE.PRODUCTFINDINGTYPE"
+docker exec mysql_container echo '"'"'USE CE;LOAD DATA LOCAL INFILE "./ce.ProductFindingType.csv" INTO TABLE CE.PRODUCTFINDINGTYPE FIELDS TERMINATED BY "," LINES TERMINATED BY "\n" IGNORE 1 ROWS (PRODUCTFINDINGTYPECD,PRODUCTFINDINGTYPEDESC,INSERTEDBY,RECORDINSERTDT,RECORDUPDTDT,UPDTDBY);'"'"' | $MYSQL
+echo "CE.PRODUCTOPPORTUNITYPOINTS"
+docker exec mysql_container echo '"'"'USE CE;LOAD DATA LOCAL INFILE "./ce.ProductOpportunityPoints.csv" INTO TABLE CE.PRODUCTOPPORTUNITYPOINTS FIELDS TERMINATED BY "," LINES TERMINATED BY "\n" IGNORE 1 ROWS (OPPORTUNITYPOINTSDISCCD,EFFECTIVESTARTDT,OPPORTUNITYPOINTSNBR,@EFFECTIVEENDDT,DERIVEDFACTPRODUCTUSAGEID,INSERTEDBY,RECORDINSERTDT,RECORDUPDTDT,UPDTDBY) SET EFFECTIVEENDDT = IF(@EFFECTIVEENDDT="",NULL,@EFFECTIVEENDDT);'"'"' | $MYSQL
+echo "CE.RECOMMENDATION"
+docker exec mysql_container echo '"'"'USE CE;LOAD DATA LOCAL INFILE "./ce.Recommendation.csv" INTO TABLE CE.RECOMMENDATION FIELDS TERMINATED BY "," LINES TERMINATED BY "\n" IGNORE 1 ROWS (RECOMMENDATIONSKEY,RECOMMENDATIONID,RECOMMENDATIONCODE,RECOMMENDATIONDESC,RECOMMENDATIONTYPE,CCTYPE,CLINICALREVIEWTYPE,@AGERANGEID,ACTIONCODE,THERAPEUTICCLASS,MDCCODE,MCCCODE,PRIVACYCATEGORY,INTERVENTION,@RECOMMENDATIONFAMILYID,@RECOMMENDPRECEDENCEGROUPID,INBOUNDCOMMUNICATIONROUTE,SEVERITY,PRIMARYDIAGNOSIS,SECONDARYDIAGNOSIS,ADVERSEEVENT,@ICMCONDITIONID,WELLNESSFLAG,VBFELIGIBLEFLAG,@COMMUNICATIONRANKING,@PRECEDENCERANKING,PATIENTDERIVEDFLAG,LABREQUIREDFLAG,UTILIZATIONTEXTAVAILABLEF,SENSITIVEMESSAGEFLAG,HIGHIMPACTFLAG,ICMLETTERFLAG,REQCLINICIANCLOSINGFLAG,@OPSIMPELMENTATIONPHASE,SEASONALFLAG,@SEASONALSTARTDT,@SEASONALENDDT,EFFECTIVESTARTDT,@EFFECTIVEENDDT,RECORDINSERTDT,RECORDUPDTDT,INSERTEDBY,UPDTDBY,STANDARDRUNFLAG,@INTERVENTIONFEEDBACKFAMILYID,@CONDITIONFEEDBACKFAMILYID,ASHWELLNESSELIGIBILITYFLAG,HEALTHADVOCACYELIGIBILITYFLAG) SET RECOMMENDATIONFAMILYID = IF(@RECOMMENDATIONFAMILYID="",NULL,@RECOMMENDATIONFAMILYID), RECOMMENDPRECEDENCEGROUPID = IF(@RECOMMENDPRECEDENCEGROUPID="",NULL,@RECOMMENDPRECEDENCEGROUPID), ICMCONDITIONID = IF(@ICMCONDITIONID="",NULL,@ICMCONDITIONID), COMMUNICATIONRANKING = IF(@COMMUNICATIONRANKING="",NULL,@COMMUNICATIONRANKING), PRECEDENCERANKING = IF(@PRECEDENCERANKING="",NULL,@PRECEDENCERANKING), OPSIMPELMENTATIONPHASE = IF(@OPSIMPELMENTATIONPHASE="",NULL,@OPSIMPELMENTATIONPHASE), SEASONALSTARTDT = IF(@SEASONALSTARTDT="",NULL,@SEASONALSTARTDT), SEASONALENDDT = IF(@SEASONALENDDT="",NULL,@SEASONALENDDT), EFFECTIVEENDDT = IF(@EFFECTIVEENDDT="",NULL,@EFFECTIVEENDDT), INTERVENTIONFEEDBACKFAMILYID = IF(@INTERVENTIONFEEDBACKFAMILYID="",NULL,@INTERVENTIONFEEDBACKFAMILYID), CONDITIONFEEDBACKFAMILYID = IF(@CONDITIONFEEDBACKFAMILYID="",NULL,@CONDITIONFEEDBACKFAMILYID), AGERANGEID = IF(@AGERANGEID="",NULL,@AGERANGEID);'"'"' | $MYSQL
+EOF'
+chmod +x .script
+command time -v ./.script 2> .results
+../../getExperimentalResults.sh
+../../getDataAsCSVline.sh .results "Howard Deiner" "AWS Load MySQL Data" >> Experimental\ Results.csv
+../../putExperimentalResults.sh
+rm .script .results Experimental\ Results.csv
+
+bash -c 'cat << "EOF" > .script
+#!/usr/bin/env bash
+figlet -w 160 -f small "Check MySQL Locally"
+echo "CE.CLINICAL_CONDITION"
+docker exec mysql_container echo '"'"'select * from CE.CLINICAL_CONDITION LIMIT 2;'"'"' | mysql -h $(<.database_dns) -P $(<.database_port) -u $(<.database_username) --password=$(<.database_password) CE
+docker exec mysql_container echo '"'"'select count(*) from CE.CLINICAL_CONDITION;'"'"' | mysql -h $(<.database_dns) -P $(<.database_port) -u $(<.database_username) --password=$(<.database_password) CE
+echo "CE.DERIVEDFACT"
+docker exec mysql_container echo '"'"'select * from CE.DERIVEDFACT LIMIT 2;'"'"' | mysql -h $(<.database_dns) -P $(<.database_port) -u $(<.database_username) --password=$(<.database_password) CE
+docker exec mysql_container echo '"'"'select count(*) from CE.DERIVEDFACT;'"'"' | mysql -h $(<.database_dns) -P $(<.database_port) -u $(<.database_username) --password=$(<.database_password) CE
+echo "CE.DERIVEDFACTPRODUCTUSAGE"
+docker exec mysql_container echo '"'"'select * from CE.DERIVEDFACTPRODUCTUSAGE LIMIT 2;'"'"' | mysql -h $(<.database_dns) -P $(<.database_port) -u $(<.database_username) --password=$(<.database_password) CE
+docker exec mysql_container echo '"'"'select count(*) from CE.DERIVEDFACTPRODUCTUSAGE;'"'"' | mysql -h $(<.database_dns) -P $(<.database_port) -u $(<.database_username) --password=$(<.database_password) CE
+echo "CE.MEDICALFINDING"
+docker exec mysql_container echo '"'"'select * from CE.MEDICALFINDING LIMIT 2;'"'"' | mysql -h $(<.database_dns) -P $(<.database_port) -u $(<.database_username) --password=$(<.database_password) CE
+docker exec mysql_container echo '"'"'select count(*) from CE.MEDICALFINDING;'"'"' | mysql -h $(<.database_dns) -P $(<.database_port) -u $(<.database_username) --password=$(<.database_password) CE
+echo "CE.MEDICALFINDINGTYPE"
+docker exec mysql_container echo '"'"'select * from CE.MEDICALFINDINGTYPE LIMIT 2;'"'"' | mysql -h $(<.database_dns) -P $(<.database_port) -u $(<.database_username) --password=$(<.database_password) CE
+docker exec mysql_container echo '"'"'select count(*) from CE.MEDICALFINDINGTYPE;'"'"' | mysql -h $(<.database_dns) -P $(<.database_port) -u $(<.database_username) --password=$(<.database_password) CE
+echo "CE.OPPORTUNITYPOINTSDISCR"
+docker exec mysql_container echo '"'"'select * from CE.OPPORTUNITYPOINTSDISCR LIMIT 2;'"'"' | mysql -h $(<.database_dns) -P $(<.database_port) -u $(<.database_username) --password=$(<.database_password) CE
+docker exec mysql_container echo '"'"'select count(*) from CE.OPPORTUNITYPOINTSDISCR;'"'"' | mysql -h $(<.database_dns) -P $(<.database_port) -u $(<.database_username) --password=$(<.database_password) CE
+echo "CE.PRODUCTFINDING"
+docker exec mysql_container echo '"'"'select * from CE.PRODUCTFINDING LIMIT 2;'"'"' | mysql -h $(<.database_dns) -P $(<.database_port) -u $(<.database_username) --password=$(<.database_password) CE
+docker exec mysql_container echo '"'"'select count(*) from CE.PRODUCTFINDING;'"'"' | mysql -h $(<.database_dns) -P $(<.database_port) -u $(<.database_username) --password=$(<.database_password) CE
+echo "CE.PRODUCTFINDINGTYPE"
+docker exec mysql_container echo '"'"'select * from CE.PRODUCTFINDINGTYPE LIMIT 2;'"'"' | mysql -h $(<.database_dns) -P $(<.database_port) -u $(<.database_username) --password=$(<.database_password) CE
+docker exec mysql_container echo '"'"'select count(*) from CE.PRODUCTFINDINGTYPE;'"'"' | mysql -h $(<.database_dns) -P $(<.database_port) -u $(<.database_username) --password=$(<.database_password) CE
+echo "CE.PRODUCTOPPORTUNITYPOINTS"
+docker exec mysql_container echo '"'"'select * from CE.PRODUCTOPPORTUNITYPOINTS LIMIT 2;'"'"' | mysql -h $(<.database_dns) -P $(<.database_port) -u $(<.database_username) --password=$(<.database_password) CE
+docker exec mysql_container echo '"'"'select count(*) from CE.PRODUCTOPPORTUNITYPOINTS;'"'"' | mysql -h $(<.database_dns) -P $(<.database_port) -u $(<.database_username) --password=$(<.database_password) CE
+echo "CE.RECOMMENDATION"
+docker exec mysql_container echo '"'"'select * from CE.RECOMMENDATION LIMIT 2;'"'"' | mysql -h $(<.database_dns) -P $(<.database_port) -u $(<.database_username) --password=$(<.database_password) CE
+docker exec mysql_container echo '"'"'select count(*) from CE.RECOMMENDATION;'"'"' | mysql -h $(<.database_dns) -P $(<.database_port) -u $(<.database_username) --password=$(<.database_password) CE
+EOF'
+chmod +x .script
+command time -v ./.script 2> .results
+../../getExperimentalResults.sh
+../../getDataAsCSVline.sh .results "Howard Deiner" "AWS Test That MySQL Data Loaded" >> Experimental\ Results.csv
+../../putExperimentalResults.sh
+rm .script .results Experimental\ Results.csv
+
+rm .database_dns .database_port .database_username .database_password liquibase.properties changeSet.xml ce.*.csv
 ```
 This is what the console looks like when the script is executed.
 ![02_populate_console_01](README_assets/02_populate_console_01.png)\
+![02_populate_console_02](README_assets/02_populate_console_02.png)\
+![02_populate_console_03](README_assets/02_populate_console_03.png)\
+![02_populate_console_04](README_assets/02_populate_console_04.png)\
 <BR/>
 ### 03_shutdown.sh
 This script is extremely simple.  It tells terraform to destroy all that it created.
@@ -201,10 +368,38 @@ This script is extremely simple.  It tells terraform to destroy all that it crea
 ```bash
 #!/usr/bin/env bash
 
+bash -c 'cat << "EOF" > .script
+#!/usr/bin/env bash
 figlet -w 200 -f small "Shutdown MySQL Clustered on AWS RDS Aurora"
 terraform destroy -auto-approve
+EOF'
+chmod +x .script
+command time -v ./.script 2> .results
+../../getExperimentalResults.sh
+../../getDataAsCSVline.sh .results "Howard Deiner" "AWS Shutdown MySQL (Client Side)" >> Experimental\ Results.csv
+../../putExperimentalResults.sh
+rm .script .results Experimental\ Results.csv
+
+bash -c 'cat << "EOF" > .script
+#!/usr/bin/env bash
+figlet -w 240 -f small "Shutdown MySQL/MySQLClient/CECacheServer Locally"
+docker-compose -f ../03_MySQL_Local/docker-compose.yml down
+docker volume rm 03_mysql_local_mysql_data
+docker volume rm 03_mysql_local_mysqlclient_data
+docker volume rm 03_mysql_local_cecacheserver_data
+EOF'
+chmod +x .script
+command time -v ./.script 2> .results
+../../getExperimentalResults.sh
+../../getDataAsCSVline.sh .results "Howard Deiner" "AWS Shutdown MySQL Locally (Client Side)" >> Experimental\ Results.csv
+../../putExperimentalResults.sh
+rm .script .results Experimental\ Results.csv
 ```
 The console shows what it does.
 ![03_shutdown_console_01](README_assets/03_shutdown_console_01.png)\
 ![03_shutdown_console_02](README_assets/03_shutdown_console_02.png)\
+![03_shutdown_console_03](README_assets/03_shutdown_console_03.png)\
 <BR/>
+And just for laughs, here's the timings for this run.  All kept in a csv file in S3 at s3://health-engine-aws-poc/Experimental Results.csv
+![Experimental Results](README_assets/Experimental Results.png)\
+<BR />

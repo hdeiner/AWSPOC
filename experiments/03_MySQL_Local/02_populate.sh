@@ -55,7 +55,7 @@ EOF'
 chmod +x .script
 command time -v ./.script 2> .results
 ../../getExperimentalResults.sh
-../../getDataAsCSVline.sh .results "Howard Deiner" "Local Process S3 Data into MySQL CSV File For Inport" >> Experimental\ Results.csv
+../../getDataAsCSVline.sh .results "Howard Deiner" "Local Process S3 Data into MySQL CSV File For Import" >> Experimental\ Results.csv
 ../../putExperimentalResults.sh
 rm .script .results Experimental\ Results.csv
 
