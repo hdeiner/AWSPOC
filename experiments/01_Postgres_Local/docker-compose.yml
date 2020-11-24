@@ -15,7 +15,7 @@ services:
       - 5432:5432
     networks:
       container_network:
-      
+
   pgadmin_service:
     image: dpage/pgadmin4:latest
     container_name: pgadmin_container
@@ -30,7 +30,7 @@ services:
       - 8080:80
     networks:
       container_network:
-      
+
   cecacheserver_service:
     build: ../../src/application/CacheServerDocker/DockerImageForPostgres
     container_name: cecacheserver_forpostgres_container
@@ -40,7 +40,7 @@ services:
     ports:
       - 12405:12405
     networks:
-      container_network:   
+      container_network:
     depends_on:
       - postgres_service
 
@@ -52,5 +52,3 @@ volumes:
   postgres_data:
   pgadmin_data:
   cecacheserver_data:
-  
-  

@@ -40,7 +40,7 @@ rm .script .results Experimental\ Results.csv
 
 bash -c 'cat << "EOF" > .script
 #!/usr/bin/env bash
-figlet -w 240 -f small "Process S3 Data into MySQL CSV File For Inport"
+figlet -w 240 -f small "Process S3 Data into MySQL CSV File For Import"
 ../transform_Oracle_ce.ClinicalCondition_to_csv.sh
 ../transform_Oracle_ce.DerivedFact_to_csv.sh
 ../transform_Oracle_ce.DerivedFactProductUsage_to_csv.sh
