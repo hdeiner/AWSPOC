@@ -18,9 +18,46 @@ This script uses simple Terraform and applies it.  You get 14 resources of ready
 ```bash
 #!/usr/bin/env bash
 
-figlet -w 200 -f small "Startup PostgresSQL on AWS RDS Aurora"
+bash -c 'cat << "EOF" > .script
+#!/usr/bin/env bash
+figlet -w 200 -f small "Startup PostgresSQL Clustered on AWS RDS Aurora"
 terraform init
 terraform apply -auto-approve
+EOF'
+chmod +x .script
+command time -v ./.script 2> .results
+../../getExperimentalResults.sh
+../../getDataAsCSVline.sh .results "Howard Deiner" "AWS Startup PostgresSQL (Client Side)" >> Experimental\ Results.csv
+../../putExperimentalResults.sh
+rm .script .results Experimental\ Results.csv
+
+bash -c 'cat << "EOF" > .script
+#!/usr/bin/env bash
+figlet -w 240 -f small "Startup Postgres/pgadmin/cecacheserver Locally"
+docker volume rm 01_postgres_local_postgres_data
+docker volume rm 01_postgres_local_pgadmin_data
+docker volume rm 01_postgres_local_cecacheserver_data
+docker-compose -f ../01_Postgres_Local/docker-compose.yml up -d
+
+figlet -w 240 -f small "Wait For Postgres To Start"
+while true ; do
+  docker logs postgres_container > stdout.txt 2> stderr.txt
+  result=$(grep -c "LOG:  database system is ready to accept connections" stderr.txt)
+  if [ $result = 1 ] ; then
+    echo "Postgres has started"
+    break
+  fi
+  sleep 5
+done
+rm stdout.txt stderr.txt
+rm stdout.txt stderr.txt
+EOF'
+chmod +x .script
+command time -v ./.script 2> .results
+../../getExperimentalResults.sh
+../../getDataAsCSVline.sh .results "Howard Deiner" "AWS Startup PostgresSQL Locally (Client Side)" >> Experimental\ Results.csv
+../../putExperimentalResults.sh
+rm .script .results Experimental\ Results.csv
 ```
 The one script that does all of the heavy lifting is below.
 ```hcl-terraform
@@ -148,7 +185,6 @@ This is what the console looks like when the script is executed.
 ![01_startup_console_02](README_assets/01_startup_console_02.png)\
 ![01_startup_console_03](README_assets/01_startup_console_03.png)\
 ![01_startup_console_04](README_assets/01_startup_console_04.png)\
-![01_startup_console_05](README_assets/01_startup_console_05.png)\
 <BR/>
 If we were to peruse the AWS Console Database Dashboard, here's what we will see.
 ![01_startup_aws_console__rds_dashboard_01](README_assets/01_startup_aws_console__rds_dashboard_01.png)\
@@ -163,41 +199,178 @@ And, finally, looking deeper into the AWS Console Database Monitoring, we'd see 
 ![01_startup_aws_console_rds_database_monitoring_03](README_assets/01_startup_aws_console_rds_database_monitoring_03.png)\
 <BR/>
 ### 02_populate.sh
-This script first uses the running AWS database to run psql to create a database for us.
+This script first uses the running AWS database and runs psql in the docker-composed local environment (so we don't have to install psql clients) to create a CE database for us.
 
 The script then creates a liquibase.properties to run liquibase to update the database to it's intended state.
 
-The script then demonstrates that the two tables created have data in them, all managed by liquibase.
+We then continue to run psql from the docker composed environment to lod data into the AWS database.
+
+And finally, the script demonstrates that tables created have data in them (again, from the docker-composed local psql client).
 ```bash
 #!/usr/bin/env bash
 
-figlet -w 160 -f small "Populate Postgres on AWS RDS Aurora"
-echo `terraform output database_dns | grep -o '".*"' | cut -d '"' -f2` > .database_dns
-echo `terraform output database_port | grep -Eo '[0-9]{1,}' | cut -d '"' -f2` > .database_port
-echo `terraform output database_username | grep -o '".*"' | cut -d '"' -f2` > .database_username
-echo `terraform output database_password | grep -o '".*"' | cut -d '"' -f2` > .database_password
+bash -c 'cat << "EOF" > .script
+#!/usr/bin/env bash
+figlet -w 240 -f small "AWS RDS Aurora Populate PostgreSQL (client side)"
+echo `terraform output database_dns | grep -o '"'"'".*"'"'"' | cut -d '"'"'"'"'"' -f2` > .database_dns
+echo `terraform output database_port | grep -Eo '"'"'[0-9]{1,}'"'"' | cut -d '"'"'"'"'"' -f2` > .database_port
+echo `terraform output database_username | grep -o '"'"'".*"'"'"' | cut -d '"'"'"'"'"' -f2` > .database_username
+echo `terraform output database_password | grep -o '"'"'".*"'"'"' | cut -d '"'"'"'"'"' -f2` > .database_password
 
-PGPASSWORD=$(<.database_password) psql --host=$(<.database_dns) --port=$(<.database_port) --username=$(<.database_username) --no-password --no-align -c 'create database testdatabase;'
+docker exec postgres_container bash -c "export PGPASSWORD=$(<.database_password);psql --host=$(<.database_dns) --port=$(<.database_port) --username=$(<.database_username) --no-password --no-align -c '"'"'create database ce;'"'"'"
+cp ../../src/java/Translator/changeSet.xml changeSet.xml
+# fix <createTable tableName=" to become <createTable tableName="
+sed --in-place --regexp-extended '"'"'s/<createTable\ tableName\=\"CE\./<createTable\ tableName\=\"/g'"'"' changeSet.xml
+# fix to remove " schemaName="CE""
+sed --in-place --regexp-extended '"'"'s/ schemaName\=\"\CE\">/>/g'"'"' changeSet.xml
+# make schemaName="CE" in a line go away
+sed --in-place --regexp-extended '"'"'s/schemaName\=\"CE\"//g'"'"' changeSet.xml
+echo '"'"'changeLogFile: changeSet.xml'"'"' > liquibase.properties
+echo '"'"'url:  jdbc:postgresql://'"'"'$(<.database_dns)'"'"':'"'"'$(<.database_port)'"'"'/ce'"'"' >> liquibase.properties
+echo '"'"'username: '"'"'$(<.database_username) >> liquibase.properties
+echo '"'"'password: '"'"'$(<.database_password) >> liquibase.properties
+echo '"'"'driver:  org.postgresql.Driver'"'"' >> liquibase.properties
+echo '"'"'classpath:  ../../liquibase_drivers/postgresql-42.2.18.jre6.jar'"'"' >> liquibase.properties
 
-echo 'changeLogFile: ../../src/db/changeset.xml' > liquibase.properties
-echo 'url:  jdbc:postgresql://'$(<.database_dns)':'$(<.database_port)'/testdatabase' >> liquibase.properties
-echo 'username: '$(<.database_username) >> liquibase.properties
-echo 'password: '$(<.database_password) >> liquibase.properties
-echo 'driver:  org.postgresql.Driver' >> liquibase.properties
-echo 'classpath:  ../../liquibase_drivers/postgresql-42.2.18.jre6.jar' >> liquibase.properties
 liquibase update
+rm changeSet.xml liquibase.properties
+EOF'
+chmod +x .script
+command time -v ./.script 2> .results
+../../getExperimentalResults.sh
+../../getDataAsCSVline.sh .results "Howard Deiner" "AWS RDS Aurora Create PostgreSQL Schema (client side)" >> Experimental\ Results.csv
+../../putExperimentalResults.sh
+rm .script .results Experimental\ Results.csv
 
-figlet -w 160 -f small "Check Postgres on AWS RDS Aurora"
-PGPASSWORD=$(<.database_password) psql --host=$(<.database_dns) --port=$(<.database_port) --username=$(<.database_username) --no-password -d testdatabase --no-align -c 'select * from DERIVEDFACT;'
-PGPASSWORD=$(<.database_password) psql --host=$(<.database_dns) --port=$(<.database_port) --username=$(<.database_username) --no-password -d testdatabase --no-align -c 'select * from MEMBERHEALTHSTATE;'
+bash -c 'cat << "EOF" > .script
+#!/usr/bin/env bash
+figlet -w 240 -f small "AWS RDS Aurora Get PostgreSQL Data from S3 (client side)"
+../../data/transfer_from_s3_and_decrypt.sh ce.ClinicalCondition.csv
+../../data/transfer_from_s3_and_decrypt.sh ce.DerivedFact.csv
+../../data/transfer_from_s3_and_decrypt.sh ce.DerivedFactProductUsage.csv
+../../data/transfer_from_s3_and_decrypt.sh ce.MedicalFinding.csv
+../../data/transfer_from_s3_and_decrypt.sh ce.MedicalFindingType.csv
+../../data/transfer_from_s3_and_decrypt.sh ce.OpportunityPointsDiscr.csv
+../../data/transfer_from_s3_and_decrypt.sh ce.ProductFinding.csv
+../../data/transfer_from_s3_and_decrypt.sh ce.ProductFindingType.csv
+../../data/transfer_from_s3_and_decrypt.sh ce.ProductOpportunityPoints.csv
+../../data/transfer_from_s3_and_decrypt.sh ce.Recommendation.csv
+EOF'
+chmod +x .script
+command time -v ./.script 2> .results
+../../getExperimentalResults.sh
+../../getDataAsCSVline.sh .results "Howard Deiner" "AWS RDS Aurora Get PostgreSQL Data from S3 Bucket (client side)" >> Experimental\ Results.csv
+../../putExperimentalResults.sh
+rm .script .results Experimental\ Results.csv
 
-rm .database_dns .database_port .database_username .database_password liquibase.properties
-figlet -w 160 -f small "Check Postgres Locally"
-docker exec postgres_container psql --port=5432 --username=postgres --no-password -d testdatabase -c 'select * from DERIVEDFACT;'
-docker exec postgres_container psql --port=5432 --username=postgres --no-password -d testdatabase -c 'select * from MEMBERHEALTHSTATE;'
+bash -c 'cat << "EOF" > .script
+#!/usr/bin/env bash
+figlet -w 240 -f small "AWS RDS Aurora Process S3 Data PostgreSQL (client side)"
+../transform_Oracle_ce.ClinicalCondition_to_csv.sh
+../transform_Oracle_ce.DerivedFact_to_csv.sh
+../transform_Oracle_ce.DerivedFactProductUsage_to_csv.sh
+../transform_Oracle_ce.MedicalFinding_to_csv.sh
+../transform_Oracle_ce.MedicalFindingType_to_csv.sh
+../transform_Oracle_ce.OpportunityPointsDiscr_to_csv.sh
+../transform_Oracle_ce.ProductFinding_to_csv.sh
+../transform_Oracle_ce.ProductFindingType_to_csv.sh
+../transform_Oracle_ce.ProductOpportunityPoints_to_csv.sh
+../transform_Oracle_ce.Recommendation_to_csv.sh
+EOF'
+chmod +x .script
+command time -v ./.script 2> .results
+../../getExperimentalResults.sh
+../../getDataAsCSVline.sh .results "Howard Deiner" "AWS RDS Aurora Process S3 Data PostgreSQL (client side)" >> Experimental\ Results.csv
+../../putExperimentalResults.sh
+rm .script .results Experimental\ Results.csv
+
+bash -c 'cat << "EOF" > .script
+#!/usr/bin/env bash
+figlet -w 240 -f small "AWS RDS Aurora PostgreSQL Data Load (client side)"
+echo "CLINICAL_CONDITION"
+docker cp ce.ClinicalCondition.csv postgres_container:/tmp/ce.ClinicalCondition.csv
+docker exec postgres_container bash -c "export PGPASSWORD=$(<.database_password);echo \"\COPY CLINICAL_CONDITION(CLINICAL_CONDITION_COD,CLINICAL_CONDITION_NAM,INSERTED_BY,REC_INSERT_DATE,REC_UPD_DATE,UPDATED_BY,CLINICALCONDITIONCLASSCD,CLINICALCONDITIONTYPECD,CLINICALCONDITIONABBREV) FROM '/tmp/ce.ClinicalCondition.csv' DELIMITER '"'"','"'"' CSV HEADER;\" | psql --host=$(<.database_dns) --port=$(<.database_port) --username=$(<.database_username) --no-password -d ce --no-align"
+echo "DERIVEDFACT"
+docker cp ce.DerivedFact.csv postgres_container:/tmp/ce.DerivedFact.csv
+docker exec postgres_container bash -c "export PGPASSWORD=$(<.database_password);echo \"\COPY DERIVEDFACT(DERIVEDFACTID,DERIVEDFACTTRACKINGID,DERIVEDFACTTYPEID,INSERTEDBY,RECORDINSERTDT,RECORDUPDTDT,UPDTDBY) FROM '"'"'/tmp/ce.DerivedFact.csv'"'"' DELIMITER '"'"','"'"' CSV HEADER;\" | psql --host=$(<.database_dns) --port=$(<.database_port) --username=$(<.database_username) --no-password -d ce --no-align"
+echo "DERIVEDFACTPRODUCTUSAGE"
+docker cp ce.DerivedFactProductUsage.csv postgres_container:/tmp/ce.DerivedFactProductUsage.csv
+docker exec postgres_container bash -c "export PGPASSWORD=$(<.database_password);echo \"\COPY DERIVEDFACTPRODUCTUSAGE(DERIVEDFACTPRODUCTUSAGEID,DERIVEDFACTID,PRODUCTMNEMONICCD,INSERTEDBY,RECORDINSERTDT,RECORDUPDTDT,UPDTDBY) FROM '"'"'/tmp/ce.DerivedFactProductUsage.csv'"'"' DELIMITER '"'"','"'"' CSV HEADER;\" | psql --host=$(<.database_dns) --port=$(<.database_port) --username=$(<.database_username) --no-password -d ce --no-align"
+echo "MEDICALFINDING"
+docker cp ce.MedicalFinding.csv postgres_container:/tmp/ce.MedicalFinding.csv
+docker exec postgres_container bash -c "export PGPASSWORD=$(<.database_password);echo \"\COPY MEDICALFINDING(MEDICALFINDINGID,MEDICALFINDINGTYPECD,MEDICALFINDINGNM,SEVERITYLEVELCD,IMPACTABLEFLG,CLINICAL_CONDITION_COD,INSERTEDBY,RECORDINSERTDT,RECORDUPDTDT,UPDTDBY,ACTIVEFLG,OPPORTUNITYPOINTSDISCRCD) FROM '"'"'/tmp/ce.MedicalFinding.csv'"'"' DELIMITER '"'"','"'"' CSV HEADER;\" | psql --host=$(<.database_dns) --port=$(<.database_port) --username=$(<.database_username) --no-password -d ce --no-align"
+echo "MEDICALFINDINGTYPE"
+docker cp ce.MedicalFindingType.csv postgres_container:/tmp/ce.MedicalFindingType.csv
+docker exec postgres_container bash -c "export PGPASSWORD=$(<.database_password);echo \"\COPY MEDICALFINDINGTYPE(MEDICALFINDINGTYPECD,MEDICALFINDINGTYPEDESC,INSERTEDBY,RECORDINSERTDT,RECORDUPDTDT,UPDTDBY,HEALTHSTATEAPPLICABLEFLAG) FROM '"'"'/tmp/ce.MedicalFindingType.csv'"'"' DELIMITER '"'"','"'"' CSV HEADER;\" | psql --host=$(<.database_dns) --port=$(<.database_port) --username=$(<.database_username) --no-password -d ce --no-align"
+echo "OPPORTUNITYPOINTSDISCR"
+docker cp ce.OpportunityPointsDiscr.csv postgres_container:/tmp/ce.OpportunityPointsDiscr.csv
+docker exec postgres_container bash -c "export PGPASSWORD=$(<.database_password);echo \"\COPY OPPORTUNITYPOINTSDISCR(OPPORTUNITYPOINTSDISCRCD,OPPORTUNITYPOINTSDISCNM,INSERTEDBY,RECORDINSERTDT,RECORDUPDTDT,UPDTDBY) FROM '"'"'/tmp/ce.OpportunityPointsDiscr.csv'"'"' DELIMITER '"'"','"'"' CSV HEADER;\" | psql --host=$(<.database_dns) --port=$(<.database_port) --username=$(<.database_username) --no-password -d ce --no-align"
+echo "PRODUCTFINDING"
+docker cp ce.ProductFinding.csv postgres_container:/tmp/ce.ProductFinding.csv
+docker exec postgres_container bash -c "export PGPASSWORD=$(<.database_password);echo \"\COPY PRODUCTFINDING(PRODUCTFINDINGID,PRODUCTFINDINGNM,SEVERITYLEVELCD,PRODUCTFINDINGTYPECD,PRODUCTMNEMONICCD,SUBPRODUCTMNEMONICCD,INSERTEDBY,RECORDINSERTDT,RECORDUPDTDT,UPDTDBY) FROM '"'"'/tmp/ce.ProductFinding.csv'"'"' DELIMITER '"'"','"'"' CSV HEADER;\" | psql --host=$(<.database_dns) --port=$(<.database_port) --username=$(<.database_username) --no-password -d ce --no-align"
+echo "PRODUCTFINDINGTYPE"
+docker cp ce.ProductFindingType.csv postgres_container:/tmp/ce.ProductFindingType.csv
+docker exec postgres_container bash -c "export PGPASSWORD=$(<.database_password);echo \"\COPY PRODUCTFINDINGTYPE(PRODUCTFINDINGTYPECD,PRODUCTFINDINGTYPEDESC,INSERTEDBY,RECORDINSERTDT,RECORDUPDTDT,UPDTDBY) FROM '"'"'/tmp/ce.ProductFindingType.csv'"'"' DELIMITER '"'"','"'"' CSV HEADER;\" | psql --host=$(<.database_dns) --port=$(<.database_port) --username=$(<.database_username) --no-password -d ce --no-align"
+echo "PRODUCTOPPORTUNITYPOINTS"
+docker cp ce.ProductOpportunityPoints.csv postgres_container:/tmp/ce.ProductOpportunityPoints.csv
+docker exec postgres_container bash -c "export PGPASSWORD=$(<.database_password);echo \"\COPY PRODUCTOPPORTUNITYPOINTS(OPPORTUNITYPOINTSDISCCD,EFFECTIVESTARTDT,OPPORTUNITYPOINTSNBR,EFFECTIVEENDDT,DERIVEDFACTPRODUCTUSAGEID,INSERTEDBY,RECORDINSERTDT,RECORDUPDTDT,UPDTDBY) FROM '"'"'/tmp/ce.ProductOpportunityPoints.csv'"'"' DELIMITER '"'"','"'"' CSV HEADER;\" | psql --host=$(<.database_dns) --port=$(<.database_port) --username=$(<.database_username) --no-password -d ce --no-align"
+echo "RECOMMENDATION"
+docker cp ce.Recommendation.csv postgres_container:/tmp/ce.Recommendation.csv
+docker exec postgres_container bash -c "export PGPASSWORD=$(<.database_password);echo \"\COPY RECOMMENDATION(RECOMMENDATIONSKEY,RECOMMENDATIONID,RECOMMENDATIONCODE,RECOMMENDATIONDESC,RECOMMENDATIONTYPE,CCTYPE,CLINICALREVIEWTYPE,AGERANGEID,ACTIONCODE,THERAPEUTICCLASS,MDCCODE,MCCCODE,PRIVACYCATEGORY,INTERVENTION,RECOMMENDATIONFAMILYID,RECOMMENDPRECEDENCEGROUPID,INBOUNDCOMMUNICATIONROUTE,SEVERITY,PRIMARYDIAGNOSIS,SECONDARYDIAGNOSIS,ADVERSEEVENT,ICMCONDITIONID,WELLNESSFLAG,VBFELIGIBLEFLAG,COMMUNICATIONRANKING,PRECEDENCERANKING,PATIENTDERIVEDFLAG,LABREQUIREDFLAG,UTILIZATIONTEXTAVAILABLEF,SENSITIVEMESSAGEFLAG,HIGHIMPACTFLAG,ICMLETTERFLAG,REQCLINICIANCLOSINGFLAG,OPSIMPELMENTATIONPHASE,SEASONALFLAG,SEASONALSTARTDT,SEASONALENDDT,EFFECTIVESTARTDT,EFFECTIVEENDDT,RECORDINSERTDT,RECORDUPDTDT,INSERTEDBY,UPDTDBY,STANDARDRUNFLAG,INTERVENTIONFEEDBACKFAMILYID,CONDITIONFEEDBACKFAMILYID,ASHWELLNESSELIGIBILITYFLAG,HEALTHADVOCACYELIGIBILITYFLAG) FROM '"'"'/tmp/ce.Recommendation.csv'"'"' DELIMITER '"'"','"'"' CSV HEADER;\" | psql --host=$(<.database_dns) --port=$(<.database_port) --username=$(<.database_username) --no-password -d ce --no-align"
+EOF'
+chmod +x .script
+command time -v ./.script 2> .results
+../../getExperimentalResults.sh
+../../getDataAsCSVline.sh .results "Howard Deiner" "AWS RDS Aurora PostgreSQL Data Load (client side)" >> Experimental\ Results.csv
+../../putExperimentalResults.sh
+rm .script .results Experimental\ Results.csv
+
+bash -c 'cat << "EOF" > .script
+#!/usr/bin/env bash
+figlet -w 240 -f small "AWS RDS Aurora Check PostgreSQL Data (client side)"
+echo "CLINICAL_CONDITION"
+docker exec postgres_container bash -c "export PGPASSWORD=$(<.database_password);psql --host=$(<.database_dns) --port=$(<.database_port) --username=$(<.database_username) --no-password -d ce --no-align -c '"'"'select * from CLINICAL_CONDITION limit 2;'"'"'"
+docker exec postgres_container bash -c "export PGPASSWORD=$(<.database_password);psql --host=$(<.database_dns) --port=$(<.database_port) --username=$(<.database_username) --no-password -d ce --no-align -c '"'"'select count(*) from CLINICAL_CONDITION;'"'"'"
+echo "DERIVEDFACT"
+docker exec postgres_container bash -c "export PGPASSWORD=$(<.database_password);psql --host=$(<.database_dns) --port=$(<.database_port) --username=$(<.database_username) --no-password -d ce --no-align -c '"'"'select * from DERIVEDFACT limit 2;'"'"'"
+docker exec postgres_container bash -c "export PGPASSWORD=$(<.database_password);psql --host=$(<.database_dns) --port=$(<.database_port) --username=$(<.database_username) --no-password -d ce --no-align -c '"'"'select count(*) from DERIVEDFACT;'"'"'"
+echo "DERIVEDFACTPRODUCTUSAGE"
+docker exec postgres_container bash -c "export PGPASSWORD=$(<.database_password);psql --host=$(<.database_dns) --port=$(<.database_port) --username=$(<.database_username) --no-password -d ce --no-align -c '"'"'select * from DERIVEDFACTPRODUCTUSAGE limit 2;'"'"'"
+docker exec postgres_container bash -c "export PGPASSWORD=$(<.database_password);psql --host=$(<.database_dns) --port=$(<.database_port) --username=$(<.database_username) --no-password -d ce --no-align -c '"'"'select count(*) from DERIVEDFACTPRODUCTUSAGE;'"'"'"
+echo "MEDICALFINDING"
+docker exec postgres_container bash -c "export PGPASSWORD=$(<.database_password);psql --host=$(<.database_dns) --port=$(<.database_port) --username=$(<.database_username) --no-password -d ce --no-align -c '"'"'select * from MEDICALFINDING limit 2;'"'"'"
+docker exec postgres_container bash -c "export PGPASSWORD=$(<.database_password);psql --host=$(<.database_dns) --port=$(<.database_port) --username=$(<.database_username) --no-password -d ce --no-align -c '"'"'select count(*) from MEDICALFINDING;'"'"'"
+echo "MEDICALFINDINGTYPE"
+docker exec postgres_container bash -c "export PGPASSWORD=$(<.database_password);psql --host=$(<.database_dns) --port=$(<.database_port) --username=$(<.database_username) --no-password -d ce --no-align -c '"'"'select * from MEDICALFINDINGTYPE limit 2;'"'"'"
+docker exec postgres_container bash -c "export PGPASSWORD=$(<.database_password);psql --host=$(<.database_dns) --port=$(<.database_port) --username=$(<.database_username) --no-password -d ce --no-align -c '"'"'select count(*) from MEDICALFINDINGTYPE;'"'"'"
+echo "OPPORTUNITYPOINTSDISCR"
+docker exec postgres_container bash -c "export PGPASSWORD=$(<.database_password);psql --host=$(<.database_dns) --port=$(<.database_port) --username=$(<.database_username) --no-password -d ce --no-align -c '"'"'select * from OPPORTUNITYPOINTSDISCR limit 2;'"'"'"
+docker exec postgres_container bash -c "export PGPASSWORD=$(<.database_password);psql --host=$(<.database_dns) --port=$(<.database_port) --username=$(<.database_username) --no-password -d ce --no-align -c '"'"'select count(*) from OPPORTUNITYPOINTSDISCR;'"'"'"
+echo "PRODUCTFINDING"
+docker exec postgres_container bash -c "export PGPASSWORD=$(<.database_password);psql --host=$(<.database_dns) --port=$(<.database_port) --username=$(<.database_username) --no-password -d ce --no-align -c '"'"'select * from PRODUCTFINDING limit 2;'"'"'"
+docker exec postgres_container bash -c "export PGPASSWORD=$(<.database_password);psql --host=$(<.database_dns) --port=$(<.database_port) --username=$(<.database_username) --no-password -d ce --no-align -c '"'"'select count(*) from PRODUCTFINDING;'"'"'"
+echo "PRODUCTFINDINGTYPE"
+docker exec postgres_container bash -c "export PGPASSWORD=$(<.database_password);psql --host=$(<.database_dns) --port=$(<.database_port) --username=$(<.database_username) --no-password -d ce --no-align -c '"'"'select * from PRODUCTFINDINGTYPE limit 2;'"'"'"
+docker exec postgres_container bash -c "export PGPASSWORD=$(<.database_password);psql --host=$(<.database_dns) --port=$(<.database_port) --username=$(<.database_username) --no-password -d ce --no-align -c '"'"'select count(*) from PRODUCTFINDINGTYPE;'"'"'"
+echo "PRODUCTOPPORTUNITYPOINTS"
+docker exec postgres_container bash -c "export PGPASSWORD=$(<.database_password);psql --host=$(<.database_dns) --port=$(<.database_port) --username=$(<.database_username) --no-password -d ce --no-align -c '"'"'select * from PRODUCTOPPORTUNITYPOINTS limit 2;'"'"'"
+docker exec postgres_container bash -c "export PGPASSWORD=$(<.database_password);psql --host=$(<.database_dns) --port=$(<.database_port) --username=$(<.database_username) --no-password -d ce --no-align -c '"'"'select count(*) from PRODUCTOPPORTUNITYPOINTS;'"'"'"
+echo "RECOMMENDATION"
+docker exec postgres_container bash -c "export PGPASSWORD=$(<.database_password);psql --host=$(<.database_dns) --port=$(<.database_port) --username=$(<.database_username) --no-password -d ce --no-align -c '"'"'select * from RECOMMENDATION limit 2;'"'"'"
+docker exec postgres_container bash -c "export PGPASSWORD=$(<.database_password);psql --host=$(<.database_dns) --port=$(<.database_port) --username=$(<.database_username) --no-password -d ce --no-align -c '"'"'select count(*) from RECOMMENDATION;'"'"'"
+EOF'
+chmod +x .script
+command time -v ./.script 2> .results
+../../getExperimentalResults.sh
+../../getDataAsCSVline.sh .results "Howard Deiner" "AWS RDS Aurora Check PostgreSQL Data (client side)" >> Experimental\ Results.csv
+../../putExperimentalResults.sh
+rm .script .results *.csv .database_dns .database_password .database_port .database_username
 ```
 This is what the console looks like when the script is executed.
 ![02_populate_console_01](README_assets/02_populate_console_01.png)\
+![02_populate_console_02](README_assets/02_populate_console_02.png)\
+![02_populate_console_03](README_assets/02_populate_console_03.png)\
+![02_populate_console_04](README_assets/02_populate_console_04.png)\
 <BR/>
 ### 03_shutdown.sh
 This script is extremely simple.  It tells terraform to destroy all that it created.
@@ -205,11 +378,37 @@ This script is extremely simple.  It tells terraform to destroy all that it crea
 ```bash
 #!/usr/bin/env bash
 
-figlet -w 200 -f small "Shutdown PostgresSQL on AWS RDS Aurora"
+bash -c 'cat << "EOF" > .script
+#!/usr/bin/env bash
+figlet -w 200 -f small "Shutdown PostgresSQL Clustered on AWS RDS Aurora"
 terraform destroy -auto-approve
+EOF'
+chmod +x .script
+command time -v ./.script 2> .results
+../../getExperimentalResults.sh
+../../getDataAsCSVline.sh .results "Howard Deiner" "AWS Shutdown PostgresSQL (Client Side)" >> Experimental\ Results.csv
+../../putExperimentalResults.sh
+rm .script .results Experimental\ Results.csv
+
+bash -c 'cat << "EOF" > .script
+#!/usr/bin/env bash
+figlet -w 240 -f small "Shutdown Postgres/pgadmin/cecacheserver Locally"
+docker-compose -f ../01_Postgres_Local/docker-compose.yml down
+docker volume rm 01_postgres_local_postgres_data
+docker volume rm 01_postgres_local_pgadmin_data
+docker volume rm 01_postgres_local_cecacheserver_data
+EOF'
+chmod +x .script
+command time -v ./.script 2> .results
+../../getExperimentalResults.sh
+../../getDataAsCSVline.sh .results "Howard Deiner" "AWS Shutdown PostSQL Locally (Client Side)" >> Experimental\ Results.csv
+../../putExperimentalResults.sh
+rm .script .results Experimental\ Results.csv
 ```
 The console shows what it does.
 ![03_shutdown_console_01](README_assets/03_shutdown_console_01.png)\
 ![03_shutdown_console_02](README_assets/03_shutdown_console_02.png)\
-![03_shutdown_console_03](README_assets/03_shutdown_console_03.png)\
 <BR/>
+And just for laughs, here's the timings for this run.  All kept in a csv file in S3 at s3://health-engine-aws-poc/Experimental Results.csv
+![Experimental Results](README_assets/Experimental Results.png)\
+<BR />
