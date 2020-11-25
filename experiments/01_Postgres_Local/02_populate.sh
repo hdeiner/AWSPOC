@@ -76,7 +76,7 @@ docker cp ce.DerivedFactProductUsage.csv postgres_container:/tmp/ce.DerivedFactP
 docker exec postgres_container psql --port=5432 --username=postgres --no-password -d ce --no-align -c "COPY DERIVEDFACTPRODUCTUSAGE(DERIVEDFACTPRODUCTUSAGEID,DERIVEDFACTID,PRODUCTMNEMONICCD,INSERTEDBY,RECORDINSERTDT,RECORDUPDTDT,UPDTDBY) FROM '"'"'/tmp/ce.DerivedFactProductUsage.csv'"'"' DELIMITER '"'"','"'"' CSV HEADER;"
 echo "MEDICALFINDING"
 docker cp ce.MedicalFinding.csv postgres_container:/tmp/ce.MedicalFinding.csv
-docker exec postgres_container psql --port=5432 --username=postgres --no-password -d ce --no-align -c "COPY MEDICALFINDING(CLINICAL_CONDITION_COD,CLINICAL_CONDITION_NAM,INSERTED_BY,REC_INSERT_DATE,REC_UPD_DATE,UPDATED_BY,CLINICALCONDITIONCLASSCD,CLINICALCONDITIONTYPECD,CLINICALCONDITIONABBREV) FROM '"'"'/tmp/ce.MedicalFinding.csv'"'"' DELIMITER '"'"','"'"' CSV HEADER;"
+docker exec postgres_container psql --port=5432 --username=postgres --no-password -d ce --no-align -c "COPY MEDICALFINDING(MEDICALFINDINGID,MEDICALFINDINGTYPECD,MEDICALFINDINGNM,SEVERITYLEVELCD,IMPACTABLEFLG,CLINICAL_CONDITION_COD,INSERTEDBY,RECORDINSERTDT,RECORDUPDTDT,UPDTDBY,ACTIVEFLG,OPPORTUNITYPOINTSDISCRCD) FROM '"'"'/tmp/ce.MedicalFinding.csv'"'"' DELIMITER '"'"','"'"' CSV HEADER;"
 echo "MEDICALFINDINGTYPE"
 docker cp ce.MedicalFindingType.csv postgres_container:/tmp/ce.MedicalFindingType.csv
 docker exec postgres_container psql --port=5432 --username=postgres --no-password -d ce --no-align -c "COPY MEDICALFINDINGTYPE(MEDICALFINDINGTYPECD,MEDICALFINDINGTYPEDESC,INSERTEDBY,RECORDINSERTDT,RECORDUPDTDT,UPDTDBY,HEALTHSTATEAPPLICABLEFLAG) FROM '"'"'/tmp/ce.MedicalFindingType.csv'"'"' DELIMITER '"'"','"'"' CSV HEADER;"
