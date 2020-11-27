@@ -1,0 +1,125 @@
+<!doctype html>
+<html>
+
+<head>
+	<title>HealthEngineAWSPOC</title>
+	<script src="dist/chart.min.js"></script>
+	<script src="utils.js"></script>
+	<style>
+	canvas {
+		-moz-user-select: none;
+		-webkit-user-select: none;
+		-ms-user-select: none;
+	}
+	</style>
+</head>
+
+<body>
+	<div style="width: 75%">
+		<canvas id="canvas"></canvas>
+	</div>
+
+	<style>
+		div {
+			display: table;
+			margin-right: auto;
+			margin-left: auto;
+		}
+	</style>
+
+	<script>
+		var barChartData = {
+			labels: ['Postgres', 'MySQL', 'Cassandra', 'Oracle', 'MongoDB', 'Ignite'],
+			datasets: [{
+				label: 'CE.DerivedFact',
+				backgroundColor: window.chartColors.red,
+				data: [
+					777, 666, 888, 555, 444, 999
+				]
+			}, {
+				label: 'CE.MedicalFinding',
+				backgroundColor: window.chartColors.blue,
+				data: [
+					777, 666, 888, 555, 444, 999
+				]
+			}, {
+				label: 'CE.ClinicalCondition',
+				backgroundColor: '#191970',
+				data: [
+					777, 666, 888, 555, 444, 999
+				]
+			}, {
+				label: 'CE.DerivedFactProductUsage',
+				backgroundColor: window.chartColors.green,
+				data: [
+					777, 666, 888, 555, 444, 999
+				]
+			}, {
+				label: 'CE.MedicalFindingType',
+				backgroundColor: window.chartColors.orange,
+				data: [
+					777, 666, 888, 555, 444, 999
+				]
+			}, {
+				label: 'CE.OpportunityPointsDiscr',
+				backgroundColor: window.chartColors.purple,
+				data: [
+					777, 666, 888, 555, 444, 999
+				]
+			}, {
+				label: 'CE.ProductFinding',
+				backgroundColor: '#FFFF00',
+				data: [
+					777, 666, 888, 555, 444, 999
+				]
+			}, {
+				label: 'CE.ProductFindingType',
+				backgroundColor: '#008B8B',
+				data: [
+					777, 666, 888, 555, 444, 999
+				]
+			}, {
+				label: 'CE.ProductOpportunityPoints',
+				backgroundColor: '#FF69B4',
+				data: [
+					777, 666, 888, 555, 444, 999
+				]
+			}, {
+				label: 'CE.Recommendation',
+				backgroundColor: '#800000',
+				data: [
+					777, 666, 888, 555, 444, 999
+				]
+			}]
+
+		};
+		window.onload = function() {
+			var ctx = document.getElementById('canvas').getContext('2d');
+			window.myBar = new Chart(ctx, {
+				type: 'bar',
+				data: barChartData,
+				options: {
+					title: {
+						display: true,
+						text: 'Tables data load elapsed time (milliseconds)'
+					},
+					tooltips: {
+						mode: 'index',
+						intersect: false
+					},
+					responsive: true,
+					scales: {
+						x: {
+							stacked: true,
+						},
+						y: {
+							stacked: true
+						}
+					}
+				}
+			});
+		};
+	</script>
+</body>
+
+</html>

@@ -1,0 +1,73 @@
+<!doctype html>
+<html>
+
+<head>
+	<title>Pie Chart</title>
+	<script src="dist/chart.min.js"></script>
+	<script src="utils.js"></script>
+</head>
+
+<body>
+	<div id="canvas-holder" style="width:40%">
+		<canvas id="chart-area"></canvas>
+	</div>
+	<h1>CE.DerivedFact tables data load elapsed time (milliseconds)</h1>
+
+	<style>
+		div {
+			display: table;
+			margin-right: auto;
+			margin-left: auto;
+		}
+
+		h1 {
+			text-align: center;
+		}
+	</style>
+
+	<script>
+		var randomScalingFactor = function () {
+			return Math.round(Math.random() * 100);
+		};
+
+		var config = {
+			type: 'pie',
+			data: {
+				datasets: [{
+					data: [
+						777, 1234, 455, 789, 980, 666
+					],
+					backgroundColor: [
+						window.chartColors.red,
+						window.chartColors.orange,
+						window.chartColors.yellow,
+						window.chartColors.green,
+						window.chartColors.blue,
+						window.chartColors.purple,
+					],
+					label: 'Dataset 1'
+				}],
+				labels: [
+					'Postgres',
+					'MySQL',
+					'Cassandra',
+					'Oracle',
+					'MongoDB',
+					'Ignite'
+				]
+			},
+			options: {
+				responsive: true
+			}
+		};
+
+		window.onload = function () {
+			var ctx = document.getElementById('chart-area').getContext('2d');
+			window.myPie = new Chart(ctx, config);
+		};
+
+		var colorNames = Object.keys(window.chartColors);
+	</script>
+</body>
+
+</html>

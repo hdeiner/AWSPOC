@@ -2,15 +2,16 @@
 
 bash -c 'cat << "EOF" > .script
 #!/usr/bin/env bash
-figlet -w 160 -f small "Populate Ignite Schema Locally"
-# issues with thingg like VARCHAR needing to be VARCHAR(12) docker cp ../../src/java/IgniteTranslator/changeSet.ignite.sql ignite_container:/tmp/ddl.sql
+figlet -w 160 -f small "Populate Ignite Schema"
+# issues with things like VARCHAR needing to be VARCHAR(12) docker cp ../../src/java/IgniteTranslator/changeSet.ignite.sql ignite_container:/tmp/ddl.sql
 docker cp ../../src/db/changeset.ignite.sql ignite_container:/tmp/ddl.sql
 docker exec ignite_container bash -c "./apache-ignite/bin/sqlline.sh -u jdbc:ignite:thin://127.0.0.1 -f /tmp/ddl.sql"
 EOF'
 chmod +x .script
 command time -v ./.script 2> .results
 ../../getExperimentalResults.sh
-../../getDataAsCSVline.sh .results "Howard Deiner" "11_Ignite_Local: Populate Ignite Schema Locally" >> Experimental\ Results.csv
+experiment=$(../../getExperimentNumber.sh)
+../../getDataAsCSVline.sh .results ${experiment} "11_Ignite_Local: Populate Ignite Schema" >> Experimental\ Results.csv
 ../../putExperimentalResults.sh
 rm .script .results Experimental\ Results.csv
 
@@ -31,7 +32,8 @@ EOF'
 chmod +x .script
 command time -v ./.script 2> .results
 ../../getExperimentalResults.sh
-../../getDataAsCSVline.sh .results "Howard Deiner" "11_Ignite_Local: Get Data from S3 Bucket" >> Experimental\ Results.csv
+experiment=$(../../getExperimentNumber.sh)
+../../getDataAsCSVline.sh .results ${experiment} "11_Ignite_Local: Get Data from S3 Bucket" >> Experimental\ Results.csv
 ../../putExperimentalResults.sh
 rm .script .results Experimental\ Results.csv
 
@@ -52,13 +54,14 @@ EOF'
 chmod +x .script
 command time -v ./.script 2> .results
 ../../getExperimentalResults.sh
-../../getDataAsCSVline.sh .results "Howard Deiner" "11_Ignite_Local: Process S3 Data into CSV Files For Import" >> Experimental\ Results.csv
+experiment=$(../../getExperimentNumber.sh)
+../../getDataAsCSVline.sh .results ${experiment} "11_Ignite_Local: Process S3 Data into CSV Files For Import" >> Experimental\ Results.csv
 ../../putExperimentalResults.sh
 rm .script .results Experimental\ Results.csv
 
 bash -c 'cat << "EOF" > .script
 #!/usr/bin/env bash
-figlet -w 160 -f small "Populate Ignite Data Locally"
+figlet -w 160 -f small "Populate Ignite Data"
 echo "Clinical_Condition"
 sed -i -e "1d" ce.ClinicalCondition.csv
 docker cp ce.ClinicalCondition.csv ignite_container:/tmp/ce.ClinicalCondition.csv
@@ -103,13 +106,14 @@ EOF'
 chmod +x .script
 command time -v ./.script 2> .results
 ../../getExperimentalResults.sh
-../../getDataAsCSVline.sh .results "Howard Deiner" "11_Ignite_Local: Populate Ignite Data Locally" >> Experimental\ Results.csv
+experiment=$(../../getExperimentNumber.sh)
+../../getDataAsCSVline.sh .results ${experiment} "11_Ignite_Local: Populate Ignite Data" >> Experimental\ Results.csv
 ../../putExperimentalResults.sh
 rm .script .results Experimental\ Results.csv
 
 bash -c 'cat << "EOF" > .script
 #!/usr/bin/env bash
-figlet -w 160 -f small "Check Ignite Data Locally"
+figlet -w 160 -f small "Check Ignite Data"
 docker exec ignite_container bash -c "echo '"'"'SELECT TOP 10 * FROM SQL_CE_CLINICAL_CONDITION;'"'"' | ./apache-ignite/bin/sqlline.sh --color=true -u jdbc:ignite:thin://127.0.0.1"
 docker exec ignite_container bash -c "echo '"'"'SELECT COUNT(*) FROM SQL_CE_CLINICAL_CONDITION;'"'"' | ./apache-ignite/bin/sqlline.sh --color=true -u jdbc:ignite:thin://127.0.0.1"
 docker exec ignite_container bash -c "echo '"'"'SELECT TOP 10 * FROM SQL_CE_DERIVEDFACT;'"'"' | ./apache-ignite/bin/sqlline.sh --color=true -u jdbc:ignite:thin://127.0.0.1"
@@ -134,6 +138,7 @@ EOF'
 chmod +x .script
 command time -v ./.script 2> .results
 ../../getExperimentalResults.sh
-../../getDataAsCSVline.sh .results "Howard Deiner" "11_Ignite_Local: Check Ignite Data Locally" >> Experimental\ Results.csv
+experiment=$(../../getExperimentNumber.sh)
+../../getDataAsCSVline.sh .results ${experiment} "11_Ignite_Local: Check Ignite Data" >> Experimental\ Results.csv
 ../../putExperimentalResults.sh
 rm .script .results *.csv

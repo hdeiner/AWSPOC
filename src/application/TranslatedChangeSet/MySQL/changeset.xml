@@ -1,0 +1,255 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<databaseChangeLog
+	xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+	http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.8.xsd">
+
+	<changeSet  id="1"  author="ce">
+
+		<createTable tableName="OPPORTUNITYPOINTSDISCR" schemaName="CE">
+			<column name="OPPORTUNITYPOINTSDISCNM" type="VARCHAR2(255)"/>
+			<column name="INSERTEDBY" type="VARCHAR2(30)" defaultValue="DEFAULT USER"/>
+			<column name="RECORDINSERTDT" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP"/>
+			<column name="RECORDUPDTDT" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP"/>
+			<column name="UPDTDBY" type="VARCHAR2(30)" defaultValue="DEFAULT USER"/>
+			<column name="OPPORTUNITYPOINTSDISCRCD" type="VARCHAR2(12)">
+				<constraints primaryKey="true"/>
+			</column>
+		</createTable>
+
+		<createTable tableName="DERIVEDFACT" schemaName="CE">
+			<column name="DERIVEDFACTTRACKINGID" type="bigint"/>
+			<column name="DERIVEDFACTTYPEID" type="bigint"/>
+			<column name="INSERTEDBY" type="VARCHAR2(30)" defaultValue="DEFAULT USER"/>
+			<column name="RECORDINSERTDT" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP"/>
+			<column name="RECORDUPDTDT" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP"/>
+			<column name="UPDTDBY" type="VARCHAR2(30)" defaultValue="DEFAULT USER"/>
+			<column name="DERIVEDFACTID" type="bigint">
+				<constraints primaryKey="true"/>
+			</column>
+		</createTable>
+
+		<createTable tableName="RECOMMENDATIONTEXT" schemaName="CE">
+			<column name="RECOMMENDATIONTEXTID" type="bigint"/>
+			<column name="RECOMMENDATIONID" type="NUMBER(10,0)"/>
+			<column name="LANGUAGECD" type="CHAR(2)"/>
+			<column name="RECOMMENDATIONTEXTTYPE" type="VARCHAR2(20)"/>
+			<column name="MESSAGETYPE" type="CHAR(3)"/>
+			<column name="RECOMMENDATIONTITLE" type="VARCHAR2(200)"/>
+			<column name="RECOMMENDATIONTEXT" type="VARCHAR2(4000)"/>
+			<column name="RECORDINSERTDT" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP"/>
+			<column name="RECORDUPDATEDT" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP"/>
+			<column name="INSERTEDBY" type="VARCHAR2(30)" defaultValue="DEFAULT USER"/>
+			<column name="UPDATEDBY" type="VARCHAR2(30)" defaultValue="DEFAULT USER"/>
+			<column name="DEFAULTIN" type="CHAR(1)"/>
+		</createTable>
+
+		<createTable tableName="CLINICAL_CONDITION" schemaName="CE">
+			<column name="CLINICAL_CONDITION_NAM" type="VARCHAR2(200)"/>
+			<column name="INSERTED_BY" type="VARCHAR2(50)"/>
+			<column name="REC_INSERT_DATE" type="DATE"/>
+			<column name="REC_UPD_DATE" type="DATE"/>
+			<column name="UPDATED_BY" type="VARCHAR2(50)"/>
+			<column name="CLINICALCONDITIONCLASSCD" type="bigint"/>
+			<column name="CLINICALCONDITIONTYPECD" type="VARCHAR2(12)"/>
+			<column name="CLINICALCONDITIONABBREV" type="VARCHAR2(50)"/>
+			<column name="CLINICAL_CONDITION_COD" type="bigint">
+				<constraints primaryKey="true"/>
+			</column>
+		</createTable>
+
+		<createTable tableName="PRODUCTOPPORTUNITYPOINTS" schemaName="CE">
+			<column name="OPPORTUNITYPOINTSDISCCD" type="VARCHAR2(100)"/>
+			<column name="EFFECTIVESTARTDT" type="DATE"/>
+			<column name="OPPORTUNITYPOINTSNBR" type="bigint"/>
+			<column name="EFFECTIVEENDDT" type="DATE"/>
+			<column name="DERIVEDFACTPRODUCTUSAGEID" type="bigint"/>
+			<column name="INSERTEDBY" type="VARCHAR2(30)" defaultValue="DEFAULT USER"/>
+			<column name="RECORDINSERTDT" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP"/>
+			<column name="RECORDUPDTDT" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP"/>
+			<column name="UPDTDBY" type="VARCHAR2(30)" defaultValue="DEFAULT USER"/>
+		</createTable>
+
+		<createTable tableName="MEDICALFINDING" schemaName="CE">
+			<column name="MEDICALFINDINGID" type="bigint"/>
+			<column name="MEDICALFINDINGTYPECD" type="VARCHAR2(12)"/>
+			<column name="MEDICALFINDINGNM" type="VARCHAR2(200)"/>
+			<column name="SEVERITYLEVELCD" type="VARCHAR2(12)"/>
+			<column name="IMPACTABLEFLG" type="CHAR(1)"/>
+			<column name="CLINICAL_CONDITION_COD" type="bigint"/>
+			<column name="INSERTEDBY" type="VARCHAR2(30)" defaultValue="DEFAULT USER"/>
+			<column name="RECORDINSERTDT" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP"/>
+			<column name="RECORDUPDTDT" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP"/>
+			<column name="UPDTDBY" type="VARCHAR2(30)" defaultValue="DEFAULT USER"/>
+			<column name="ACTIVEFLG" type="CHAR(1)"/>
+			<column name="OPPORTUNITYPOINTSDISCRCD" type="VARCHAR2(12)"/>
+		</createTable>
+
+		<createTable tableName="DERIVEDFACTPRODUCTUSAGE" schemaName="CE">
+			<column name="DERIVEDFACTID" type="bigint"/>
+			<column name="PRODUCTMNEMONICCD" type="VARCHAR2(50)"/>
+			<column name="INSERTEDBY" type="VARCHAR2(30)" defaultValue="DEFAULT USER"/>
+			<column name="RECORDINSERTDT" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP"/>
+			<column name="RECORDUPDTDT" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP"/>
+			<column name="UPDTDBY" type="VARCHAR2(30)" defaultValue="DEFAULT USER"/>
+			<column name="DERIVEDFACTPRODUCTUSAGEID" type="bigint">
+				<constraints primaryKey="true"/>
+			</column>
+		</createTable>
+
+		<createTable tableName="PRODUCTFINDINGTYPE" schemaName="CE">
+			<column name="PRODUCTFINDINGTYPECD" type="VARCHAR2(12)"/>
+			<column name="PRODUCTFINDINGTYPEDESC" type="VARCHAR2(255)"/>
+			<column name="INSERTEDBY" type="VARCHAR2(30)" defaultValue="DEFAULT USER"/>
+			<column name="RECORDINSERTDT" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP"/>
+			<column name="RECORDUPDTDT" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP"/>
+			<column name="UPDTDBY" type="VARCHAR2(30)" defaultValue="DEFAULT USER"/>
+		</createTable>
+
+		<createTable tableName="RECOMMENDATION" schemaName="CE">
+			<column name="RECOMMENDATIONSKEY" type="bigint"/>
+			<column name="RECOMMENDATIONID" type="NUMBER(10,0)"/>
+			<column name="RECOMMENDATIONCODE" type="VARCHAR2(200)"/>
+			<column name="RECOMMENDATIONDESC" type="VARCHAR2(4000)"/>
+			<column name="RECOMMENDATIONTYPE" type="VARCHAR2(20)"/>
+			<column name="CCTYPE" type="VARCHAR2(50)"/>
+			<column name="CLINICALREVIEWTYPE" type="VARCHAR2(20)"/>
+			<column name="AGERANGEID" type="bigint"/>
+			<column name="ACTIONCODE" type="VARCHAR2(200)"/>
+			<column name="THERAPEUTICCLASS" type="VARCHAR2(300)"/>
+			<column name="MDCCODE" type="VARCHAR2(20)"/>
+			<column name="MCCCODE" type="VARCHAR2(50)"/>
+			<column name="PRIVACYCATEGORY" type="VARCHAR2(20)"/>
+			<column name="INTERVENTION" type="VARCHAR2(200)"/>
+			<column name="RECOMMENDATIONFAMILYID" type="bigint"/>
+			<column name="RECOMMENDPRECEDENCEGROUPID" type="bigint"/>
+			<column name="INBOUNDCOMMUNICATIONROUTE" type="VARCHAR2(15)"/>
+			<column name="SEVERITY" type="VARCHAR2(2)"/>
+			<column name="PRIMARYDIAGNOSIS" type="VARCHAR2(300)"/>
+			<column name="SECONDARYDIAGNOSIS" type="VARCHAR2(300)"/>
+			<column name="ADVERSEEVENT" type="VARCHAR2(300)"/>
+			<column name="ICMCONDITIONID" type="bigint"/>
+			<column name="WELLNESSFLAG" type="CHAR(1)"/>
+			<column name="VBFELIGIBLEFLAG" type="CHAR(1)"/>
+			<column name="COMMUNICATIONRANKING" type="bigint"/>
+			<column name="PRECEDENCERANKING" type="bigint"/>
+			<column name="PATIENTDERIVEDFLAG" type="CHAR(1)"/>
+			<column name="LABREQUIREDFLAG" type="CHAR(1)"/>
+			<column name="UTILIZATIONTEXTAVAILABLEF" type="CHAR(1)"/>
+			<column name="SENSITIVEMESSAGEFLAG" type="CHAR(1)"/>
+			<column name="HIGHIMPACTFLAG" type="CHAR(1)"/>
+			<column name="ICMLETTERFLAG" type="CHAR(1)"/>
+			<column name="REQCLINICIANCLOSINGFLAG" type="CHAR(1)"/>
+			<column name="OPSIMPELMENTATIONPHASE" type="bigint"/>
+			<column name="SEASONALFLAG" type="CHAR(1)"/>
+			<column name="SEASONALSTARTDT" type="DATE"/>
+			<column name="SEASONALENDDT" type="DATE"/>
+			<column name="EFFECTIVESTARTDT" type="DATE"/>
+			<column name="EFFECTIVEENDDT" type="DATE"/>
+			<column name="RECORDINSERTDT" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP"/>
+			<column name="RECORDUPDTDT" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP"/>
+			<column name="INSERTEDBY" type="VARCHAR2(30)" defaultValue="DEFAULT USER"/>
+			<column name="UPDTDBY" type="VARCHAR2(30)" defaultValue="DEFAULT USER"/>
+			<column name="STANDARDRUNFLAG" type="CHAR(1)"/>
+			<column name="INTERVENTIONFEEDBACKFAMILYID" type="bigint"/>
+			<column name="CONDITIONFEEDBACKFAMILYID" type="bigint"/>
+			<column name="ASHWELLNESSELIGIBILITYFLAG" type="CHAR(1)"/>
+			<column name="HEALTHADVOCACYELIGIBILITYFLAG" type="CHAR(1)"/>
+		</createTable>
+
+		<createTable tableName="PRODUCTFINDING" schemaName="CE">
+			<column name="PRODUCTFINDINGID" type="bigint"/>
+			<column name="PRODUCTFINDINGNM" type="VARCHAR2(100)"/>
+			<column name="SEVERITYLEVELCD" type="VARCHAR2(12)"/>
+			<column name="PRODUCTFINDINGTYPECD" type="VARCHAR2(12)"/>
+			<column name="PRODUCTMNEMONICCD" type="VARCHAR2(50)"/>
+			<column name="SUBPRODUCTMNEMONICCD" type="VARCHAR2(50)"/>
+			<column name="INSERTEDBY" type="VARCHAR2(30)" defaultValue="DEFAULT USER"/>
+			<column name="RECORDINSERTDT" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP"/>
+			<column name="RECORDUPDTDT" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP"/>
+			<column name="UPDTDBY" type="VARCHAR2(30)" defaultValue="DEFAULT USER"/>
+		</createTable>
+
+		<createTable tableName="MEDICALFINDINGTYPE" schemaName="CE">
+			<column name="MEDICALFINDINGTYPEDESC" type="VARCHAR2(255)"/>
+			<column name="INSERTEDBY" type="VARCHAR2(30)" defaultValue="DEFAULT USER"/>
+			<column name="RECORDINSERTDT" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP"/>
+			<column name="RECORDUPDTDT" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP"/>
+			<column name="UPDTDBY" type="VARCHAR2(30)" defaultValue="DEFAULT USER"/>
+			<column name="HEALTHSTATEAPPLICABLEFLAG" type="CHAR(1)"/>
+			<column name="MEDICALFINDINGTYPECD" type="VARCHAR2(12)">
+				<constraints primaryKey="true"/>
+			</column>
+		</createTable>
+
+		<addNotNullConstraint
+			columnName="RECOMMENDATIONTEXTID"
+			schemaName="CE"
+			columnDataType="NUMBER"
+			tableName="RECOMMENDATIONTEXT"/>
+
+		<addNotNullConstraint
+			columnName="RECOMMENDATIONID"
+			schemaName="CE"
+			columnDataType="NUMBER(10,0)"
+			tableName="RECOMMENDATIONTEXT"/>
+
+		<addNotNullConstraint
+			columnName="LANGUAGECD"
+			schemaName="CE"
+			columnDataType="CHAR(2)"
+			tableName="RECOMMENDATIONTEXT"/>
+
+		<addNotNullConstraint
+			columnName="RECOMMENDATIONTEXTTYPE"
+			schemaName="CE"
+			columnDataType="VARCHAR2(20)"
+			tableName="RECOMMENDATIONTEXT"/>
+
+		<addNotNullConstraint
+			columnName="MESSAGETYPE"
+			schemaName="CE"
+			columnDataType="CHAR(3)"
+			tableName="RECOMMENDATIONTEXT"/>
+
+		<addNotNullConstraint
+			columnName="RECOMMENDATIONSKEY"
+			schemaName="CE"
+			columnDataType="NUMBER"
+			tableName="RECOMMENDATION"/>
+
+		<addNotNullConstraint
+			columnName="RECOMMENDATIONID"
+			schemaName="CE"
+			columnDataType="NUMBER(10,0)"
+			tableName="RECOMMENDATION"/>
+
+		<addNotNullConstraint
+			columnName="RECOMMENDATIONTYPE"
+			schemaName="CE"
+			columnDataType="VARCHAR2(20)"
+			tableName="RECOMMENDATION"/>
+
+		<addNotNullConstraint
+			columnName="CLINICALREVIEWTYPE"
+			schemaName="CE"
+			columnDataType="VARCHAR2(20)"
+			tableName="RECOMMENDATION"/>
+
+		<addNotNullConstraint
+			columnName="PRIVACYCATEGORY"
+			schemaName="CE"
+			columnDataType="VARCHAR2(20)"
+			tableName="RECOMMENDATION"/>
+
+		<addNotNullConstraint
+			columnName="EFFECTIVESTARTDT"
+			schemaName="CE"
+			columnDataType="DATE"
+			tableName="RECOMMENDATION"/>
+
+	</changeSet>
+
+</databaseChangeLog>

@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+bash -c 'cat << "EOF" > .script
+#!/usr/bin/env bash
 sudo apt update -y -qq > provision.log
 sudo apt-get update -y -qq >> provision.log
 sudo apt-get install -y -qq figlet >> provision.log
@@ -7,26 +9,28 @@ sudo apt-get install -y -qq figlet >> provision.log
 figlet -w 160 -f small "Install Prerequisites"
 sudo apt install -y -qq openjdk-8-jdk wget unzip awscli gnupg gnupg2 >> provision.log
 
-figlet -w 160 -f small "Fetch Apache Ignite 2.9.0"
+echo "Fetch Apache Ignite 2.9.0"
 wget -q http://mirror.linux-ia64.org/apache/ignite/2.9.0/apache-ignite-2.9.0-bin.zip
+
+echo "Unzip Apache Ignite 2.9.0"
 unzip apache-ignite-2.9.0-bin.zip >> provision.log
 rm apache-ignite-2.9.0-bin.zip
 
-figlet -w 160 -f small "Fix Apache Ignite Cluster Configuration"
+echo "Fix Apache Ignite Cluster Configuration"
 ./provision.ignite.fix-cluster-config.sh > provision.ignite.cluster-config-fixed.xml
-echo '</beans>' >> provision.ignite.cluster-config-fixed.xml # small error in script
+echo '"'"'</beans>'"'"' >> provision.ignite.cluster-config-fixed.xml # small error in script
 
-figlet -w 160 -f small "Make Ignite a systemd Service"
-bash -c 'cat << "EOF" > /home/ubuntu/startIgnite.sh
+echo "Make Ignite a systemd Service"
+bash -c '"'"'cat << "EOF" > /home/ubuntu/startIgnite.sh
 #!/bin/bash
 IGNITE_HOME=/home/ubuntu/apache-ignite-2.9.0-bin
 export IGNITE_HOME
 /home/ubuntu/apache-ignite-2.9.0-bin/bin/ignite.sh /home/ubuntu/provision.ignite.cluster-config-fixed.xml
-EOF'
+EOF'"'"'
 
 chmod 755 /home/ubuntu/startIgnite.sh
 
-sudo bash -c 'cat << "EOF" > /lib/systemd/system/ignite.service
+sudo bash -c '"'"'cat << "EOD" > /lib/systemd/system/ignite.service
 [Unit]
 Description=Apache Ignite Service
 After=network.target
@@ -49,16 +53,15 @@ RestartSec=5
 [Install]
 WantedBy=multi-user.target
 Alias=ignite.service
-EOF'
+EOD'"'"'
 
 sudo systemctl daemon-reload
 sudo systemctl enable ignite.service
 
-figlet -w 160 -f small "Start Apache Ignite"
+echo "Start Apache Ignite"
 sudo service ignite start
 
-figlet -w 160 -f small "Wait For Ignite To Start"
-
+echo "Wait For Ignite To Start"
 while true ; do
   result=$(ls -Art apache-ignite-2.9.0-bin/work/log/*.log | wc -l)
   if [ $result != 0 ] ; then
@@ -77,3 +80,13 @@ while true ; do
   fi
   sleep 5
 done
+EOF'
+chmod +x .script
+command time -v ./.script 2> .results
+aws ec2 describe-instances --region "us-east-1" --instance-id "`curl -s http://169.254.169.254/latest/meta-data/instance-id`" --query 'Reservations[].Instances[].[Tags[0].Value]' --output text > .instanceName
+sed --in-place --regexp-extended 's/ /_/g' .instanceName
+/tmp/getExperimentalResults.sh
+experiment=$(/tmp/getExperimentNumber.sh)
+/tmp/getDataAsCSVline.sh .results ${experiment} "12_Ignite_AWS_Clustered: Install Prerequisites "$(<.instanceName) >> Experimental\ Results.csv
+/tmp/putExperimentalResults.sh
+rm .script .results Experimental\ Results.csv

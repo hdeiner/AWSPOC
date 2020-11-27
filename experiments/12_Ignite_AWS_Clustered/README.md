@@ -508,15 +508,6 @@ This is what the console looks like when the script is executed.  It takes about
 ![01_startup_console_19](README_assets/01_startup_console_18.png)\
 ![01_startup_console_20](README_assets/01_startup_console_19.png)\
 ![01_startup_console_21](README_assets/01_startup_console_20.png)\
-![01_startup_console_22](README_assets/01_startup_console_22.png)\
-![01_startup_console_23](README_assets/01_startup_console_23.png)\
-![01_startup_console_24](README_assets/01_startup_console_24.png)\
-![01_startup_console_25](README_assets/01_startup_console_25.png)\
-![01_startup_console_26](README_assets/01_startup_console_26.png)\
-![01_startup_console_27](README_assets/01_startup_console_27.png)\
-![01_startup_console_28](README_assets/01_startup_console_28.png)\
-![01_startup_console_29](README_assets/01_startup_console_29.png)\
-![01_startup_console_30](README_assets/01_startup_console_30.png)\
 <BR/>
 If we were to peruse the AWS Console EC2 Dashboard, here's what we will see.
 ![01_startup_aws_console_ec2_dashboard_01](README_assets/01_startup_aws_console_ec2_dashboard_01.png)\
@@ -552,5 +543,5 @@ figlet -w 200 -f small "Shutdown Ignite AWS Cluster"
 terraform destroy -auto-approve
 ```
 The console shows what it does.
-![03_shutdown_console_01](README_assets/03_shutdown_console_01.png)\
+![04_shutdown_console_01](README_assets/04_shutdown_console_01.png)\
 <BR/>

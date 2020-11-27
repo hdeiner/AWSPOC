@@ -20,6 +20,6 @@ sed --in-place --regexp-extended 's/[ ]+,/,/g' ce.ClinicalCondition.csv
 sed --in-place --regexp-extended 's/,[ ]+/,/g' ce.ClinicalCondition.csv
 # remove blanks at end of line
 sed --in-place --regexp-extended 's/ *$//g' ce.ClinicalCondition.csv
-tr -d $'\r' < ce.Clinical_Condition.csv > ce.ClinicalCondition.csv.mod
+tr -d $'\r' < ce.ClinicalCondition.csv > ce.ClinicalCondition.csv.mod
 cp ce.ClinicalCondition.csv.mod ce.ClinicalCondition.csv
 rm ce.ClinicalCondition.csv.mod
