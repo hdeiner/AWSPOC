@@ -580,8 +580,6 @@ This is what the console looks like when the script is executed.  It takes about
 ![01_startup_console_08](README_assets/01_startup_console_08.png)\
 ![01_startup_console_09](README_assets/01_startup_console_09.png)\
 ![01_startup_console_10](README_assets/01_startup_console_10.png)\
-![01_startup_console_11](README_assets/01_startup_console_11.png)\
-![01_startup_console_12](README_assets/01_startup_console_12.png)\
 <BR/>
 If we were to peruse the AWS Console EC2 Dashboard, here's what we will see.
 ![01_startup_aws_console_ec2_dashboard_01](README_assets/01_startup_aws_console_ec2_dashboard_01.png)\
