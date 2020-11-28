@@ -545,3 +545,6 @@ terraform destroy -auto-approve
 The console shows what it does.
 ![04_shutdown_console_01](README_assets/04_shutdown_console_01.png)\
 <BR/>
+And just for laughs, here's the timings for this run.  All kept in a csv file in S3 at s3://health-engine-aws-poc/Experimental Results.csv
+![Experimental Results](README_assets/Experimental Results.png)\
+<BR />

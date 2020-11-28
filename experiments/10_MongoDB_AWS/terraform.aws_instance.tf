@@ -59,6 +59,66 @@ resource "aws_instance" "mongodb_ec2_instance" {
     source      = "provision.mongodb.sh"
     destination = "/tmp/provision.mongodb.sh"
   }
+  provisioner "file" {
+    connection {
+      type = "ssh"
+      user = "ubuntu"
+      host = self.public_dns
+      private_key = file("~/.ssh/id_rsa")
+    }
+    source      = "../../getDataAsCSVline.sh"
+    destination = "/tmp/getDataAsCSVline.sh"
+  }
+  provisioner "file" {
+    connection {
+      type = "ssh"
+      user = "ubuntu"
+      host = self.public_dns
+      private_key = file("~/.ssh/id_rsa")
+    }
+    source      = "../../getExperimentalResults.sh"
+    destination = "/tmp/getExperimentalResults.sh"
+  }
+  provisioner "file" {
+    connection {
+      type = "ssh"
+      user = "ubuntu"
+      host = self.public_dns
+      private_key = file("~/.ssh/id_rsa")
+    }
+    source      = "../../putExperimentalResults.sh"
+    destination = "/tmp/putExperimentalResults.sh"
+  }
+  provisioner "file" {
+    connection {
+      type = "ssh"
+      user = "ubuntu"
+      host = self.public_dns
+      private_key = file("~/.ssh/id_rsa")
+    }
+    source      = "../../startExperiment.sh"
+    destination = "/tmp/startExperiment.sh"
+  }
+  provisioner "file" {
+    connection {
+      type = "ssh"
+      user = "ubuntu"
+      host = self.public_dns
+      private_key = file("~/.ssh/id_rsa")
+    }
+    source      = "../../endExperiment.sh"
+    destination = "/tmp/endExperiment.sh"
+  }
+  provisioner "file" {
+    connection {
+      type = "ssh"
+      user = "ubuntu"
+      host = self.public_dns
+      private_key = file("~/.ssh/id_rsa")
+    }
+    source      = "../../getExperimentNumber.sh"
+    destination = "/tmp/getExperimentNumber.sh"
+  }
   provisioner "remote-exec" {
     connection {
       type = "ssh"
@@ -66,7 +126,16 @@ resource "aws_instance" "mongodb_ec2_instance" {
       host = self.public_dns
       private_key = file("~/.ssh/id_rsa")
     }
-    inline = ["chmod +x /tmp/provision.mongodb.sh", "/tmp/provision.mongodb.sh"]
+    inline = [
+      "chmod +x /tmp/provision.mongodb.sh",
+      "chmod +x /tmp/getDataAsCSVline.sh",
+      "chmod +x /tmp/getExperimentalResults.sh",
+      "chmod +x /tmp/putExperimentalResults.sh",
+      "chmod +x /tmp/startExperiment.sh",
+      "chmod +x /tmp/endExperiment.sh",
+      "chmod +x /tmp/getExperimentNumber.sh",
+      "/tmp/provision.mongodb.sh"
+    ]
   }
   provisioner "file" {
     connection {
@@ -121,7 +190,132 @@ resource "aws_instance" "mongodb_ec2_instance" {
       host = self.public_dns
       private_key = file("~/.ssh/id_rsa")
     }
-    inline = ["chmod +x /tmp/import_GPG_keys.sh", "/tmp/import_GPG_keys.sh /tmp/HealthEngine.AWSPOC.public.key /tmp/HealthEngine.AWSPOC.private.key", "chmod +x /tmp/transfer_from_s3_and_decrypt.sh","rm /tmp/import_GPG_keys.sh /tmp/*.key"]
+    inline = [
+      "chmod +x /tmp/import_GPG_keys.sh",
+      "/tmp/import_GPG_keys.sh /tmp/HealthEngine.AWSPOC.public.key /tmp/HealthEngine.AWSPOC.private.key",
+      "chmod +x /tmp/transfer_from_s3_and_decrypt.sh",
+      "rm /tmp/import_GPG_keys.sh /tmp/*.key"
+    ]
+  }
+  provisioner "file" {
+    connection {
+      type = "ssh"
+      user = "ubuntu"
+      host = self.public_dns
+      private_key = file("~/.ssh/id_rsa")
+    }
+    source      = "../transform_Oracle_ce.ClinicalCondition_to_csv.sh"
+    destination = "/tmp/transform_Oracle_ce.ClinicalCondition_to_csv.sh"
+  }
+  provisioner "file" {
+    connection {
+      type = "ssh"
+      user = "ubuntu"
+      host = self.public_dns
+      private_key = file("~/.ssh/id_rsa")
+    }
+    source      = "../transform_Oracle_ce.DerivedFact_to_csv.sh"
+    destination = "/tmp/transform_Oracle_ce.DerivedFact_to_csv.sh"
+  }
+  provisioner "file" {
+    connection {
+      type = "ssh"
+      user = "ubuntu"
+      host = self.public_dns
+      private_key = file("~/.ssh/id_rsa")
+    }
+    source      = "../transform_Oracle_ce.DerivedFactProductUsage_to_csv.sh"
+    destination = "/tmp/transform_Oracle_ce.DerivedFactProductUsage_to_csv.sh"
+  }
+  provisioner "file" {
+    connection {
+      type = "ssh"
+      user = "ubuntu"
+      host = self.public_dns
+      private_key = file("~/.ssh/id_rsa")
+    }
+    source      = "../transform_Oracle_ce.MedicalFinding_to_csv.sh"
+    destination = "/tmp/transform_Oracle_ce.MedicalFinding_to_csv.sh"
+  }
+  provisioner "file" {
+    connection {
+      type = "ssh"
+      user = "ubuntu"
+      host = self.public_dns
+      private_key = file("~/.ssh/id_rsa")
+    }
+    source      = "../transform_Oracle_ce.MedicalFindingType_to_csv.sh"
+    destination = "/tmp/transform_Oracle_ce.MedicalFindingType_to_csv.sh"
+  }
+  provisioner "file" {
+    connection {
+      type = "ssh"
+      user = "ubuntu"
+      host = self.public_dns
+      private_key = file("~/.ssh/id_rsa")
+    }
+    source      = "../transform_Oracle_ce.OpportunityPointsDiscr_to_csv.sh"
+    destination = "/tmp/transform_Oracle_ce.OpportunityPointsDiscr_to_csv.sh"
+  }
+  provisioner "file" {
+    connection {
+      type = "ssh"
+      user = "ubuntu"
+      host = self.public_dns
+      private_key = file("~/.ssh/id_rsa")
+    }
+    source      = "../transform_Oracle_ce.ProductFinding_to_csv.sh"
+    destination = "/tmp/transform_Oracle_ce.ProductFinding_to_csv.sh"
+  }
+  provisioner "file" {
+    connection {
+      type = "ssh"
+      user = "ubuntu"
+      host = self.public_dns
+      private_key = file("~/.ssh/id_rsa")
+    }
+    source      = "../transform_Oracle_ce.ProductFindingType_to_csv.sh"
+    destination = "/tmp/transform_Oracle_ce.ProductFindingType_to_csv.sh"
+  }
+  provisioner "file" {
+    connection {
+      type = "ssh"
+      user = "ubuntu"
+      host = self.public_dns
+      private_key = file("~/.ssh/id_rsa")
+    }
+    source      = "../transform_Oracle_ce.ProductOpportunityPoints_to_csv.sh"
+    destination = "/tmp/transform_Oracle_ce.ProductOpportunityPoints_to_csv.sh"
+  }
+  provisioner "file" {
+    connection {
+      type = "ssh"
+      user = "ubuntu"
+      host = self.public_dns
+      private_key = file("~/.ssh/id_rsa")
+    }
+    source      = "../transform_Oracle_ce.Recommendation_to_csv.sh"
+    destination = "/tmp/transform_Oracle_ce.Recommendation_to_csv.sh"
+  }
+  provisioner "remote-exec" {
+    connection {
+      type = "ssh"
+      user = "ubuntu"
+      host = self.public_dns
+      private_key = file("~/.ssh/id_rsa")
+    }
+    inline = [
+      "chmod +x /tmp/transform_Oracle_ce.ClinicalCondition_to_csv.sh",
+      "chmod +x /tmp/transform_Oracle_ce.DerivedFact_to_csv.sh",
+      "chmod +x /tmp/transform_Oracle_ce.DerivedFactProductUsage_to_csv.sh",
+      "chmod +x /tmp/transform_Oracle_ce.MedicalFinding_to_csv.sh",
+      "chmod +x /tmp/transform_Oracle_ce.MedicalFindingType_to_csv.sh",
+      "chmod +x /tmp/transform_Oracle_ce.OpportunityPointsDiscr_to_csv.sh",
+      "chmod +x /tmp/transform_Oracle_ce.ProductFinding_to_csv.sh",
+      "chmod +x /tmp/transform_Oracle_ce.ProductFindingType_to_csv.sh",
+      "chmod +x /tmp/transform_Oracle_ce.ProductOpportunityPoints_to_csv.sh",
+      "chmod +x /tmp/transform_Oracle_ce.Recommendation_to_csv.sh",
+    ]
   }
   provisioner "file" {
     connection {
@@ -140,7 +334,10 @@ resource "aws_instance" "mongodb_ec2_instance" {
       host = self.public_dns
       private_key = file("~/.ssh/id_rsa")
     }
-    inline = ["chmod +x /tmp/02_populate.sh", "/tmp/02_populate.sh"]
+    inline = [
+      "chmod +x /tmp/02_populate.sh",
+      "/tmp/02_populate.sh"
+    ]
   }
 }
 

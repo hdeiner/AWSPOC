@@ -15,9 +15,21 @@ This script uses simple Terraform and applies it.
 ```bash
 #!/usr/bin/env bash
 
+../../startExperiment.sh
+
+bash -c 'cat << "EOF" > .script
+#!/usr/bin/env bash
 figlet -w 200 -f small "Startup MongoDB AWS"
 terraform init
 terraform apply -auto-approve
+EOF'
+chmod +x .script
+command time -v ./.script 2> .results
+../../getExperimentalResults.sh
+experiment=$(../../getExperimentNumber.sh)
+../../getDataAsCSVline.sh .results ${experiment} "10_MongoDB_AWS: Startup MongoDB AWS" >> Experimental\ Results.csv
+../../putExperimentalResults.sh
+rm .script .results Experimental\ Results.csv
 ```
 The terraform.aws_instance.tf is the most interesting of the terraform scripts because it does does all of the heavy lifting through provisiong.
 
@@ -84,6 +96,66 @@ resource "aws_instance" "mongodb_ec2_instance" {
     source      = "provision.mongodb.sh"
     destination = "/tmp/provision.mongodb.sh"
   }
+  provisioner "file" {
+    connection {
+      type = "ssh"
+      user = "ubuntu"
+      host = self.public_dns
+      private_key = file("~/.ssh/id_rsa")
+    }
+    source      = "../../getDataAsCSVline.sh"
+    destination = "/tmp/getDataAsCSVline.sh"
+  }
+  provisioner "file" {
+    connection {
+      type = "ssh"
+      user = "ubuntu"
+      host = self.public_dns
+      private_key = file("~/.ssh/id_rsa")
+    }
+    source      = "../../getExperimentalResults.sh"
+    destination = "/tmp/getExperimentalResults.sh"
+  }
+  provisioner "file" {
+    connection {
+      type = "ssh"
+      user = "ubuntu"
+      host = self.public_dns
+      private_key = file("~/.ssh/id_rsa")
+    }
+    source      = "../../putExperimentalResults.sh"
+    destination = "/tmp/putExperimentalResults.sh"
+  }
+  provisioner "file" {
+    connection {
+      type = "ssh"
+      user = "ubuntu"
+      host = self.public_dns
+      private_key = file("~/.ssh/id_rsa")
+    }
+    source      = "../../startExperiment.sh"
+    destination = "/tmp/startExperiment.sh"
+  }
+  provisioner "file" {
+    connection {
+      type = "ssh"
+      user = "ubuntu"
+      host = self.public_dns
+      private_key = file("~/.ssh/id_rsa")
+    }
+    source      = "../../endExperiment.sh"
+    destination = "/tmp/endExperiment.sh"
+  }
+  provisioner "file" {
+    connection {
+      type = "ssh"
+      user = "ubuntu"
+      host = self.public_dns
+      private_key = file("~/.ssh/id_rsa")
+    }
+    source      = "../../getExperimentNumber.sh"
+    destination = "/tmp/getExperimentNumber.sh"
+  }
   provisioner "remote-exec" {
     connection {
       type = "ssh"
@@ -91,7 +163,16 @@ resource "aws_instance" "mongodb_ec2_instance" {
       host = self.public_dns
       private_key = file("~/.ssh/id_rsa")
     }
-    inline = ["chmod +x /tmp/provision.mongodb.sh", "/tmp/provision.mongodb.sh"]
+    inline = [
+      "chmod +x /tmp/provision.mongodb.sh",
+      "chmod +x /tmp/getDataAsCSVline.sh",
+      "chmod +x /tmp/getExperimentalResults.sh",
+      "chmod +x /tmp/putExperimentalResults.sh",
+      "chmod +x /tmp/startExperiment.sh",
+      "chmod +x /tmp/endExperiment.sh",
+      "chmod +x /tmp/getExperimentNumber.sh",
+      "/tmp/provision.mongodb.sh"
+    ]
   }
   provisioner "file" {
     connection {
@@ -126,6 +207,9 @@ resource "aws_instance" "mongodb_ec2_instance" {
     source      = "HealthEngine.AWSPOC.private.key"
     destination = "/tmp/HealthEngine.AWSPOC.private.key"
   }
+  provisioner "local-exec" {
+    command = "rm HealthEngine.AWSPOC.public.key HealthEngine.AWSPOC.private.key"
+  }
   provisioner "file" {
     connection {
       type = "ssh"
@@ -143,7 +227,132 @@ resource "aws_instance" "mongodb_ec2_instance" {
       host = self.public_dns
       private_key = file("~/.ssh/id_rsa")
     }
-    inline = ["chmod +x /tmp/import_GPG_keys.sh", "/tmp/import_GPG_keys.sh /tmp/HealthEngine.AWSPOC.public.key /tmp/HealthEngine.AWSPOC.private.key", "chmod +x /tmp/transfer_from_s3_and_decrypt.sh","rm /tmp/import_GPG_keys.sh /tmp/*.key"]
+    inline = [
+      "chmod +x /tmp/import_GPG_keys.sh",
+      "/tmp/import_GPG_keys.sh /tmp/HealthEngine.AWSPOC.public.key /tmp/HealthEngine.AWSPOC.private.key",
+      "chmod +x /tmp/transfer_from_s3_and_decrypt.sh",
+      "rm /tmp/import_GPG_keys.sh /tmp/*.key"
+    ]
+  }
+  provisioner "file" {
+    connection {
+      type = "ssh"
+      user = "ubuntu"
+      host = self.public_dns
+      private_key = file("~/.ssh/id_rsa")
+    }
+    source      = "../transform_Oracle_ce.ClinicalCondition_to_csv.sh"
+    destination = "/tmp/transform_Oracle_ce.ClinicalCondition_to_csv.sh"
+  }
+  provisioner "file" {
+    connection {
+      type = "ssh"
+      user = "ubuntu"
+      host = self.public_dns
+      private_key = file("~/.ssh/id_rsa")
+    }
+    source      = "../transform_Oracle_ce.DerivedFact_to_csv.sh"
+    destination = "/tmp/transform_Oracle_ce.DerivedFact_to_csv.sh"
+  }
+  provisioner "file" {
+    connection {
+      type = "ssh"
+      user = "ubuntu"
+      host = self.public_dns
+      private_key = file("~/.ssh/id_rsa")
+    }
+    source      = "../transform_Oracle_ce.DerivedFactProductUsage_to_csv.sh"
+    destination = "/tmp/transform_Oracle_ce.DerivedFactProductUsage_to_csv.sh"
+  }
+  provisioner "file" {
+    connection {
+      type = "ssh"
+      user = "ubuntu"
+      host = self.public_dns
+      private_key = file("~/.ssh/id_rsa")
+    }
+    source      = "../transform_Oracle_ce.MedicalFinding_to_csv.sh"
+    destination = "/tmp/transform_Oracle_ce.MedicalFinding_to_csv.sh"
+  }
+  provisioner "file" {
+    connection {
+      type = "ssh"
+      user = "ubuntu"
+      host = self.public_dns
+      private_key = file("~/.ssh/id_rsa")
+    }
+    source      = "../transform_Oracle_ce.MedicalFindingType_to_csv.sh"
+    destination = "/tmp/transform_Oracle_ce.MedicalFindingType_to_csv.sh"
+  }
+  provisioner "file" {
+    connection {
+      type = "ssh"
+      user = "ubuntu"
+      host = self.public_dns
+      private_key = file("~/.ssh/id_rsa")
+    }
+    source      = "../transform_Oracle_ce.OpportunityPointsDiscr_to_csv.sh"
+    destination = "/tmp/transform_Oracle_ce.OpportunityPointsDiscr_to_csv.sh"
+  }
+  provisioner "file" {
+    connection {
+      type = "ssh"
+      user = "ubuntu"
+      host = self.public_dns
+      private_key = file("~/.ssh/id_rsa")
+    }
+    source      = "../transform_Oracle_ce.ProductFinding_to_csv.sh"
+    destination = "/tmp/transform_Oracle_ce.ProductFinding_to_csv.sh"
+  }
+  provisioner "file" {
+    connection {
+      type = "ssh"
+      user = "ubuntu"
+      host = self.public_dns
+      private_key = file("~/.ssh/id_rsa")
+    }
+    source      = "../transform_Oracle_ce.ProductFindingType_to_csv.sh"
+    destination = "/tmp/transform_Oracle_ce.ProductFindingType_to_csv.sh"
+  }
+  provisioner "file" {
+    connection {
+      type = "ssh"
+      user = "ubuntu"
+      host = self.public_dns
+      private_key = file("~/.ssh/id_rsa")
+    }
+    source      = "../transform_Oracle_ce.ProductOpportunityPoints_to_csv.sh"
+    destination = "/tmp/transform_Oracle_ce.ProductOpportunityPoints_to_csv.sh"
+  }
+  provisioner "file" {
+    connection {
+      type = "ssh"
+      user = "ubuntu"
+      host = self.public_dns
+      private_key = file("~/.ssh/id_rsa")
+    }
+    source      = "../transform_Oracle_ce.Recommendation_to_csv.sh"
+    destination = "/tmp/transform_Oracle_ce.Recommendation_to_csv.sh"
+  }
+  provisioner "remote-exec" {
+    connection {
+      type = "ssh"
+      user = "ubuntu"
+      host = self.public_dns
+      private_key = file("~/.ssh/id_rsa")
+    }
+    inline = [
+      "chmod +x /tmp/transform_Oracle_ce.ClinicalCondition_to_csv.sh",
+      "chmod +x /tmp/transform_Oracle_ce.DerivedFact_to_csv.sh",
+      "chmod +x /tmp/transform_Oracle_ce.DerivedFactProductUsage_to_csv.sh",
+      "chmod +x /tmp/transform_Oracle_ce.MedicalFinding_to_csv.sh",
+      "chmod +x /tmp/transform_Oracle_ce.MedicalFindingType_to_csv.sh",
+      "chmod +x /tmp/transform_Oracle_ce.OpportunityPointsDiscr_to_csv.sh",
+      "chmod +x /tmp/transform_Oracle_ce.ProductFinding_to_csv.sh",
+      "chmod +x /tmp/transform_Oracle_ce.ProductFindingType_to_csv.sh",
+      "chmod +x /tmp/transform_Oracle_ce.ProductOpportunityPoints_to_csv.sh",
+      "chmod +x /tmp/transform_Oracle_ce.Recommendation_to_csv.sh",
+    ]
   }
   provisioner "file" {
     connection {
@@ -162,7 +371,10 @@ resource "aws_instance" "mongodb_ec2_instance" {
       host = self.public_dns
       private_key = file("~/.ssh/id_rsa")
     }
-    inline = ["chmod +x /tmp/02_populate.sh", "/tmp/02_populate.sh"]
+    inline = [
+      "chmod +x /tmp/02_populate.sh",
+      "/tmp/02_populate.sh"
+    ]
   }
 }
 ```
@@ -170,6 +382,8 @@ The script that is run on the EC2 instance (provision.mongodb.sh) does the provi
 ```bash
 #!/usr/bin/env bash
 
+bash -c 'cat << "EOF" > .script
+#!/usr/bin/env bash
 sudo apt-get update > provision.log
 sudo apt-get install -y -qq figlet > provision.log
 
@@ -193,317 +407,167 @@ sudo systemctl enable mongod
 
 figlet -w 160 -f small "Verify That MongoDB Is Up"
 echo -e `sudo systemctl status mongod`
+EOF'
+chmod +x .script
+command time -v ./.script 2> .results
+aws ec2 describe-instances --region "us-east-1" --instance-id "`curl -s http://169.254.169.254/latest/meta-data/instance-id`" --query 'Reservations[].Instances[].[Tags[0].Value]' --output text > .instanceName
+sed --in-place --regexp-extended 's/ /_/g' .instanceName
+/tmp/getExperimentalResults.sh
+experiment=$(/tmp/getExperimentNumber.sh)
+/tmp/getDataAsCSVline.sh .results ${experiment} "10_MongoDB_AWS: Install Prerequisites "$(<.instanceName) >> Experimental\ Results.csv
+/tmp/putExperimentalResults.sh
+rm .script .results Experimental\ Results.csv
 ```
 The script that is then run on the EC2 instance (02_populate.sh) uses mongoimport to bring in the data and mongo to report on it.
 ```bash
 #!/usr/bin/env bash
 
 figlet -w 200 -f slant "This is run on AWS ONLY during startup"
-cd /tmp
 
+aws ec2 describe-instances --region "us-east-1" --instance-id "`curl -s http://169.254.169.254/latest/meta-data/instance-id`" --query 'Reservations[].Instances[].[Tags[0].Value]' --output text > .instanceName
+sed --in-place --regexp-extended 's/ /_/g' .instanceName
+
+bash -c 'cat << "EOF" > .script
+#!/usr/bin/env bash
 figlet -w 160 -f small "Get Data from S3 Bucket"
-./transfer_from_s3_and_decrypt.sh ce.Clinical_Condition.csv
-./transfer_from_s3_and_decrypt.sh ce.DerivedFact.csv
-./transfer_from_s3_and_decrypt.sh ce.DerivedFactProductUsage.csv
-./transfer_from_s3_and_decrypt.sh ce.MedicalFinding.csv
-./transfer_from_s3_and_decrypt.sh ce.MedicalFindingType.csv
-./transfer_from_s3_and_decrypt.sh ce.OpportunityPointsDiscr.csv
-./transfer_from_s3_and_decrypt.sh ce.ProductFinding.csv
-./transfer_from_s3_and_decrypt.sh ce.ProductFindingType.csv
-./transfer_from_s3_and_decrypt.sh ce.ProductOpportunityPoints.csv
-./transfer_from_s3_and_decrypt.sh ce.Recommendation.csv
+/tmp/transfer_from_s3_and_decrypt.sh ce.ClinicalCondition.csv
+/tmp/transfer_from_s3_and_decrypt.sh ce.DerivedFact.csv
+/tmp/transfer_from_s3_and_decrypt.sh ce.DerivedFactProductUsage.csv
+/tmp/transfer_from_s3_and_decrypt.sh ce.MedicalFinding.csv
+/tmp/transfer_from_s3_and_decrypt.sh ce.MedicalFindingType.csv
+/tmp/transfer_from_s3_and_decrypt.sh ce.OpportunityPointsDiscr.csv
+/tmp/transfer_from_s3_and_decrypt.sh ce.ProductFinding.csv
+/tmp/transfer_from_s3_and_decrypt.sh ce.ProductFindingType.csv
+/tmp/transfer_from_s3_and_decrypt.sh ce.ProductOpportunityPoints.csv
+/tmp/transfer_from_s3_and_decrypt.sh ce.Recommendation.csv
+EOF'
+chmod +x .script
+command time -v ./.script 2> .results
+/tmp/getExperimentalResults.sh
+experiment=$(/tmp/getExperimentNumber.sh)
+/tmp/getDataAsCSVline.sh .results ${experiment} "10_MongoDB_AWS: Get Data from S3 Bucket "$(<.instanceName) >> Experimental\ Results.csv
+/tmp/putExperimentalResults.sh
+rm .script .results Experimental\ Results.csv
 
-figlet -w 160 -f small "Populate MongoDB AWS"
+bash -c 'cat << "EOF" > .script
+#!/usr/bin/env bash
+figlet -w 240 -f small "Process S3 Data into CSV Files For Import"
+/tmp/transform_Oracle_ce.ClinicalCondition_to_csv.sh
+/tmp/transform_Oracle_ce.DerivedFact_to_csv.sh
+/tmp/transform_Oracle_ce.DerivedFactProductUsage_to_csv.sh
+/tmp/transform_Oracle_ce.MedicalFinding_to_csv.sh
+/tmp/transform_Oracle_ce.MedicalFindingType_to_csv.sh
+/tmp/transform_Oracle_ce.OpportunityPointsDiscr_to_csv.sh
+/tmp/transform_Oracle_ce.ProductFinding_to_csv.sh
+/tmp/transform_Oracle_ce.ProductFindingType_to_csv.sh
+/tmp/transform_Oracle_ce.ProductOpportunityPoints_to_csv.sh
+/tmp/transform_Oracle_ce.Recommendation_to_csv.sh
+EOF'
+chmod +x .script
+command time -v ./.script 2> .results
+/tmp/getExperimentalResults.sh
+experiment=$(/tmp/getExperimentNumber.sh)
+/tmp/getDataAsCSVline.sh .results ${experiment} "10_MongoDB_AWS: Process S3 Data into CSV Files For Import "$(<.instanceName) >> Experimental\ Results.csv
+/tmp/putExperimentalResults.sh
+rm .script .results Experimental\ Results.csv
 
+bash -c 'cat << "EOF" > .script
+#!/usr/bin/env bash
+figlet -w 160 -f small "Populate MongoDB Data"
 echo "Clinical_Condition"
-# add header
-sed -i '1 i\CLINICAL_CONDITION_COD|CLINICAL_CONDITION_NAM|INSERTED_BY|REC_INSERT_DATE|REC_UPD_DATE|UPDATED_BY|CLINICALCONDITIONCLASSCD|CLINICALCONDITIONTYPECD|CLINICALCONDITIONABBREV' ce.Clinical_Condition.csv
-# convert comas to semi-colons
-sed --in-place --regexp-extended 's/,/;/g' ce.Clinical_Condition.csv
-# convert bars to commas
-sed --in-place 's/|/,/g' ce.Clinical_Condition.csv
-# get rid of timestamps
-sed --in-place --regexp-extended 's/ [0-9]+[0-9]+\:[0-9]+[0-9]+\:[0-9]+//g' ce.Clinical_Condition.csv
-# get rid of ^M (return characters)
-# remove blanks at start of line
-sed --in-place --regexp-extended 's/^ *//g' ce.Clinical_Condition.csv
-# remove blanks before commas
-sed --in-place --regexp-extended 's/[ ]+,/,/g' ce.Clinical_Condition.csv
-# remove blanks after commas
-sed --in-place --regexp-extended 's/,[ ]+/,/g' ce.Clinical_Condition.csv
-# remove blanks at end of line
-sed --in-place --regexp-extended 's/ *$//g' ce.Clinical_Condition.csv
-tr -d $'\r' < ce.Clinical_Condition.csv > ce.Clinical_Condition.csv.mod
-mongoimport --type csv -d testdatabase -c Clinical_Condition --headerline /tmp/ce.Clinical_Condition.csv.mod
-
+mongoimport --type csv -d ce -c Clinical_Condition --headerline ce.ClinicalCondition.csv
 echo "DerivedFact"
-# add header
-sed -i '1 i\DERIVEDFACTID|DERIVEDFACTTRACKINGID|DERIVEDFACTTYPEID|INSERTEDBY|RECORDINSERTDT|RECORDUPDTDT|UPDTDBY' ce.DerivedFact.csv
-# convert comas to semi-colons
-sed --in-place --regexp-extended 's/,/;/g' ce.DerivedFact.csv
-# convert bars to commas
-sed --in-place 's/|/,/g' ce.DerivedFact.csv
-# get rid of timestamps and decimals after timestamp
-sed --in-place --regexp-extended 's/ [0-9]+[0-9]+\:[0-9]+[0-9]+\:[0-9]+\.[0-9]+//g' ce.DerivedFact.csv
-# remove blanks at start of line
-sed --in-place --regexp-extended 's/^ *//g' ce.DerivedFact.csv
-# remove blanks before commas
-sed --in-place --regexp-extended 's/[ ]+,/,/g' ce.DerivedFact.csv
-# remove blanks after commas
-sed --in-place --regexp-extended 's/,[ ]+/,/g' ce.DerivedFact.csv
-# remove blanks at end of line
-sed --in-place --regexp-extended 's/ *$//g' ce.DerivedFact.csv
-# get rid of ^M (return characters)
-tr -d $'\r' < ce.DerivedFact.csv > ce.DerivedFact.csv.mod
-mongoimport --type csv -d testdatabase -c DerivedFact --headerline ce.DerivedFact.csv.mod
-
+mongoimport --type csv -d ce -c DerivedFact --headerline ce.DerivedFact.csv
 echo "DerivedFactProductUsage"
-# add header
-sed -i '1 i\DERIVEDFACTPRODUCTUSAGEID|DERIVEDFACTID|PRODUCTMNEMONICCD|INSERTEDBY|RECORDINSERTDT|RECORDUPDTDT|UPDTDBY' ce.DerivedFactProductUsage.csv
-# convert comas to semi-colons
-sed --in-place --regexp-extended 's/,/;/g' ce.DerivedFactProductUsage.csv
-# convert bars to commas
-sed --in-place 's/|/,/g' ce.DerivedFactProductUsage.csv
-# get rid of timestamps and decimals after timestamp
-sed --in-place --regexp-extended 's/ [0-9]+[0-9]+\:[0-9]+[0-9]+\:[0-9]+\.[0-9]+//g' ce.DerivedFactProductUsage.csv
-# remove blanks at start of line
-sed --in-place --regexp-extended 's/^ *//g' ce.DerivedFactProductUsage.csv
-# remove blanks before commas
-sed --in-place --regexp-extended 's/[ ]+,/,/g' ce.DerivedFactProductUsage.csv
-# remove blanks after commas
-sed --in-place --regexp-extended 's/,[ ]+/,/g' ce.DerivedFactProductUsage.csv
-# remove blanks at end of line
-sed --in-place --regexp-extended 's/ *$//g' ce.DerivedFactProductUsage.csv
-# get rid of ^M (return characters)
-tr -d $'\r' < ce.DerivedFactProductUsage.csv > ce.DerivedFactProductUsage.csv.mod
-mongoimport --type csv -d testdatabase -c DerivedFactProductUsage --headerline ce.DerivedFactProductUsage.mod
-
+mongoimport --type csv -d ce -c DerivedFactProductUsage --headerline ce.DerivedFactProductUsage.csv
 echo "MedicalFinding"
-# add header
-sed -i '1 i\MEDICALFINDINGID|MEDICALFINDINGTYPECD|MEDICALFINDINGNM|SEVERITYLEVELCD|IMPACTABLEFLG|CLINICAL_CONDITION_COD|INSERTEDBY|RECORDINSERTDT|RECORDUPDTDT|UPDTDBY|ACTIVEFLG|OPPORTUNITYPOINTSDISCRCD' ce.MedicalFinding.csv
-# convert comas to semi-colons
-sed --in-place --regexp-extended 's/,/;/g' ce.MedicalFinding.csv
-# convert bars to commas
-sed --in-place 's/|/,/g' ce.MedicalFinding.csv
-# get rid of timestamps and decimals after timestamp
-sed --in-place --regexp-extended 's/ [0-9]+[0-9]+\:[0-9]+[0-9]+\:[0-9]+\.[0-9]+//g' ce.MedicalFinding.csv
-# remove blanks at start of line
-sed --in-place --regexp-extended 's/^ *//g' ce.MedicalFinding.csv
-# remove blanks before commas
-sed --in-place --regexp-extended 's/[ ]+,/,/g' ce.MedicalFinding.csv
-# remove blanks after commas
-sed --in-place --regexp-extended 's/,[ ]+/,/g' ce.MedicalFinding.csv
-# remove blanks at end of line
-sed --in-place --regexp-extended 's/ *$//g' ce.MedicalFinding.csv
-# get rid of ^M (return characters)
-tr -d $'\r' < ce.MedicalFinding.csv > ce.MedicalFinding.csv.mod
-mongoimport --type csv -d testdatabase -c MedicalFinding --headerline ce.MedicalFinding.csv.mod
-
+mongoimport --type csv -d ce -c MedicalFinding --headerline ce.MedicalFinding.csv
 echo "MedicalFindingType"
-# add header
-sed -i '1 i\MEDICALFINDINGTYPECD|MEDICALFINDINGTYPEDESC|INSERTEDBY|RECORDINSERTDT|RECORDUPDTDT|UPDTDBY|HEALTHSTATEAPPLICABLEFLAG' ce.MedicalFindingType.csv
-# convert comas to semi-colons
-sed --in-place --regexp-extended 's/,/;/g' ce.MedicalFindingType.csv
-# convert bars to commas
-sed --in-place 's/|/,/g' ce.MedicalFindingType.csv
-# get rid of timestamps and decimals after timestamp
-sed --in-place --regexp-extended 's/ [0-9]+[0-9]+\:[0-9]+[0-9]+\:[0-9]+\.[0-9]+//g' ce.MedicalFindingType.csv
-# remove blanks at start of line
-sed --in-place --regexp-extended 's/^ *//g' ce.MedicalFindingType.csv
-# remove blanks before commas
-sed --in-place --regexp-extended 's/[ ]+,/,/g' ce.MedicalFindingType.csv
-# remove blanks after commas
-sed --in-place --regexp-extended 's/,[ ]+/,/g' ce.MedicalFindingType.csv
-# remove blanks at end of line
-sed --in-place --regexp-extended 's/ *$//g' ce.MedicalFindingType.csv
-# get rid of ^M (return characters)
-tr -d $'\r' < ce.MedicalFindingType.csv > ce.MedicalFindingType.csv.mod
-mongoimport --type csv -d testdatabase -c MedicalFinding --headerline ce.MedicalFindingType.csv.mod
-
+mongoimport --type csv -d ce -c MedicalFindingType --headerline ce.MedicalFindingType.csv
 echo "OpportunityPointsDiscr"
-# add header
-sed -i '1 i\OPPORTUNITYPOINTSDISCRCD|OPPORTUNITYPOINTSDISCNM|INSERTEDBY|RECORDINSERTDT|RECORDUPDTDT|UPDTDBY' ce.OpportunityPointsDiscr.csv
-# convert comas to semi-colons
-sed --in-place --regexp-extended 's/,/;/g' ce.OpportunityPointsDiscr.csv
-# convert bars to commas
-sed --in-place 's/|/,/g' ce.OpportunityPointsDiscr.csv
-# get rid of timestamps and decimals after timestamp
-sed --in-place --regexp-extended 's/ [0-9]+[0-9]+\:[0-9]+[0-9]+\:[0-9]+\.[0-9]+//g' ce.OpportunityPointsDiscr.csv
-# remove blanks at start of line
-sed --in-place --regexp-extended 's/^ *//g' ce.OpportunityPointsDiscr.csv
-# remove blanks before commas
-sed --in-place --regexp-extended 's/[ ]+,/,/g' ce.OpportunityPointsDiscr.csv
-# remove blanks after commas
-sed --in-place --regexp-extended 's/,[ ]+/,/g' ce.OpportunityPointsDiscr.csv
-# remove blanks at end of line
-sed --in-place --regexp-extended 's/ *$//g' ce.OpportunityPointsDiscr.csv
-# get rid of ^M (return characters)
-tr -d $'\r' < ce.OpportunityPointsDiscr.csv > ce.OpportunityPointsDiscr.csv.mod
-mongoimport --type csv -d testdatabase -c OpportunityPointsDiscr --headerline ce.OpportunityPointsDiscr.csv.mod
-
+mongoimport --type csv -d ce -c OpportunityPointsDiscr --headerline ce.OpportunityPointsDiscr.csv
 echo "ProductFinding"
-# add header
-sed -i '1 i\PRODUCTFINDINGTYPECD|PRODUCTFINDINGTYPEDESC|INSERTEDBY|RECORDINSERTDT|RECORDUPDTDT|UPDTDBY' ce.ProductFinding.csv
-# convert comas to semi-colons
-sed --in-place --regexp-extended 's/,/;/g' ce.ProductFinding.csv
-# convert bars to commas
-sed --in-place 's/|/,/g' ce.ProductFinding.csv
-# get rid of timestamps and decimals after timestamp
-sed --in-place --regexp-extended 's/ [0-9]+[0-9]+\:[0-9]+[0-9]+\:[0-9]+\.[0-9]+//g' ce.ProductFinding.csv
-# remove blanks at start of line
-sed --in-place --regexp-extended 's/^ *//g' ce.ProductFinding.csv
-# remove blanks before commas
-sed --in-place --regexp-extended 's/[ ]+,/,/g' ce.ProductFinding.csv
-# remove blanks after commas
-sed --in-place --regexp-extended 's/,[ ]+/,/g' ce.ProductFinding.csv
-# remove blanks at end of line
-sed --in-place --regexp-extended 's/ *$//g' ce.ProductFinding.csv
-# get rid of ^M (return characters)
-tr -d $'\r' < ce.ProductFinding.csv > ce.ProductFinding.csv.mod
-mongoimport --type csv -d testdatabase -c ProductFinding --headerline ce.ProductFinding.csv.mod
-
+mongoimport --type csv -d ce -c ProductFinding --headerline ce.ProductFinding.csv
 echo "ProductFindingType"
-# add header
-sed -i '1 i\PRODUCTFINDINGTYPECD|PRODUCTFINDINGTYPEDESC|INSERTEDBY|RECORDINSERTDT|RECORDUPDTDT|UPDTDBY' ce.ProductFindingType.csv
-# convert comas to semi-colons
-sed --in-place --regexp-extended 's/,/;/g' ce.ProductFindingType.csv
-# convert bars to commas
-sed --in-place 's/|/,/g' ce.ProductFindingType.csv
-# get rid of timestamps and decimals after timestamp
-sed --in-place --regexp-extended 's/ [0-9]+[0-9]+\:[0-9]+[0-9]+\:[0-9]+\.[0-9]+//g' ce.ProductFindingType.csv
-# remove blanks at start of line
-sed --in-place --regexp-extended 's/^ *//g' ce.ProductFindingType.csv
-# remove blanks before commas
-sed --in-place --regexp-extended 's/[ ]+,/,/g' ce.ProductFindingType.csv
-# remove blanks after commas
-sed --in-place --regexp-extended 's/,[ ]+/,/g' ce.ProductFindingType.csv
-# remove blanks at end of line
-sed --in-place --regexp-extended 's/ *$//g' ce.ProductFindingType.csv
-# get rid of ^M (return characters)
-tr -d $'\r' < ce.ProductFindingType.csv > ce.ProductFindingType.csv.mod
-mongoimport --type csv -d testdatabase -c ProductFindingType --headerline ce.ProductFindingType.csv.mod
-
+mongoimport --type tsv -d ce -c ProductFindingType --headerline ce.ProductFindingType.csv
 echo "ProductOpportunityPoints"
-# add header
-sed -i '1 i\OPPORTUNITYPOINTSDISCCD|EFFECTIVESTARTDT|OPPORTUNITYPOINTSNBR|EFFECTIVEENDDT|DERIVEDFACTPRODUCTUSAGEID|INSERTEDBY|RECORDINSERTDT|RECORDUPDTDT|UPDTDBY' ce.ProductOpportunityPoints.csv
-# convert comas to semi-colons
-sed --in-place --regexp-extended 's/,/;/g' ce.ProductOpportunityPoints.csv
-# convert bars to commas
-sed --in-place 's/|/,/g' ce.ProductOpportunityPoints.csv
-# get rid of timestamps and decimals after timestamp
-sed --in-place --regexp-extended 's/ [0-9]+[0-9]+\:[0-9]+[0-9]+\:[0-9]+\.[0-9]+//g' ce.ProductOpportunityPoints.csv
-# remove blanks at start of line
-sed --in-place --regexp-extended 's/^ *//g' ce.ProductOpportunityPoints.csv
-# remove blanks before commas
-sed --in-place --regexp-extended 's/[ ]+,/,/g' ce.ProductOpportunityPoints.csv
-# remove blanks after commas
-sed --in-place --regexp-extended 's/,[ ]+/,/g' ce.ProductOpportunityPoints.csv
-# remove blanks at end of line
-sed --in-place --regexp-extended 's/ *$//g' ce.ProductOpportunityPoints.csv
-# get rid of ^M (return characters)
-tr -d $'\r' < ce.ProductOpportunityPoints.csv > ce.ProductOpportunityPoints.csv.mod
-mongoimport --type csv -d testdatabase -c ProductOpportunityPoints --headerline ce.ProductOpportunityPoints.csv.mod
-
+mongoimport --type tsv -d ce -c ProductOpportunityPoints --headerline ce.ProductOpportunityPoints.csv
 echo "Recommendation"
-# get rid of ^M (return characters)
-tr -d $'\r' < ce.Recommendation.csv > ce.Recommendation.csv.mod
-# Merge every other line in ce.Recommendation together with a comma between them
-paste - - - -d'|' < ce.Recommendation.csv.mod > ce.Recommendation.csv
-# add header
-sed -i '1 i\RECOMMENDATIONSKEY|RECOMMENDATIONID|RECOMMENDATIONCODE|RECOMMENDATIONDESC|RECOMMENDATIONTYPE|CCTYPE|CLINICALREVIEWTYPE|AGERANGEID|ACTIONCODE|THERAPEUTICCLASS|MDCCODE|MCCCODE|PRIVACYCATEGORY|INTERVENTION|RECOMMENDATIONFAMILYID|RECOMMENDPRECEDENCEGROUPID|INBOUNDCOMMUNICATIONROUTE|SEVERITY|PRIMARYDIAGNOSIS|SECONDARYDIAGNOSIS|ADVERSEEVENT|ICMCONDITIONID|WELLNESSFLAG|VBFELIGIBLEFLAG|COMMUNICATIONRANKING|PRECEDENCERANKING|PATIENTDERIVEDFLAG|LABREQUIREDFLAG|UTILIZATIONTEXTAVAILABLEF|SENSITIVEMESSAGEFLAG|HIGHIMPACTFLAG|ICMLETTERFLAG|REQCLINICIANCLOSINGFLAG|OPSIMPELMENTATIONPHASE|SEASONALFLAG|SEASONALSTARTDT|SEASONALENDDT|EFFECTIVESTARTDT|EFFECTIVEENDDT|RECORDINSERTDT|RECORDUPDTDT|INSERTEDBY|UPDTDBY|STANDARDRUNFLAG|INTERVENTIONFEEDBACKFAMILYID|CONDITIONFEEDBACKFAMILYID|ASHWELLNESSELIGIBILITYFLAG|HEALTHADVOCACYELIGIBILITYFLAG' ce.Recommendation.csv
-# convert comas to semi-colons
-sed --in-place --regexp-extended 's/,/;/g' ce.Recommendation.csv
-# convert bars to commas
-sed --in-place 's/|/,/g' ce.Recommendation.csv
-# get rid of timestamps and decimals after timestamp
-sed --in-place --regexp-extended 's/ [0-9]+[0-9]+\:[0-9]+[0-9]+\:[0-9]+\.[0-9]+//g' ce.Recommendation.csv
-# remove blanks at start of line
-sed --in-place --regexp-extended 's/^ *//g' ce.Recommendation.csv
-# remove blanks before commas
-sed --in-place --regexp-extended 's/[ ]+,/,/g' ce.Recommendation.csv
-# remove blanks after commas
-sed --in-place --regexp-extended 's/,[ ]+/,/g' ce.Recommendation.csv
-# remove blanks at end of line
-sed --in-place --regexp-extended 's/ *$//g' ce.Recommendation.csv
-cp ce.Recommendation.csv ce.Recommendation.csv.mod
-mongoimport --type csv -d testdatabase -c Recommendation --headerline ce.Recommendation.csv.mod
+mongoimport --type csv -d ce -c Recommendation --headerline ce.Recommendation.csv
+EOF'
+chmod +x .script
+command time -v ./.script 2> .results
+/tmp/getExperimentalResults.sh
+experiment=$(/tmp/getExperimentNumber.sh)
+/tmp/getDataAsCSVline.sh .results  ${experiment}  "10_MongoDB_AWS: Populate MongoDB Data "$(<.instanceName) >> Experimental\ Results.csv
+/tmp/putExperimentalResults.sh
+rm .script .results Experimental\ Results.csv
 
-figlet -w 160 -f small "Check MongoDB AWS"
-echo ""
+bash -c 'cat << "EOF" > .script
+#!/usr/bin/env bash
+figlet -w 160 -f small "Check MongoDB Data"
 echo "Clinical_Condition"
-echo 'use testdatabase' > .mongo.js
-echo 'db.Clinical_Condition.find().limit(2)' >> .mongo.js
-echo 'db.Clinical_Condition.count()' >> .mongo.js
-echo 'exit' >> .mongo.js
+echo "use ce" > .mongo.js
+echo "db.Clinical_Condition.find().limit(2)" >> .mongo.js
+echo "db.Clinical_Condition.count()" >> .mongo.js
+echo "exit" >> .mongo.js
 mongo < .mongo.js
-
-echo ""
 echo "DerivedFact"
-echo 'use testdatabase' > .mongo.js
-echo 'db.DerivedFact.find().limit(2)' >> .mongo.js
-echo 'db.DerivedFact.count()' >> .mongo.js
-echo 'exit' >> .mongo.js
+echo "use ce" > .mongo.js
+echo "db.DerivedFact.find().limit(2)" >> .mongo.js
+echo "db.DerivedFact.count()" >> .mongo.js
+echo "exit" >> .mongo.js
 mongo < .mongo.js
-
-echo ""
 echo "MedicalFinding"
-echo 'use testdatabase' > .mongo.js
-echo 'db.MedicalFinding.find().limit(2)' >> .mongo.js
-echo 'db.MedicalFinding.count()' >> .mongo.js
-echo 'exit' >> .mongo.js
+echo "use ce" > .mongo.js
+echo "db.MedicalFinding.find().limit(2)" >> .mongo.js
+echo "db.MedicalFinding.count()" >> .mongo.js
+echo "exit" >> .mongo.js
 mongo < .mongo.js
-
-echo ""
 echo "MedicalFindingType"
-echo 'use testdatabase' > .mongo.js
-echo 'db.MedicalFindingType.find().limit(2)' >> .mongo.js
-echo 'db.MedicalFindingType.count()' >> .mongo.js
-echo 'exit' >> .mongo.js
+echo "use ce" > .mongo.js
+echo "db.MedicalFindingType.find().limit(2)" >> .mongo.js
+echo "db.MedicalFindingType.count()" >> .mongo.js
+echo "exit" >> .mongo.js
 mongo < .mongo.js
-
-echo ""
 echo "OpportunityPointsDiscr"
-echo 'use testdatabase' > .mongo.js
-echo 'db.OpportunityPointsDiscr.find().limit(2)' >> .mongo.js
-echo 'db.OpportunityPointsDiscr.count()' >> .mongo.js
-echo 'exit' >> .mongo.js
+echo "use ce" > .mongo.js
+echo "db.OpportunityPointsDiscr.find().limit(2)" >> .mongo.js
+echo "db.OpportunityPointsDiscr.count()" >> .mongo.js
+echo "exit" >> .mongo.js
 mongo < .mongo.js
-
-echo ""
 echo "ProductFinding"
-echo 'use testdatabase' > .mongo.js
-echo 'db.ProductFinding.find().limit(2)' >> .mongo.js
-echo 'db.ProductFinding.count()' >> .mongo.js
-echo 'exit' >> .mongo.js
+echo "use ce" > .mongo.js
+echo "db.ProductFinding.find().limit(2)" >> .mongo.js
+echo "db.ProductFinding.count()" >> .mongo.js
+echo "exit" >> .mongo.js
 mongo < .mongo.js
-
-echo ""
 echo "ProductFindingType"
-echo 'use testdatabase' > .mongo.js
-echo 'db.ProductFindingType.find().limit(2)' >> .mongo.js
-echo 'db.ProductFindingType.count()' >> .mongo.js
-echo 'exit' >> .mongo.js
+echo "use ce" > .mongo.js
+echo "db.ProductFindingType.find().limit(2)" >> .mongo.js
+echo "db.ProductFindingType.count()" >> .mongo.js
+echo "exit" >> .mongo.js
 mongo < .mongo.js
-
-echo ""
 echo "ProductOpportunityPoints"
-echo 'use testdatabase' > .mongo.js
-echo 'db.ProductOpportunityPoints.find().limit(2)' >> .mongo.js
-echo 'db.ProductOpportunityPoints.count()' >> .mongo.js
-echo 'exit' >> .mongo.js
+echo "use ce" > .mongo.js
+echo "db.ProductOpportunityPoints.find().limit(2)" >> .mongo.js
+echo "db.ProductOpportunityPoints.count()" >> .mongo.js
+echo "exit" >> .mongo.js
 mongo < .mongo.js
-
-echo ""
 echo "Recommendation"
-echo 'use testdatabase' > .mongo.js
-echo 'db.Recommendation.find().limit(2)' >> .mongo.js
-echo 'db.Recommendation.count()' >> .mongo.js
-echo 'exit' >> .mongo.js
+echo "use ce" > .mongo.js
+echo "db.Recommendation.find().limit(2)" >> .mongo.js
+echo "db.Recommendation.count()" >> .mongo.js
+echo "exit" >> .mongo.js
 mongo < .mongo.js
-
-rm .mongo.js *.csv *.mod
-
-cd -
+EOF'
+chmod +x .script
+command time -v ./.script 2> .results
+/tmp/getExperimentalResults.sh
+experiment=$(/tmp/getExperimentNumber.sh)
+/tmp/getDataAsCSVline.sh .results ${experiment} "10_MongoDB_AWS: Check MongoDB Data "$(<.instanceName) >> Experimental\ Results.csv
+/tmp/putExperimentalResults.sh
+rm .script .mongo.js .results *.csv
 ```
 This is what the console looks like when the script is executed.  It takes about 4 minutes, is completely repeatable, and doesn't require any manual intervention.  
 ![01_startup_console_01](README_assets/01_startup_console_01.png)\
@@ -517,6 +581,7 @@ This is what the console looks like when the script is executed.  It takes about
 ![01_startup_console_09](README_assets/01_startup_console_09.png)\
 ![01_startup_console_10](README_assets/01_startup_console_10.png)\
 ![01_startup_console_11](README_assets/01_startup_console_11.png)\
+![01_startup_console_12](README_assets/01_startup_console_12.png)\
 <BR/>
 If we were to peruse the AWS Console EC2 Dashboard, here's what we will see.
 ![01_startup_aws_console_ec2_dashboard_01](README_assets/01_startup_aws_console_ec2_dashboard_01.png)\
@@ -548,9 +613,24 @@ This script is extremely simple.  It tells terraform to destroy all that it crea
 ```bash
 #!/usr/bin/env bash
 
+bash -c 'cat << "EOF" > .script
+#!/usr/bin/env bash
 figlet -w 200 -f small "Shutdown MongoDB AWS"
 terraform destroy -auto-approve
+EOF'
+chmod +x .script
+command time -v ./.script 2> .results
+../../getExperimentalResults.sh
+experiment=$(../../getExperimentNumber.sh)
+../../getDataAsCSVline.sh .results ${experiment} "10_MongoDB_AWS: Shutdown MongoDB AWS" >> Experimental\ Results.csv
+../../putExperimentalResults.sh
+rm .script .results Experimental\ Results.csv
+
+../../endExperiment.sh
 ```
 The console shows what it does.
 ![03_shutdown_console_01](README_assets/03_shutdown_console_01.png)\
 <BR/>
+And just for laughs, here's the timings for this run.  All kept in a csv file in S3 at s3://health-engine-aws-poc/Experimental Results.csv
+![Experimental Results](README_assets/Experimental Results.png)\
+<BR />

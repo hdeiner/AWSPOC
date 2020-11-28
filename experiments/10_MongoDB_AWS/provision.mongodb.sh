@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+bash -c 'cat << "EOF" > .script
+#!/usr/bin/env bash
 sudo apt-get update > provision.log
 sudo apt-get install -y -qq figlet > provision.log
 
@@ -23,7 +25,16 @@ sudo systemctl enable mongod
 
 figlet -w 160 -f small "Verify That MongoDB Is Up"
 echo -e `sudo systemctl status mongod`
-
+EOF'
+chmod +x .script
+command time -v ./.script 2> .results
+aws ec2 describe-instances --region "us-east-1" --instance-id "`curl -s http://169.254.169.254/latest/meta-data/instance-id`" --query 'Reservations[].Instances[].[Tags[0].Value]' --output text > .instanceName
+sed --in-place --regexp-extended 's/ /_/g' .instanceName
+/tmp/getExperimentalResults.sh
+experiment=$(/tmp/getExperimentNumber.sh)
+/tmp/getDataAsCSVline.sh .results ${experiment} "10_MongoDB_AWS: Install Prerequisites "$(<.instanceName) >> Experimental\ Results.csv
+/tmp/putExperimentalResults.sh
+rm .script .results Experimental\ Results.csv
 
 
 
