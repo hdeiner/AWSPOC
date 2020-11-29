@@ -34,11 +34,15 @@ Since we do not want to make use of the database until it actually starts, I mon
 ```bash
 #!/usr/bin/env bash
 
+../../startExperiment.sh
+
+bash -c 'cat << "EOF" > .script
+#!/usr/bin/env bash
 figlet -w 160 -f small "Startup Oracle Locally"
 docker volume rm 07_oracle_local_oracle_data
 docker-compose -f docker-compose.yml up -d
 
-figlet -w 160 -f small "Wait For Oracle To Start"
+echo "Wait For Oracle To Start"
 while true ; do
   docker logs oracle_container > stdout.txt 2> stderr.txt
   result=$(grep -c "Done ! The database is ready for use ." stdout.txt)
@@ -50,6 +54,14 @@ while true ; do
   sleep 5
 done
 rm stdout.txt stderr.txt
+EOF'
+chmod +x .script
+command time -v ./.script 2> .results
+../../getExperimentalResults.sh
+experiment=$(../../getExperimentNumber.sh)
+../../getDataAsCSVline.sh .results ${experiment} "07_Oracle_Local: Startup Oracle Locally" >> Experimental\ Results.csv
+../../putExperimentalResults.sh
+rm .script .results Experimental\ Results.csv
 ```
 ### 02_populate.sh
 This script first uses the running oracle_container, with it's default ORCLCDB database and runs liquibase to update the database to it's intended state.  Unhppily, liquibase does not run the loadData command corectly, which forces me to use the sqlldr found in the running container (since I'd rather not install Oracle and all of it's tools locally).  It also calls upon the oracle_container to do the select * from the tables to display data in them.
@@ -58,18 +70,30 @@ The script demonstrates that the tables created have data in them with the DDL m
 ```bash
 #!/usr/bin/env bash
 
-figlet -w 160 -f small "Populate Oracle Locally"
+bash -c 'cat << "EOF" > .script
+#!/usr/bin/env bash
+figlet -w 240 -f small "Populate Oracle Locally"
 
-figlet -w 160 -f small "Apply Schema for Oracle Locally"
+figlet -w 240 -f small "Apply Schema for Oracle Locally"
 cp ../../src/java/Translator/changeSet.xml changeSet.xml
 # make schemaName="CE" in a line go away
-sed --in-place --regexp-extended 's/schemaName\=\"CE\"//g' changeSet.xml
+sed --in-place --regexp-extended '"'"'s/schemaName\=\"CE\"//g'"'"' changeSet.xml
 # modify the tablenames in constraints clauses to include the CE in from of the tablemame.
-sed --in-place --regexp-extended 's/(tableName\=\")([A-Za-z0-9_\-]+)(\"\/>)/\1CE.\2\3/g' changeSet.xml
+sed --in-place --regexp-extended '"'"'s/(tableName\=\")([A-Za-z0-9_\-]+)(\"\/>)/\1CE.\2\3/g'"'"' changeSet.xml
 liquibase update
+EOF'
+chmod +x .script
+command time -v ./.script 2> .results
+../../getExperimentalResults.sh
+experiment=$(../../getExperimentNumber.sh)
+../../getDataAsCSVline.sh .results ${experiment} "07_Oracle_Local: Populate Oracle Schema" >> Experimental\ Results.csv
+../../putExperimentalResults.sh
+rm .script .results Experimental\ Results.csv
 
-figlet -w 160 -f small "Get Data from S3 Bucket"
-../../data/transfer_from_s3_and_decrypt.sh ce.Clinical_Condition.csv
+bash -c 'cat << "EOF" > .script
+#!/usr/bin/env bash
+figlet -w 240 -f small "Get Data from S3 Bucket"
+../../data/transfer_from_s3_and_decrypt.sh ce.ClinicalCondition.csv
 ../../data/transfer_from_s3_and_decrypt.sh ce.DerivedFact.csv
 ../../data/transfer_from_s3_and_decrypt.sh ce.DerivedFactProductUsage.csv
 ../../data/transfer_from_s3_and_decrypt.sh ce.MedicalFinding.csv
@@ -79,456 +103,437 @@ figlet -w 160 -f small "Get Data from S3 Bucket"
 ../../data/transfer_from_s3_and_decrypt.sh ce.ProductFindingType.csv
 ../../data/transfer_from_s3_and_decrypt.sh ce.ProductOpportunityPoints.csv
 ../../data/transfer_from_s3_and_decrypt.sh ce.Recommendation.csv
+EOF'
+chmod +x .script
+command time -v ./.script 2> .results
+../../getExperimentalResults.sh
+experiment=$(../../getExperimentNumber.sh)
+../../getDataAsCSVline.sh .results ${experiment} "07_Oracle_Local: Get Data from S3 Bucket" >> Experimental\ Results.csv
+../../putExperimentalResults.sh
+rm .script .results Experimental\ Results.csv
 
-figlet -w 160 -f small "Populate Oracle Locally"
+bash -c 'cat << "EOF" > .script
+#!/usr/bin/env bash
+figlet -w 240 -f small "Process S3 Data into CSV Files For Import"
+../transform_Oracle_ce.ClinicalCondition_to_csv.sh
+../transform_Oracle_ce.DerivedFact_to_csv.sh
+../transform_Oracle_ce.DerivedFactProductUsage_to_csv.sh
+../transform_Oracle_ce.MedicalFinding_to_csv.sh
+../transform_Oracle_ce.MedicalFindingType_to_csv.sh
+../transform_Oracle_ce.OpportunityPointsDiscr_to_csv.sh
+../transform_Oracle_ce.ProductFinding_to_csv.sh
+../transform_Oracle_ce.ProductFindingType_to_csv.sh
+../transform_Oracle_ce.ProductOpportunityPoints_to_csv.sh
+../transform_Oracle_ce.Recommendation_to_csv.sh
+EOF'
+chmod +x .script
+command time -v ./.script 2> .results
+../../getExperimentalResults.sh
+experiment=$(../../getExperimentNumber.sh)
+../../getDataAsCSVline.sh .results ${experiment} "07_Oracle_Local: Process S3 Data into CSV Files For Import" >> Experimental\ Results.csv
+../../putExperimentalResults.sh
+rm .script .results Experimental\ Results.csv
 
-echo "Clinical_Condition"
-# add header
-sed -i '1 i\CLINICAL_CONDITION_COD|CLINICAL_CONDITION_NAM|INSERTED_BY|REC_INSERT_DATE|REC_UPD_DATE|UPDATED_BY|CLINICALCONDITIONCLASSCD|CLINICALCONDITIONTYPECD|CLINICALCONDITIONABBREV' ce.Clinical_Condition.csv
-# convert comas to semi-colons
-sed --in-place --regexp-extended 's/,/;/g' ce.Clinical_Condition.csv
-# convert bars to commas
-sed --in-place 's/|/,/g' ce.Clinical_Condition.csv
-# get rid of timestamps
-sed --in-place --regexp-extended 's/ [0-9]+[0-9]+\:[0-9]+[0-9]+\:[0-9]+//g' ce.Clinical_Condition.csv
-# get rid of ^M (return characters)
-# remove blanks at start of line
-sed --in-place --regexp-extended 's/^ *//g' ce.Clinical_Condition.csv
-# remove blanks before commas
-sed --in-place --regexp-extended 's/[ ]+,/,/g' ce.Clinical_Condition.csv
-# remove blanks after commas
-sed --in-place --regexp-extended 's/,[ ]+/,/g' ce.Clinical_Condition.csv
-# remove blanks at end of line
-sed --in-place --regexp-extended 's/ *$//g' ce.Clinical_Condition.csv
-tr -d $'\r' < ce.Clinical_Condition.csv > ce.Clinical_Condition.csv.mod
-docker cp ce.Clinical_Condition.csv.mod oracle_container:/ORCL/ce.Clinical_Condition.csv
-
-echo 'options  ( skip=1 )' > .control.ctl
-echo 'load data' >> .control.ctl
-echo '  infile "/ORCL/ce.Clinical_Condition.csv"' >> .control.ctl
-echo '  truncate into table "CE.CLINICAL_CONDITION"' >> .control.ctl
-echo 'fields terminated by ","' >> .control.ctl
-echo '( CLINICAL_CONDITION_COD,' >> .control.ctl
-echo '  CLINICAL_CONDITION_NAM,' >> .control.ctl
-echo '  INSERTED_BY,' >> .control.ctl
-echo '  REC_INSERT_DATE DATE "YYYY-MM-DD",' >> .control.ctl
-echo '  REC_UPD_DATE DATE "YYYY-MM-DD",' >> .control.ctl
-echo '  UPDATED_BY,' >> .control.ctl
-echo '  CLINICALCONDITIONCLASSCD,' >> .control.ctl
-echo '  CLINICALCONDITIONTYPECD,' >> .control.ctl
-echo '  CLINICALCONDITIONABBREV) ' >> .control.ctl
+bash -c 'cat << "EOF" > .script
+#!/usr/bin/env bash
+figlet -w 240 -f small "Populate Oracle Data"
+echo "ClinicalCondition"
+echo '"'"'options  ( skip=1 ) '"'"' > .control.ctl
+echo '"'"'load data'"'"' >> .control.ctl
+echo '"'"'  infile "/ORCL/ce.ClinicalCondition.csv"'"'"' >> .control.ctl
+echo '"'"'  truncate into table "CE.CLINICAL_CONDITION"'"'"' >> .control.ctl
+echo '"'"'fields terminated by ","'"'"' >> .control.ctl
+echo '"'"'( CLINICAL_CONDITION_COD,'"'"' >> .control.ctl
+echo '"'"'  CLINICAL_CONDITION_NAM,'"'"' >> .control.ctl
+echo '"'"'  INSERTED_BY,'"'"' >> .control.ctl
+echo '"'"'  REC_INSERT_DATE DATE "YYYY-MM-DD",'"'"' >> .control.ctl
+echo '"'"'  REC_UPD_DATE DATE "YYYY-MM-DD",'"'"' >> .control.ctl
+echo '"'"'  UPDATED_BY,'"'"' >> .control.ctl
+echo '"'"'  CLINICALCONDITIONCLASSCD,'"'"' >> .control.ctl
+echo '"'"'  CLINICALCONDITIONTYPECD,'"'"' >> .control.ctl
+echo '"'"'  CLINICALCONDITIONABBREV) '"'"' >> .control.ctl
 docker cp .control.ctl oracle_container:/ORCL/control.ctl
-docker cp ce.Clinical_Condition.csv.mod oracle_container:/ORCL/ce.Clinical_Condition.csv
-docker exec oracle_container /u01/app/oracle/product/12.2.0/dbhome_1/bin/sqlldr system/Oradoc_db1@localhost:1521/ORCLCDB.localdomain control=/ORCL/control.ctl log=/ORCL/control.log
-
-
+docker cp ce.ClinicalCondition.csv oracle_container:/ORCL/ce.ClinicalCondition.csv
+docker exec oracle_container /u01/app/oracle/product/12.2.0/dbhome_1/bin/sqlldr system/Oradoc_db1@localhost:1521/ORCLCDB.localdomain control=/ORCL/control.ctl log=/ORCL/control.log | sed -E '"'"'/Loader:|Commit point reached|Copyright|Path used:|Loader:|Commit point reached|Copyright|Path used:|Check the log file:|control.log|for more information about the load|^$/d'"'"'
 echo "DerivedFact"
-# add header
-sed -i '1 i\DERIVEDFACTID|DERIVEDFACTTRACKINGID|DERIVEDFACTTYPEID|INSERTEDBY|RECORDINSERTDT|RECORDUPDTDT|UPDTDBY' ce.DerivedFact.csv
-# convert comas to semi-colons
-sed --in-place --regexp-extended 's/,/;/g' ce.DerivedFact.csv
-# convert bars to commas
-sed --in-place 's/|/,/g' ce.DerivedFact.csv
-# get rid of timestamps and decimals after timestamp
-sed --in-place --regexp-extended 's/ [0-9]+[0-9]+\:[0-9]+[0-9]+\:[0-9]+\.[0-9]+//g' ce.DerivedFact.csv
-# remove blanks at start of line
-sed --in-place --regexp-extended 's/^ *//g' ce.DerivedFact.csv
-# remove blanks before commas
-sed --in-place --regexp-extended 's/[ ]+,/,/g' ce.DerivedFact.csv
-# remove blanks after commas
-sed --in-place --regexp-extended 's/,[ ]+/,/g' ce.DerivedFact.csv
-# remove blanks at end of line
-sed --in-place --regexp-extended 's/ *$//g' ce.DerivedFact.csv
-# get rid of ^M (return characters)
-tr -d $'\r' < ce.DerivedFact.csv > ce.DerivedFact.csv.mod
-
-echo 'options  ( skip=1 )' > .control.ctl
-echo 'load data' >> .control.ctl
-echo '  infile "/ORCL/ce.DerivedFact.csv"' >> .control.ctl
-echo '  truncate into table "CE.DERIVEDFACT"' >> .control.ctl
-echo 'fields terminated by ","' >> .control.ctl
-echo '( DERIVEDFACTID,' >> .control.ctl
-echo '  DERIVEDFACTTRACKINGID,' >> .control.ctl
-echo '  DERIVEDFACTTYPEID,' >> .control.ctl
-echo '  INSERTEDBY,' >> .control.ctl
-echo '  RECORDINSERTDT DATE "YYYY-MM-DD",' >> .control.ctl
-echo '  RECORDUPDTDT DATE "YYYY-MM-DD",' >> .control.ctl
-echo '  UPDTDBY) ' >> .control.ctl
+echo '"'"'options  ( skip=1 )'"'"' > .control.ctl
+echo '"'"'load data'"'"' >> .control.ctl
+echo '"'"'  infile "/ORCL/ce.DerivedFact.csv"'"'"' >> .control.ctl
+echo '"'"'  truncate into table "CE.DERIVEDFACT"'"'"' >> .control.ctl
+echo '"'"'fields terminated by ","'"'"' >> .control.ctl
+echo '"'"'( DERIVEDFACTID,'"'"' >> .control.ctl
+echo '"'"'  DERIVEDFACTTRACKINGID,'"'"' >> .control.ctl
+echo '"'"'  DERIVEDFACTTYPEID,'"'"' >> .control.ctl
+echo '"'"'  INSERTEDBY,'"'"' >> .control.ctl
+echo '"'"'  RECORDINSERTDT DATE "YYYY-MM-DD",'"'"' >> .control.ctl
+echo '"'"'  RECORDUPDTDT DATE "YYYY-MM-DD",'"'"' >> .control.ctl
+echo '"'"'  UPDTDBY) '"'"' >> .control.ctl
 docker cp .control.ctl oracle_container:/ORCL/control.ctl
-docker cp ce.DerivedFact.csv.mod oracle_container:/ORCL/ce.DerivedFact.csv
-docker exec oracle_container /u01/app/oracle/product/12.2.0/dbhome_1/bin/sqlldr system/Oradoc_db1@localhost:1521/ORCLCDB.localdomain control=/ORCL/control.ctl log=/ORCL/control.log
-
+docker cp ce.DerivedFact.csv oracle_container:/ORCL/ce.DerivedFact.csv
+docker exec oracle_container /u01/app/oracle/product/12.2.0/dbhome_1/bin/sqlldr system/Oradoc_db1@localhost:1521/ORCLCDB.localdomain control=/ORCL/control.ctl log=/ORCL/control.log | sed -E '"'"'/Loader:|Commit point reached|Copyright|Path used:|Loader:|Commit point reached|Copyright|Path used:|Check the log file:|control.log|for more information about the load|^$/d'"'"'
 echo "DerivedFactProductUsage"
-# add header
-sed -i '1 i\DERIVEDFACTPRODUCTUSAGEID|DERIVEDFACTID|PRODUCTMNEMONICCD|INSERTEDBY|RECORDINSERTDT|RECORDUPDTDT|UPDTDBY' ce.DerivedFactProductUsage.csv
-# convert comas to semi-colons
-sed --in-place --regexp-extended 's/,/;/g' ce.DerivedFactProductUsage.csv
-# convert bars to commas
-sed --in-place 's/|/,/g' ce.DerivedFactProductUsage.csv
-# get rid of timestamps and decimals after timestamp
-sed --in-place --regexp-extended 's/ [0-9]+[0-9]+\:[0-9]+[0-9]+\:[0-9]+\.[0-9]+//g' ce.DerivedFactProductUsage.csv
-# remove blanks at start of line
-sed --in-place --regexp-extended 's/^ *//g' ce.DerivedFactProductUsage.csv
-# remove blanks before commas
-sed --in-place --regexp-extended 's/[ ]+,/,/g' ce.DerivedFactProductUsage.csv
-# remove blanks after commas
-sed --in-place --regexp-extended 's/,[ ]+/,/g' ce.DerivedFactProductUsage.csv
-# remove blanks at end of line
-sed --in-place --regexp-extended 's/ *$//g' ce.DerivedFactProductUsage.csv
-# get rid of ^M (return characters)
-tr -d $'\r' < ce.DerivedFactProductUsage.csv > ce.DerivedFactProductUsage.csv.mod
-
-echo 'options  ( skip=1 )' > .control.ctl
-echo 'load data' >> .control.ctl
-echo '  infile "/ORCL/ce.DerivedFactProductUsage.csv"' >> .control.ctl
-echo '  truncate into table "CE.DERIVEDFACTPRODUCTUSAGE"' >> .control.ctl
-echo 'fields terminated by ","' >> .control.ctl
-echo '( DERIVEDFACTPRODUCTUSAGEID,' >> .control.ctl
-echo '  DERIVEDFACTID,' >> .control.ctl
-echo '  PRODUCTMNEMONICCD,' >> .control.ctl
-echo '  INSERTEDBY,' >> .control.ctl
-echo '  RECORDINSERTDT DATE "YYYY-MM-DD",' >> .control.ctl
-echo '  RECORDUPDTDT DATE "YYYY-MM-DD",' >> .control.ctl
-echo '  UPDTDBY) ' >> .control.ctl
+echo '"'"'options  ( skip=1 )'"'"' > .control.ctl
+echo '"'"'load data'"'"' >> .control.ctl
+echo '"'"'  infile "/ORCL/ce.DerivedFactProductUsage.csv"'"'"' >> .control.ctl
+echo '"'"'  truncate into table "CE.DERIVEDFACTPRODUCTUSAGE"'"'"' >> .control.ctl
+echo '"'"'fields terminated by ","'"'"' >> .control.ctl
+echo '"'"'( DERIVEDFACTPRODUCTUSAGEID,'"'"' >> .control.ctl
+echo '"'"'  DERIVEDFACTID,'"'"' >> .control.ctl
+echo '"'"'  PRODUCTMNEMONICCD,'"'"' >> .control.ctl
+echo '"'"'  INSERTEDBY,'"'"' >> .control.ctl
+echo '"'"'  RECORDINSERTDT DATE "YYYY-MM-DD",'"'"' >> .control.ctl
+echo '"'"'  RECORDUPDTDT DATE "YYYY-MM-DD",'"'"' >> .control.ctl
+echo '"'"'  UPDTDBY) '"'"' >> .control.ctl
 docker cp .control.ctl oracle_container:/ORCL/control.ctl
-docker cp ce.DerivedFactProductUsage.csv.mod oracle_container:/ORCL/ce.DerivedFactProductUsage.csv
-docker exec oracle_container /u01/app/oracle/product/12.2.0/dbhome_1/bin/sqlldr system/Oradoc_db1@localhost:1521/ORCLCDB.localdomain control=/ORCL/control.ctl log=/ORCL/control.log
-
+docker cp ce.DerivedFactProductUsage.csv oracle_container:/ORCL/ce.DerivedFactProductUsage.csv
+docker exec oracle_container /u01/app/oracle/product/12.2.0/dbhome_1/bin/sqlldr system/Oradoc_db1@localhost:1521/ORCLCDB.localdomain control=/ORCL/control.ctl log=/ORCL/control.log | sed -E '"'"'/Loader:|Commit point reached|Copyright|Path used:|Loader:|Commit point reached|Copyright|Path used:|Check the log file:|control.log|for more information about the load|^$/d'"'"'
 echo "MedicalFinding"
-# add header
-sed -i '1 i\MEDICALFINDINGID|MEDICALFINDINGTYPECD|MEDICALFINDINGNM|SEVERITYLEVELCD|IMPACTABLEFLG|CLINICAL_CONDITION_COD|INSERTEDBY|RECORDINSERTDT|RECORDUPDTDT|UPDTDBY|ACTIVEFLG|OPPORTUNITYPOINTSDISCRCD' ce.MedicalFinding.csv
-# convert comas to semi-colons
-sed --in-place --regexp-extended 's/,/;/g' ce.MedicalFinding.csv
-# convert bars to commas
-sed --in-place 's/|/,/g' ce.MedicalFinding.csv
-# get rid of timestamps and decimals after timestamp
-sed --in-place --regexp-extended 's/ [0-9]+[0-9]+\:[0-9]+[0-9]+\:[0-9]+\.[0-9]+//g' ce.MedicalFinding.csv
-# remove blanks at start of line
-sed --in-place --regexp-extended 's/^ *//g' ce.MedicalFinding.csv
-# remove blanks before commas
-sed --in-place --regexp-extended 's/[ ]+,/,/g' ce.MedicalFinding.csv
-# remove blanks after commas
-sed --in-place --regexp-extended 's/,[ ]+/,/g' ce.MedicalFinding.csv
-# remove blanks at end of line
-sed --in-place --regexp-extended 's/ *$//g' ce.MedicalFinding.csv
-# get rid of ^M (return characters)
-tr -d $'\r' < ce.MedicalFinding.csv > ce.MedicalFinding.csv.mod
-
-echo 'options  ( skip=1 )' > .control.ctl
-echo 'load data' >> .control.ctl
-echo '  infile "/ORCL/ce.MedicalFinding.csv"' >> .control.ctl
-echo '  truncate into table "CE.MEDICALFINDING"' >> .control.ctl
-echo 'fields terminated by ","' >> .control.ctl
-echo '( MEDICALFINDINGID,' >> .control.ctl
-echo '  MEDICALFINDINGTYPECD,' >> .control.ctl
-echo '  MEDICALFINDINGNM,' >> .control.ctl
-echo '  SEVERITYLEVELCD,' >> .control.ctl
-echo '  IMPACTABLEFLG,' >> .control.ctl
-echo '  CLINICAL_CONDITION_COD,' >> .control.ctl
-echo '  INSERTEDBY,' >> .control.ctl
-echo '  RECORDINSERTDT DATE "YYYY-MM-DD",' >> .control.ctl
-echo '  RECORDUPDTDT DATE "YYYY-MM-DD",' >> .control.ctl
-echo '  UPDTDBY,' >> .control.ctl
-echo '  ACTIVEFLG,' >> .control.ctl
-echo '  OPPORTUNITYPOINTSDISCRCD) ' >> .control.ctl
+echo '"'"'options  ( skip=1 )'"'"' > .control.ctl
+echo '"'"'load data'"'"' >> .control.ctl
+echo '"'"'  infile "/ORCL/ce.MedicalFinding.csv"'"'"' >> .control.ctl
+echo '"'"'  truncate into table "CE.MEDICALFINDING"'"'"' >> .control.ctl
+echo '"'"'fields terminated by ","'"'"' >> .control.ctl
+echo '"'"'( MEDICALFINDINGID,'"'"' >> .control.ctl
+echo '"'"'  MEDICALFINDINGTYPECD,'"'"' >> .control.ctl
+echo '"'"'  MEDICALFINDINGNM,'"'"' >> .control.ctl
+echo '"'"'  SEVERITYLEVELCD,'"'"' >> .control.ctl
+echo '"'"'  IMPACTABLEFLG,'"'"' >> .control.ctl
+echo '"'"'  CLINICAL_CONDITION_COD,'"'"' >> .control.ctl
+echo '"'"'  INSERTEDBY,'"'"' >> .control.ctl
+echo '"'"'  RECORDINSERTDT DATE "YYYY-MM-DD",'"'"' >> .control.ctl
+echo '"'"'  RECORDUPDTDT DATE "YYYY-MM-DD",'"'"' >> .control.ctl
+echo '"'"'  UPDTDBY,'"'"' >> .control.ctl
+echo '"'"'  ACTIVEFLG,'"'"' >> .control.ctl
+echo '"'"'  OPPORTUNITYPOINTSDISCRCD) '"'"' >> .control.ctl
 docker cp .control.ctl oracle_container:/ORCL/control.ctl
-docker cp ce.MedicalFinding.csv.mod oracle_container:/ORCL/ce.MedicalFinding.csv
-docker exec oracle_container /u01/app/oracle/product/12.2.0/dbhome_1/bin/sqlldr system/Oradoc_db1@localhost:1521/ORCLCDB.localdomain control=/ORCL/control.ctl log=/ORCL/control.log
-
+docker cp ce.MedicalFinding.csv oracle_container:/ORCL/ce.MedicalFinding.csv
+docker exec oracle_container /u01/app/oracle/product/12.2.0/dbhome_1/bin/sqlldr system/Oradoc_db1@localhost:1521/ORCLCDB.localdomain control=/ORCL/control.ctl log=/ORCL/control.log | sed -E '"'"'/Loader:|Commit point reached|Copyright|Path used:|Loader:|Commit point reached|Copyright|Path used:|Check the log file:|control.log|for more information about the load|^$/d'"'"'
 echo "MedicalFindingType"
-# add header
-sed -i '1 i\MEDICALFINDINGTYPECD|MEDICALFINDINGTYPEDESC|INSERTEDBY|RECORDINSERTDT|RECORDUPDTDT|UPDTDBY|HEALTHSTATEAPPLICABLEFLAG' ce.MedicalFindingType.csv
-# convert comas to semi-colons
-sed --in-place --regexp-extended 's/,/;/g' ce.MedicalFindingType.csv
-# convert bars to commas
-sed --in-place 's/|/,/g' ce.MedicalFindingType.csv
-# get rid of timestamps and decimals after timestamp
-sed --in-place --regexp-extended 's/ [0-9]+[0-9]+\:[0-9]+[0-9]+\:[0-9]+\.[0-9]+//g' ce.MedicalFindingType.csv
-# remove blanks at start of line
-sed --in-place --regexp-extended 's/^ *//g' ce.MedicalFindingType.csv
-# remove blanks before commas
-sed --in-place --regexp-extended 's/[ ]+,/,/g' ce.MedicalFindingType.csv
-# remove blanks after commas
-sed --in-place --regexp-extended 's/,[ ]+/,/g' ce.MedicalFindingType.csv
-# remove blanks at end of line
-sed --in-place --regexp-extended 's/ *$//g' ce.MedicalFindingType.csv
-# get rid of ^M (return characters)
-tr -d $'\r' < ce.MedicalFindingType.csv > ce.MedicalFindingType.csv.mod
-
-echo 'options  ( skip=1 )' > .control.ctl
-echo 'load data' >> .control.ctl
-echo '  infile "/ORCL/ce.MedicalFindingType.csv"' >> .control.ctl
-echo '  truncate into table "CE.MEDICALFINDINGTYPE"' >> .control.ctl
-echo 'fields terminated by ","' >> .control.ctl
-echo '( MEDICALFINDINGTYPECD,' >> .control.ctl
-echo '  MEDICALFINDINGTYPEDESC,' >> .control.ctl
-echo '  INSERTEDBY,' >> .control.ctl
-echo '  RECORDINSERTDT DATE "YYYY-MM-DD",' >> .control.ctl
-echo '  RECORDUPDTDT DATE "YYYY-MM-DD",' >> .control.ctl
-echo '  UPDTDBY,' >> .control.ctl
-echo '  HEALTHSTATEAPPLICABLEFLAG) ' >> .control.ctl
+echo '"'"'options  ( skip=1 )'"'"' > .control.ctl
+echo '"'"'load data'"'"' >> .control.ctl
+echo '"'"'  infile "/ORCL/ce.MedicalFindingType.csv"'"'"' >> .control.ctl
+echo '"'"'  truncate into table "CE.MEDICALFINDINGTYPE"'"'"' >> .control.ctl
+echo '"'"'fields terminated by ","'"'"' >> .control.ctl
+echo '"'"'( MEDICALFINDINGTYPECD,'"'"' >> .control.ctl
+echo '"'"'  MEDICALFINDINGTYPEDESC,'"'"' >> .control.ctl
+echo '"'"'  INSERTEDBY,'"'"' >> .control.ctl
+echo '"'"'  RECORDINSERTDT DATE "YYYY-MM-DD",'"'"' >> .control.ctl
+echo '"'"'  RECORDUPDTDT DATE "YYYY-MM-DD",'"'"' >> .control.ctl
+echo '"'"'  UPDTDBY,'"'"' >> .control.ctl
+echo '"'"'  HEALTHSTATEAPPLICABLEFLAG) '"'"' >> .control.ctl
 docker cp .control.ctl oracle_container:/ORCL/control.ctl
-docker cp ce.MedicalFindingType.csv.mod oracle_container:/ORCL/ce.MedicalFindingType.csv
-docker exec oracle_container /u01/app/oracle/product/12.2.0/dbhome_1/bin/sqlldr system/Oradoc_db1@localhost:1521/ORCLCDB.localdomain control=/ORCL/control.ctl log=/ORCL/control.log
-
+docker cp ce.MedicalFindingType.csv oracle_container:/ORCL/ce.MedicalFindingType.csv
+docker exec oracle_container /u01/app/oracle/product/12.2.0/dbhome_1/bin/sqlldr system/Oradoc_db1@localhost:1521/ORCLCDB.localdomain control=/ORCL/control.ctl log=/ORCL/control.log | sed -E '"'"'/Loader:|Commit point reached|Copyright|Path used:|Loader:|Commit point reached|Copyright|Path used:|Check the log file:|control.log|for more information about the load|^$/d'"'"'
 echo "OpportunityPointsDiscr"
-# add header
-sed -i '1 i\OPPORTUNITYPOINTSDISCRCD|OPPORTUNITYPOINTSDISCNM|INSERTEDBY|RECORDINSERTDT|RECORDUPDTDT|UPDTDBY' ce.OpportunityPointsDiscr.csv
-# convert comas to semi-colons
-sed --in-place --regexp-extended 's/,/;/g' ce.OpportunityPointsDiscr.csv
-# convert bars to commas
-sed --in-place 's/|/,/g' ce.OpportunityPointsDiscr.csv
-# get rid of timestamps and decimals after timestamp
-sed --in-place --regexp-extended 's/ [0-9]+[0-9]+\:[0-9]+[0-9]+\:[0-9]+\.[0-9]+//g' ce.OpportunityPointsDiscr.csv
-# remove blanks at start of line
-sed --in-place --regexp-extended 's/^ *//g' ce.OpportunityPointsDiscr.csv
-# remove blanks before commas
-sed --in-place --regexp-extended 's/[ ]+,/,/g' ce.OpportunityPointsDiscr.csv
-# remove blanks after commas
-sed --in-place --regexp-extended 's/,[ ]+/,/g' ce.OpportunityPointsDiscr.csv
-# remove blanks at end of line
-sed --in-place --regexp-extended 's/ *$//g' ce.OpportunityPointsDiscr.csv
-# get rid of ^M (return characters)
-tr -d $'\r' < ce.OpportunityPointsDiscr.csv > ce.OpportunityPointsDiscr.csv.mod
-
-echo 'options  ( skip=1 )' > .control.ctl
-echo 'load data' >> .control.ctl
-echo '  infile "/ORCL/ce.OpportunityPointsDiscr.csv"' >> .control.ctl
-echo '  truncate into table "CE.OPPORTUNITYPOINTSDISCR"' >> .control.ctl
-echo 'fields terminated by ","' >> .control.ctl
-echo '( OPPORTUNITYPOINTSDISCRCD,' >> .control.ctl
-echo '  OPPORTUNITYPOINTSDISCNM,' >> .control.ctl
-echo '  INSERTEDBY,' >> .control.ctl
-echo '  RECORDINSERTDT DATE "YYYY-MM-DD",' >> .control.ctl
-echo '  RECORDUPDTDT DATE "YYYY-MM-DD",' >> .control.ctl
-echo '  UPDTDBY) ' >> .control.ctl
+echo '"'"'options  ( skip=1 )'"'"' > .control.ctl
+echo '"'"'load data'"'"' >> .control.ctl
+echo '"'"'  infile "/ORCL/ce.OpportunityPointsDiscr.csv"'"'"' >> .control.ctl
+echo '"'"'  truncate into table "CE.OPPORTUNITYPOINTSDISCR"'"'"' >> .control.ctl
+echo '"'"'fields terminated by ","'"'"' >> .control.ctl
+echo '"'"'( OPPORTUNITYPOINTSDISCRCD,'"'"' >> .control.ctl
+echo '"'"'  OPPORTUNITYPOINTSDISCNM,'"'"' >> .control.ctl
+echo '"'"'  INSERTEDBY,'"'"' >> .control.ctl
+echo '"'"'  RECORDINSERTDT DATE "YYYY-MM-DD",'"'"' >> .control.ctl
+echo '"'"'  RECORDUPDTDT DATE "YYYY-MM-DD",'"'"' >> .control.ctl
+echo '"'"'  UPDTDBY) '"'"' >> .control.ctl
 docker cp .control.ctl oracle_container:/ORCL/control.ctl
-docker cp ce.OpportunityPointsDiscr.csv.mod oracle_container:/ORCL/ce.OpportunityPointsDiscr.csv
-docker exec oracle_container /u01/app/oracle/product/12.2.0/dbhome_1/bin/sqlldr system/Oradoc_db1@localhost:1521/ORCLCDB.localdomain control=/ORCL/control.ctl log=/ORCL/control.log
-
+docker cp ce.OpportunityPointsDiscr.csv oracle_container:/ORCL/ce.OpportunityPointsDiscr.csv
+docker exec oracle_container /u01/app/oracle/product/12.2.0/dbhome_1/bin/sqlldr system/Oradoc_db1@localhost:1521/ORCLCDB.localdomain control=/ORCL/control.ctl log=/ORCL/control.log | sed -E '"'"'/Loader:|Commit point reached|Copyright|Path used:|Loader:|Commit point reached|Copyright|Path used:|Check the log file:|control.log|for more information about the load|^$/d'"'"'
 echo "ProductFinding"
-# add header
-sed -i '1 i\PRODUCTFINDINGID|PRODUCTFINDINGNM|SEVERITYLEVELCD|PRODUCTFINDINGTYPECD|PRODUCTMNEMONICCD|SUBPRODUCTMNEMONICCD|INSERTEDBY|RECORDINSERTDT|RECORDUPDTDT|UPDTDBY|ACTIVEFLG|OPPORTUNITYPOINTSDISCRCD' ce.ProductFinding.csv
-# convert comas to semi-colons
-sed --in-place --regexp-extended 's/,/;/g' ce.ProductFinding.csv
-# convert bars to commas
-sed --in-place 's/|/,/g' ce.ProductFinding.csv
-# get rid of timestamps and decimals after timestamp
-sed --in-place --regexp-extended 's/ [0-9]+[0-9]+\:[0-9]+[0-9]+\:[0-9]+\.[0-9]+//g' ce.ProductFinding.csv
-# remove blanks at start of line
-sed --in-place --regexp-extended 's/^ *//g' ce.ProductFinding.csv
-# remove blanks before commas
-sed --in-place --regexp-extended 's/[ ]+,/,/g' ce.ProductFinding.csv
-# remove blanks after commas
-sed --in-place --regexp-extended 's/,[ ]+/,/g' ce.ProductFinding.csv
-# remove blanks at end of line
-sed --in-place --regexp-extended 's/ *$//g' ce.ProductFinding.csv
-# get rid of ^M (return characters)
-tr -d $'\r' < ce.ProductFinding.csv > ce.ProductFinding.csv.mod
-
-echo 'options  ( skip=1 )' > .control.ctl
-echo 'load data' >> .control.ctl
-echo '  infile "/ORCL/ce.ProductFinding.csv"' >> .control.ctl
-echo '  truncate into table "CE.PRODUCTFINDING"' >> .control.ctl
-echo 'fields terminated by ","' >> .control.ctl
-echo '( PRODUCTFINDINGID,' >> .control.ctl
-echo '  PRODUCTFINDINGNM,' >> .control.ctl
-echo '  SEVERITYLEVELCD,' >> .control.ctl
-echo '  PRODUCTFINDINGTYPECD,' >> .control.ctl
-echo '  PRODUCTMNEMONICCD,' >> .control.ctl
-echo '  SUBPRODUCTMNEMONICCD,' >> .control.ctl
-echo '  INSERTEDBY,' >> .control.ctl
-echo '  RECORDINSERTDT DATE "YYYY-MM-DD",' >> .control.ctl
-echo '  RECORDUPDTDT DATE "YYYY-MM-DD",' >> .control.ctl
-echo '  UPDTDBY) ' >> .control.ctl
+echo '"'"'options  ( skip=1 )'"'"' > .control.ctl
+echo '"'"'load data'"'"' >> .control.ctl
+echo '"'"'  infile "/ORCL/ce.ProductFinding.csv"'"'"' >> .control.ctl
+echo '"'"'  truncate into table "CE.PRODUCTFINDING"'"'"' >> .control.ctl
+echo '"'"'fields terminated by ","'"'"' >> .control.ctl
+echo '"'"'( PRODUCTFINDINGID,'"'"' >> .control.ctl
+echo '"'"'  PRODUCTFINDINGNM,'"'"' >> .control.ctl
+echo '"'"'  SEVERITYLEVELCD,'"'"' >> .control.ctl
+echo '"'"'  PRODUCTFINDINGTYPECD,'"'"' >> .control.ctl
+echo '"'"'  PRODUCTMNEMONICCD,'"'"' >> .control.ctl
+echo '"'"'  SUBPRODUCTMNEMONICCD,'"'"' >> .control.ctl
+echo '"'"'  INSERTEDBY,'"'"' >> .control.ctl
+echo '"'"'  RECORDINSERTDT DATE "YYYY-MM-DD",'"'"' >> .control.ctl
+echo '"'"'  RECORDUPDTDT DATE "YYYY-MM-DD",'"'"' >> .control.ctl
+echo '"'"'  UPDTDBY) '"'"' >> .control.ctl
 docker cp .control.ctl oracle_container:/ORCL/control.ctl
-docker cp ce.ProductFinding.csv.mod oracle_container:/ORCL/ce.ProductFinding.csv
-docker exec oracle_container /u01/app/oracle/product/12.2.0/dbhome_1/bin/sqlldr system/Oradoc_db1@localhost:1521/ORCLCDB.localdomain control=/ORCL/control.ctl log=/ORCL/control.log
-
+docker cp ce.ProductFinding.csv oracle_container:/ORCL/ce.ProductFinding.csv
+docker exec oracle_container /u01/app/oracle/product/12.2.0/dbhome_1/bin/sqlldr system/Oradoc_db1@localhost:1521/ORCLCDB.localdomain control=/ORCL/control.ctl log=/ORCL/control.log | sed -E '"'"'/Loader:|Commit point reached|Copyright|Path used:|Loader:|Commit point reached|Copyright|Path used:|Check the log file:|control.log|for more information about the load|^$/d'"'"'
 echo "ProductFindingType"
-# add header
-sed -i '1 i\PRODUCTFINDINGTYPECD|PRODUCTFINDINGTYPEDESC|INSERTEDBY|RECORDINSERTDT|RECORDUPDTDT|UPDTDBY' ce.ProductFindingType.csv
-# convert comas to semi-colons
-sed --in-place --regexp-extended 's/,/;/g' ce.ProductFindingType.csv
-# convert bars to commas
-sed --in-place 's/|/,/g' ce.ProductFindingType.csv
-# get rid of timestamps and decimals after timestamp
-sed --in-place --regexp-extended 's/ [0-9]+[0-9]+\:[0-9]+[0-9]+\:[0-9]+\.[0-9]+//g' ce.ProductFindingType.csv
-# remove blanks at start of line
-sed --in-place --regexp-extended 's/^ *//g' ce.ProductFindingType.csv
-# remove blanks before commas
-sed --in-place --regexp-extended 's/[ ]+,/,/g' ce.ProductFindingType.csv
-# remove blanks after commas
-sed --in-place --regexp-extended 's/,[ ]+/,/g' ce.ProductFindingType.csv
-# remove blanks at end of line
-sed --in-place --regexp-extended 's/ *$//g' ce.ProductFindingType.csv
-# get rid of ^M (return characters)
-tr -d $'\r' < ce.ProductFindingType.csv > ce.ProductFindingType.csv.mod
-
-echo 'options  ( skip=1 )' > .control.ctl
-echo 'load data' >> .control.ctl
-echo '  infile "/ORCL/ce.ProductFindingType.csv"' >> .control.ctl
-echo '  truncate into table "CE.PRODUCTFINDINGTYPE"' >> .control.ctl
-echo 'fields terminated by ","' >> .control.ctl
-echo '( PRODUCTFINDINGTYPECD,' >> .control.ctl
-echo '  PRODUCTFINDINGTYPEDESC,' >> .control.ctl
-echo '  INSERTEDBY,' >> .control.ctl
-echo '  RECORDINSERTDT DATE "YYYY-MM-DD",' >> .control.ctl
-echo '  RECORDUPDTDT DATE "YYYY-MM-DD",' >> .control.ctl
-echo '  UPDTDBY) ' >> .control.ctl
+echo '"'"'options  ( skip=1 )'"'"' > .control.ctl
+echo '"'"'load data'"'"' >> .control.ctl
+echo '"'"'  infile "/ORCL/ce.ProductFindingType.csv"'"'"' >> .control.ctl
+echo '"'"'  truncate into table "CE.PRODUCTFINDINGTYPE"'"'"' >> .control.ctl
+echo '"'"'fields terminated by ","'"'"' >> .control.ctl
+echo '"'"'( PRODUCTFINDINGTYPECD,'"'"' >> .control.ctl
+echo '"'"'  PRODUCTFINDINGTYPEDESC,'"'"' >> .control.ctl
+echo '"'"'  INSERTEDBY,'"'"' >> .control.ctl
+echo '"'"'  RECORDINSERTDT DATE "YYYY-MM-DD",'"'"' >> .control.ctl
+echo '"'"'  RECORDUPDTDT DATE "YYYY-MM-DD",'"'"' >> .control.ctl
+echo '"'"'  UPDTDBY) '"'"' >> .control.ctl
 docker cp .control.ctl oracle_container:/ORCL/control.ctl
-docker cp ce.ProductFindingType.csv.mod oracle_container:/ORCL/ce.ProductFindingType.csv
-docker exec oracle_container /u01/app/oracle/product/12.2.0/dbhome_1/bin/sqlldr system/Oradoc_db1@localhost:1521/ORCLCDB.localdomain control=/ORCL/control.ctl log=/ORCL/control.log
-
+docker cp ce.ProductFindingType.csv oracle_container:/ORCL/ce.ProductFindingType.csv
+docker exec oracle_container /u01/app/oracle/product/12.2.0/dbhome_1/bin/sqlldr system/Oradoc_db1@localhost:1521/ORCLCDB.localdomain control=/ORCL/control.ctl log=/ORCL/control.log | sed -E '"'"'/Loader:|Commit point reached|Copyright|Path used:|Loader:|Commit point reached|Copyright|Path used:|Check the log file:|control.log|for more information about the load|^$/d'"'"'
 echo "ProductOpportunityPoints"
-# add header
-sed -i '1 i\OPPORTUNITYPOINTSDISCCD|EFFECTIVESTARTDT|OPPORTUNITYPOINTSNBR|EFFECTIVEENDDT|DERIVEDFACTPRODUCTUSAGEID|INSERTEDBY|RECORDINSERTDT|RECORDUPDTDT|UPDTDBY' ce.ProductOpportunityPoints.csv
-# convert comas to semi-colons
-sed --in-place --regexp-extended 's/,/;/g' ce.ProductOpportunityPoints.csv
-# convert bars to commas
-sed --in-place 's/|/,/g' ce.ProductOpportunityPoints.csv
-# get rid of timestamps and decimals after timestamp
-sed --in-place --regexp-extended 's/ [0-9]+[0-9]+\:[0-9]+[0-9]+\:[0-9]+\.[0-9]+//g' ce.ProductOpportunityPoints.csv
-# get rid of timestamps without decimals after timestamp
-sed --in-place --regexp-extended 's/ [0-9]+[0-9]+\:[0-9]+[0-9]+\:[0-9]+[0-9]+//g' ce.ProductOpportunityPoints.csv
-# remove blanks at start of line
-sed --in-place --regexp-extended 's/^ *//g' ce.ProductOpportunityPoints.csv
-# remove blanks before commas
-sed --in-place --regexp-extended 's/[ ]+,/,/g' ce.ProductOpportunityPoints.csv
-# remove blanks after commas
-sed --in-place --regexp-extended 's/,[ ]+/,/g' ce.ProductOpportunityPoints.csv
-# remove blanks at end of line
-sed --in-place --regexp-extended 's/ *$//g' ce.ProductOpportunityPoints.csv
-# get rid of ^M (return characters)
-tr -d $'\r' < ce.ProductOpportunityPoints.csv > ce.ProductOpportunityPoints.csv.mod
-
-echo 'options  ( skip=1 )' > .control.ctl
-echo 'load data' >> .control.ctl
-echo '  infile "/ORCL/ce.ProductOpportunityPoints.csv"' >> .control.ctl
-echo '  truncate into table "CE.PRODUCTOPPORTUNITYPOINTS"' >> .control.ctl
-echo 'fields terminated by ","' >> .control.ctl
-echo '( OPPORTUNITYPOINTSDISCCD,' >> .control.ctl
-echo '  EFFECTIVESTARTDT DATE "YYYY-MM-DD",' >> .control.ctl
-echo '  OPPORTUNITYPOINTSNBR,' >> .control.ctl
-echo '  EFFECTIVEENDDT DATE "YYYY-MM-DD",' >> .control.ctl
-echo '  DERIVEDFACTPRODUCTUSAGEID,' >> .control.ctl
-echo '  INSERTEDBY,' >> .control.ctl
-echo '  RECORDINSERTDT DATE "YYYY-MM-DD",' >> .control.ctl
-echo '  RECORDUPDTDT DATE "YYYY-MM-DD",' >> .control.ctl
-echo '  UPDTDBY) ' >> .control.ctl
+echo '"'"'options  ( skip=1 )'"'"' > .control.ctl
+echo '"'"'load data'"'"' >> .control.ctl
+echo '"'"'  infile "/ORCL/ce.ProductOpportunityPoints.csv"'"'"' >> .control.ctl
+echo '"'"'  truncate into table "CE.PRODUCTOPPORTUNITYPOINTS"'"'"' >> .control.ctl
+echo '"'"'fields terminated by ","'"'"' >> .control.ctl
+echo '"'"'( OPPORTUNITYPOINTSDISCCD,'"'"' >> .control.ctl
+echo '"'"'  EFFECTIVESTARTDT DATE "YYYY-MM-DD",'"'"' >> .control.ctl
+echo '"'"'  OPPORTUNITYPOINTSNBR,'"'"' >> .control.ctl
+echo '"'"'  EFFECTIVEENDDT DATE "YYYY-MM-DD",'"'"' >> .control.ctl
+echo '"'"'  DERIVEDFACTPRODUCTUSAGEID,'"'"' >> .control.ctl
+echo '"'"'  INSERTEDBY,'"'"' >> .control.ctl
+echo '"'"'  RECORDINSERTDT DATE "YYYY-MM-DD",'"'"' >> .control.ctl
+echo '"'"'  RECORDUPDTDT DATE "YYYY-MM-DD",'"'"' >> .control.ctl
+echo '"'"'  UPDTDBY) '"'"' >> .control.ctl
 docker cp .control.ctl oracle_container:/ORCL/control.ctl
-docker cp ce.ProductOpportunityPoints.csv.mod oracle_container:/ORCL/ce.ProductOpportunityPoints.csv
-docker exec oracle_container /u01/app/oracle/product/12.2.0/dbhome_1/bin/sqlldr system/Oradoc_db1@localhost:1521/ORCLCDB.localdomain control=/ORCL/control.ctl log=/ORCL/control.log
-
+docker cp ce.ProductOpportunityPoints.csv oracle_container:/ORCL/ce.ProductOpportunityPoints.csv
+docker exec oracle_container /u01/app/oracle/product/12.2.0/dbhome_1/bin/sqlldr system/Oradoc_db1@localhost:1521/ORCLCDB.localdomain control=/ORCL/control.ctl log=/ORCL/control.log | sed -E '"'"'/Loader:|Commit point reached|Copyright|Path used:|Loader:|Commit point reached|Copyright|Path used:|Check the log file:|control.log|for more information about the load|^$/d'"'"'
 echo "Recommendation"
-# get rid of ^M (return characters)
-tr -d $'\r' < ce.Recommendation.csv > ce.Recommendation.csv.mod
-# Merge every other line in ce.Recommendation together with a comma between them
-paste - - - -d'|' < ce.Recommendation.csv.mod > ce.Recommendation.csv
-# add header
-sed -i '1 i\RECOMMENDATIONSKEY|RECOMMENDATIONID|RECOMMENDATIONCODE|RECOMMENDATIONDESC|RECOMMENDATIONTYPE|CCTYPE|CLINICALREVIEWTYPE|AGERANGEID|ACTIONCODE|THERAPEUTICCLASS|MDCCODE|MCCCODE|PRIVACYCATEGORY|INTERVENTION|RECOMMENDATIONFAMILYID|RECOMMENDPRECEDENCEGROUPID|INBOUNDCOMMUNICATIONROUTE|SEVERITY|PRIMARYDIAGNOSIS|SECONDARYDIAGNOSIS|ADVERSEEVENT|ICMCONDITIONID|WELLNESSFLAG|VBFELIGIBLEFLAG|COMMUNICATIONRANKING|PRECEDENCERANKING|PATIENTDERIVEDFLAG|LABREQUIREDFLAG|UTILIZATIONTEXTAVAILABLEF|SENSITIVEMESSAGEFLAG|HIGHIMPACTFLAG|ICMLETTERFLAG|REQCLINICIANCLOSINGFLAG|OPSIMPELMENTATIONPHASE|SEASONALFLAG|SEASONALSTARTDT|SEASONALENDDT|EFFECTIVESTARTDT|EFFECTIVEENDDT|RECORDINSERTDT|RECORDUPDTDT|INSERTEDBY|UPDTDBY|STANDARDRUNFLAG|INTERVENTIONFEEDBACKFAMILYID|CONDITIONFEEDBACKFAMILYID|ASHWELLNESSELIGIBILITYFLAG|HEALTHADVOCACYELIGIBILITYFLAG' ce.Recommendation.csv
-# convert comas to semi-colons
-sed --in-place --regexp-extended 's/,/;/g' ce.Recommendation.csv
-# convert bars to commas
-sed --in-place 's/|/,/g' ce.Recommendation.csv
-# get rid of timestamps and decimals after timestamp
-sed --in-place --regexp-extended 's/ [0-9]+[0-9]+\:[0-9]+[0-9]+\:[0-9]+\.[0-9]+//g' ce.Recommendation.csv
-# get rid of timestamps without decimals after timestamp
-sed --in-place --regexp-extended 's/ [0-9]+[0-9]+\:[0-9]+[0-9]+\:[0-9]+[0-9]+//g' ce.Recommendation.csv
-# remove blanks at start of line
-sed --in-place --regexp-extended 's/^ *//g' ce.Recommendation.csv
-# remove blanks before commas
-sed --in-place --regexp-extended 's/[ ]+,/,/g' ce.Recommendation.csv
-# remove blanks after commas
-sed --in-place --regexp-extended 's/,[ ]+/,/g' ce.Recommendation.csv
-# remove blanks at end of line
-sed --in-place --regexp-extended 's/ *$//g' ce.Recommendation.csv
-cp ce.Recommendation.csv ce.Recommendation.csv.mod
-
-
-echo 'options  ( skip=1 )' > .control.ctl
-echo 'load data' >> .control.ctl
-echo '  infile "/ORCL/ce.Recommendation.csv"' >> .control.ctl
-echo '  truncate into table "CE.RECOMMENDATION"' >> .control.ctl
-echo 'fields terminated by ","' >> .control.ctl
-echo '( RECOMMENDATIONSKEY,' >> .control.ctl
-echo '  RECOMMENDATIONID,' >> .control.ctl
-echo '  RECOMMENDATIONCODE,' >> .control.ctl
-echo '  RECOMMENDATIONDESC,' >> .control.ctl
-echo '  RECOMMENDATIONTYPE,' >> .control.ctl
-echo '  CCTYPE,' >> .control.ctl
-echo '  CLINICALREVIEWTYPE,' >> .control.ctl
-echo '  AGERANGEID,' >> .control.ctl
-echo '  ACTIONCODE,' >> .control.ctl
-echo '  THERAPEUTICCLASS,' >> .control.ctl
-echo '  MDCCODE,' >> .control.ctl
-echo '  MCCCODE,' >> .control.ctl
-echo '  PRIVACYCATEGORY,' >> .control.ctl
-echo '  INTERVENTION,' >> .control.ctl
-echo '  RECOMMENDATIONFAMILYID,' >> .control.ctl
-echo '  RECOMMENDPRECEDENCEGROUPID,' >> .control.ctl
-echo '  INBOUNDCOMMUNICATIONROUTE,' >> .control.ctl
-echo '  SEVERITY,' >> .control.ctl
-echo '  PRIMARYDIAGNOSIS,' >> .control.ctl
-echo '  SECONDARYDIAGNOSIS,' >> .control.ctl
-echo '  ADVERSEEVENT,' >> .control.ctl
-echo '  ICMCONDITIONID,' >> .control.ctl
-echo '  WELLNESSFLAG,' >> .control.ctl
-echo '  VBFELIGIBLEFLAG,' >> .control.ctl
-echo '  COMMUNICATIONRANKING,' >> .control.ctl
-echo '  PRECEDENCERANKING,' >> .control.ctl
-echo '  PATIENTDERIVEDFLAG,' >> .control.ctl
-echo '  LABREQUIREDFLAG,' >> .control.ctl
-echo '  UTILIZATIONTEXTAVAILABLEF,' >> .control.ctl
-echo '  SENSITIVEMESSAGEFLAG,' >> .control.ctl
-echo '  HIGHIMPACTFLAG,' >> .control.ctl
-echo '  ICMLETTERFLAG,' >> .control.ctl
-echo '  REQCLINICIANCLOSINGFLAG,' >> .control.ctl
-echo '  OPSIMPELMENTATIONPHASE,' >> .control.ctl
-echo '  SEASONALFLAG,' >> .control.ctl
-echo '  SEASONALSTARTDT DATE "YYYY-MM-DD",' >> .control.ctl
-echo '  SEASONALENDDT DATE "YYYY-MM-DD",' >> .control.ctl
-echo '  EFFECTIVESTARTDT DATE "YYYY-MM-DD",' >> .control.ctl
-echo '  EFFECTIVEENDDT DATE "YYYY-MM-DD",' >> .control.ctl
-echo '  RECORDINSERTDT DATE "YYYY-MM-DD",' >> .control.ctl
-echo '  RECORDUPDTDT DATE "YYYY-MM-DD",' >> .control.ctl
-echo '  INSERTEDBY,' >> .control.ctl
-echo '  UPDTDBY,' >> .control.ctl
-echo '  STANDARDRUNFLAG,' >> .control.ctl
-echo '  INTERVENTIONFEEDBACKFAMILYID,' >> .control.ctl
-echo '  CONDITIONFEEDBACKFAMILYID,' >> .control.ctl
-echo '  ASHWELLNESSELIGIBILITYFLAG,' >> .control.ctl
-echo '  HEALTHADVOCACYELIGIBILITYFLAG) ' >> .control.ctl
+echo '"'"'options  ( skip=1 )'"'"' > .control.ctl
+echo '"'"'load data'"'"' >> .control.ctl
+echo '"'"'  infile "/ORCL/ce.Recommendation.csv"'"'"' >> .control.ctl
+echo '"'"'  truncate into table "CE.RECOMMENDATION"'"'"' >> .control.ctl
+echo '"'"'fields terminated by ","'"'"' >> .control.ctl
+echo '"'"'( RECOMMENDATIONSKEY,'"'"' >> .control.ctl
+echo '"'"'  RECOMMENDATIONID,'"'"' >> .control.ctl
+echo '"'"'  RECOMMENDATIONCODE,'"'"' >> .control.ctl
+echo '"'"'  RECOMMENDATIONDESC,'"'"' >> .control.ctl
+echo '"'"'  RECOMMENDATIONTYPE,'"'"' >> .control.ctl
+echo '"'"'  CCTYPE,'"'"' >> .control.ctl
+echo '"'"'  CLINICALREVIEWTYPE,'"'"' >> .control.ctl
+echo '"'"'  AGERANGEID,'"'"' >> .control.ctl
+echo '"'"'  ACTIONCODE,'"'"' >> .control.ctl
+echo '"'"'  THERAPEUTICCLASS,'"'"' >> .control.ctl
+echo '"'"'  MDCCODE,'"'"' >> .control.ctl
+echo '"'"'  MCCCODE,'"'"' >> .control.ctl
+echo '"'"'  PRIVACYCATEGORY,'"'"' >> .control.ctl
+echo '"'"'  INTERVENTION,'"'"' >> .control.ctl
+echo '"'"'  RECOMMENDATIONFAMILYID,'"'"' >> .control.ctl
+echo '"'"'  RECOMMENDPRECEDENCEGROUPID,'"'"' >> .control.ctl
+echo '"'"'  INBOUNDCOMMUNICATIONROUTE,'"'"' >> .control.ctl
+echo '"'"'  SEVERITY,'"'"' >> .control.ctl
+echo '"'"'  PRIMARYDIAGNOSIS,'"'"' >> .control.ctl
+echo '"'"'  SECONDARYDIAGNOSIS,'"'"' >> .control.ctl
+echo '"'"'  ADVERSEEVENT,'"'"' >> .control.ctl
+echo '"'"'  ICMCONDITIONID,'"'"' >> .control.ctl
+echo '"'"'  WELLNESSFLAG,'"'"' >> .control.ctl
+echo '"'"'  VBFELIGIBLEFLAG,'"'"' >> .control.ctl
+echo '"'"'  COMMUNICATIONRANKING,'"'"' >> .control.ctl
+echo '"'"'  PRECEDENCERANKING,'"'"' >> .control.ctl
+echo '"'"'  PATIENTDERIVEDFLAG,'"'"' >> .control.ctl
+echo '"'"'  LABREQUIREDFLAG,'"'"' >> .control.ctl
+echo '"'"'  UTILIZATIONTEXTAVAILABLEF,'"'"' >> .control.ctl
+echo '"'"'  SENSITIVEMESSAGEFLAG,'"'"' >> .control.ctl
+echo '"'"'  HIGHIMPACTFLAG,'"'"' >> .control.ctl
+echo '"'"'  ICMLETTERFLAG,'"'"' >> .control.ctl
+echo '"'"'  REQCLINICIANCLOSINGFLAG,'"'"' >> .control.ctl
+echo '"'"'  OPSIMPELMENTATIONPHASE,'"'"' >> .control.ctl
+echo '"'"'  SEASONALFLAG,'"'"' >> .control.ctl
+echo '"'"'  SEASONALSTARTDT DATE "YYYY-MM-DD",'"'"' >> .control.ctl
+echo '"'"'  SEASONALENDDT DATE "YYYY-MM-DD",'"'"' >> .control.ctl
+echo '"'"'  EFFECTIVESTARTDT DATE "YYYY-MM-DD",'"'"' >> .control.ctl
+echo '"'"'  EFFECTIVEENDDT DATE "YYYY-MM-DD",'"'"' >> .control.ctl
+echo '"'"'  RECORDINSERTDT DATE "YYYY-MM-DD",'"'"' >> .control.ctl
+echo '"'"'  RECORDUPDTDT DATE "YYYY-MM-DD",'"'"' >> .control.ctl
+echo '"'"'  INSERTEDBY,'"'"' >> .control.ctl
+echo '"'"'  UPDTDBY,'"'"' >> .control.ctl
+echo '"'"'  STANDARDRUNFLAG,'"'"' >> .control.ctl
+echo '"'"'  INTERVENTIONFEEDBACKFAMILYID,'"'"' >> .control.ctl
+echo '"'"'  CONDITIONFEEDBACKFAMILYID,'"'"' >> .control.ctl
+echo '"'"'  ASHWELLNESSELIGIBILITYFLAG,'"'"' >> .control.ctl
+echo '"'"'  HEALTHADVOCACYELIGIBILITYFLAG) '"'"' >> .control.ctl
 docker cp .control.ctl oracle_container:/ORCL/control.ctl
-docker cp ce.Recommendation.csv.mod oracle_container:/ORCL/ce.Recommendation.csv
-docker exec oracle_container /u01/app/oracle/product/12.2.0/dbhome_1/bin/sqlldr system/Oradoc_db1@localhost:1521/ORCLCDB.localdomain control=/ORCL/control.ctl log=/ORCL/control.log
+docker cp ce.Recommendation.csv oracle_container:/ORCL/ce.Recommendation.csv
+docker exec oracle_container /u01/app/oracle/product/12.2.0/dbhome_1/bin/sqlldr system/Oradoc_db1@localhost:1521/ORCLCDB.localdomain control=/ORCL/control.ctl log=/ORCL/control.log | sed -E '"'"'/Loader:|Commit point reached|Copyright|Path used:|Loader:|Commit point reached|Copyright|Path used:|Check the log file:|control.log|for more information about the load|^$/d'"'"'
+EOF'
+chmod +x .script
+command time -v ./.script 2> .results
+../../getExperimentalResults.sh
+experiment=$(../../getExperimentNumber.sh)
+../../getDataAsCSVline.sh .results ${experiment} "07_Oracle_Local: Populate Oracle Data" >> Experimental\ Results.csv
+../../putExperimentalResults.sh
+rm .script .results Experimental\ Results.csv
 
-figlet -w 160 -f small "Check Oracle Locally"
-echo 'SET LINESIZE 200;' >> .command.sql``
-echo 'select * from "CE.CLINICAL_CONDITION" FETCH FIRST 2 ROWS ONLY;' >> .command.sql``
-echo 'select count(*) from "CE.CLINICAL_CONDITION";' >> .command.sql``
-echo 'select * from "CE.DERIVEDFACT" FETCH FIRST 2 ROWS ONLY;' >> .command.sql``
-echo 'select count(*) from "CE.DERIVEDFACT";' >> .command.sql``
-echo 'select * from "CE.DERIVEDFACTPRODUCTUSAGE" FETCH FIRST 2 ROWS ONLY;' >> .command.sql``
-echo 'select count(*) from "CE.DERIVEDFACTPRODUCTUSAGE";' >> .command.sql``
-echo 'select * from "CE.MEDICALFINDING" FETCH FIRST 2 ROWS ONLY;' >> .command.sql``
-echo 'select count(*) from "CE.MEDICALFINDING";' >> .command.sql``
-echo 'select * from "CE.MEDICALFINDINGTYPE" FETCH FIRST 2 ROWS ONLY;' >> .command.sql``
-echo 'select count(*) from "CE.MEDICALFINDINGTYPE";' >> .command.sql``
-echo 'select * from "CE.OPPORTUNITYPOINTSDISCR" FETCH FIRST 2 ROWS ONLY;' >> .command.sql``
-echo 'select count(*) from "CE.OPPORTUNITYPOINTSDISCR";' >> .command.sql``
-echo 'select * from "CE.PRODUCTFINDING" FETCH FIRST 2 ROWS ONLY;' >> .command.sql``
-echo 'select count(*) from "CE.PRODUCTFINDING";' >> .command.sql``
-echo 'select * from "CE.PRODUCTFINDINGTYPE" FETCH FIRST 2 ROWS ONLY;' >> .command.sql``
-echo 'select count(*) from "CE.PRODUCTFINDINGTYPE";' >> .command.sql``
-echo 'select * from "CE.PRODUCTOPPORTUNITYPOINTS" FETCH FIRST 2 ROWS ONLY;' >> .command.sql``
-echo 'select count(*) from "CE.PRODUCTOPPORTUNITYPOINTS";' >> .command.sql``
-echo 'select * from "CE.RECOMMENDATION" FETCH FIRST 2 ROWS ONLY;' >> .command.sql``
-echo 'select count(*) from "CE.RECOMMENDATION";' >> .command.sql``
+bash -c 'cat << "EOF" > .script
+#!/usr/bin/env bash
+figlet -w 240 -f small "Check Oracle Data"
+echo ""
+echo "ClinicalCondition"
+echo '"'"'SET LINESIZE 240; '"'"' > .command.sql
+echo '"'"'SET WRAP OFF;'"'"' >> .command.sql
+echo '"'"'SET TRIMSPOOL ON;'"'"' >> .command.sql
+echo '"'"'SET TRIMOUT ON;'"'"' >> .command.sql
+echo '"'"'COLUMN CLINICAL_CONDITION_NAM FORMAT A22;'"'"' >> .command.sql
+echo '"'"'COLUMN INSERTED_BY FORMAT A12;'"'"' >> .command.sql
+echo '"'"'COLUMN UPDATED_BY FORMAT A12;'"'"' >> .command.sql
+echo '"'"'COLUMN RECOMMENDATIONDESC FORMAT A18;'"'"' >> .command.sql
+echo '"'"'COLUMN CLINICALCONDITIONABBREV FORMAT A18;'"'"' >> .command.sql
+echo '"'"'select * from "CE.CLINICAL_CONDITION" FETCH FIRST 2 ROWS ONLY;'"'"' >> .command.sql
+echo '"'"'select count(*) from "CE.CLINICAL_CONDITION";'"'"' >> .command.sql
 docker cp .command.sql oracle_container:/ORCL/command.sql
-docker exec oracle_container /u01/app/oracle/product/12.2.0/dbhome_1/bin/sqlplus system/Oradoc_db1@localhost:1521/ORCLCDB.localdomain @/ORCL/command.sql
-
-rm .control.ctl .command.sql changeSet.xml *.csv *.mod
+docker exec oracle_container /u01/app/oracle/product/12.2.0/dbhome_1/bin/sqlplus system/Oradoc_db1@localhost:1521/ORCLCDB.localdomain @/ORCL/command.sql | sed -r '"'"'s/(^.{240})(.*)/\1/'"'"' | sed -E '"'"'/SQL\*Plus|Copyright|Last Successful login time:|Oracle Database 12c|Connected to:|^$/d'"'"'
+echo ""
+echo "DerivedFact"
+echo '"'"'SET LINESIZE 240; '"'"' > .command.sql
+echo '"'"'SET WRAP OFF;'"'"' >> .command.sql
+echo '"'"'SET TRIMSPOOL ON;'"'"' >> .command.sql
+echo '"'"'SET TRIMOUT ON;'"'"' >> .command.sql
+echo '"'"'COLUMN INSERTEDBY FORMAT A12;'"'"' >> .command.sql
+echo '"'"'COLUMN RECORDINSERTDT FORMAT A18;'"'"' >> .command.sql
+echo '"'"'COLUMN RECORDUPDTDT FORMAT A18;'"'"' >> .command.sql
+echo '"'"'COLUMN UPDTDBY FORMAT A12;'"'"' >> .command.sql
+echo '"'"'select * from "CE.DERIVEDFACT" FETCH FIRST 2 ROWS ONLY;'"'"' >> .command.sql
+echo '"'"'select count(*) from "CE.DERIVEDFACT";'"'"' >> .command.sql
+docker cp .command.sql oracle_container:/ORCL/command.sql
+docker exec oracle_container /u01/app/oracle/product/12.2.0/dbhome_1/bin/sqlplus system/Oradoc_db1@localhost:1521/ORCLCDB.localdomain @/ORCL/command.sql | sed -r '"'"'s/(^.{240})(.*)/\1/'"'"' | sed -E '"'"'/SQL\*Plus|Copyright|Last Successful login time:|Oracle Database 12c|Connected to:|^$/d'"'"'
+echo ""
+echo "DerivedFactProductUsage"
+echo '"'"'SET LINESIZE 240; '"'"' > .command.sql
+echo '"'"'SET WRAP OFF;'"'"' >> .command.sql
+echo '"'"'SET TRIMSPOOL ON;'"'"' >> .command.sql
+echo '"'"'SET TRIMOUT ON;'"'"' >> .command.sql
+echo '"'"'COLUMN PRODUCTMNEMONICCD FORMAT A18;'"'"' >> .command.sql
+echo '"'"'COLUMN INSERTEDBY FORMAT A12;'"'"' >> .command.sql
+echo '"'"'COLUMN RECORDINSERTDT FORMAT A18;'"'"' >> .command.sql
+echo '"'"'COLUMN RECORDUPDTDT FORMAT A18;'"'"' >> .command.sql
+echo '"'"'COLUMN UPDTDBY FORMAT A12;'"'"' >> .command.sql
+echo '"'"'select * from "CE.DERIVEDFACTPRODUCTUSAGE" FETCH FIRST 2 ROWS ONLY;'"'"' >> .command.sql
+echo '"'"'select count(*) from "CE.DERIVEDFACTPRODUCTUSAGE";'"'"' >> .command.sql
+docker cp .command.sql oracle_container:/ORCL/command.sql
+docker exec oracle_container /u01/app/oracle/product/12.2.0/dbhome_1/bin/sqlplus system/Oradoc_db1@localhost:1521/ORCLCDB.localdomain @/ORCL/command.sql | sed -r '"'"'s/(^.{240})(.*)/\1/'"'"' | sed -E '"'"'/SQL\*Plus|Copyright|Last Successful login time:|Oracle Database 12c|Connected to:|^$/d'"'"'
+echo ""
+echo "MedicalFinding"
+echo '"'"'SET LINESIZE 240; '"'"' > .command.sql
+echo '"'"'SET WRAP OFF;'"'"' >> .command.sql
+echo '"'"'SET TRIMSPOOL ON;'"'"' >> .command.sql
+echo '"'"'SET TRIMOUT ON;'"'"' >> .command.sql
+echo '"'"'COLUMN MEDICALFINDINGNM FORMAT A30;'"'"' >> .command.sql
+echo '"'"'COLUMN INSERTEDBY FORMAT A12;'"'"' >> .command.sql
+echo '"'"'COLUMN RECORDINSERTDT FORMAT A18;'"'"' >> .command.sql
+echo '"'"'COLUMN RECORDUPDTDT FORMAT A18;'"'"' >> .command.sql
+echo '"'"'COLUMN UPDTDBY FORMAT A12;'"'"' >> .command.sql
+echo '"'"'select * from "CE.MEDICALFINDING" FETCH FIRST 2 ROWS ONLY;'"'"' >> .command.sql
+echo '"'"'select count(*) from "CE.MEDICALFINDING";'"'"' >> .command.sql
+docker cp .command.sql oracle_container:/ORCL/command.sql
+docker exec oracle_container /u01/app/oracle/product/12.2.0/dbhome_1/bin/sqlplus system/Oradoc_db1@localhost:1521/ORCLCDB.localdomain @/ORCL/command.sql | sed -r '"'"'s/(^.{240})(.*)/\1/'"'"' | sed -E '"'"'/SQL\*Plus|Copyright|Last Successful login time:|Oracle Database 12c|Connected to:|^$/d'"'"'
+echo ""
+echo "MedicalFindingType"
+echo '"'"'SET LINESIZE 240; '"'"' > .command.sql
+echo '"'"'SET WRAP OFF;'"'"' >> .command.sql
+echo '"'"'SET TRIMSPOOL ON;'"'"' >> .command.sql
+echo '"'"'SET TRIMOUT ON;'"'"' >> .command.sql
+echo '"'"'COLUMN MEDICALFINDINGTYPEDESC FORMAT A30;'"'"' >> .command.sql
+echo '"'"'COLUMN INSERTEDBY FORMAT A12;'"'"' >> .command.sql
+echo '"'"'COLUMN RECORDINSERTDT FORMAT A18;'"'"' >> .command.sql
+echo '"'"'COLUMN RECORDUPDTDT FORMAT A18;'"'"' >> .command.sql
+echo '"'"'COLUMN UPDTDBY FORMAT A12;'"'"' >> .command.sql
+echo '"'"'select * from "CE.MEDICALFINDINGTYPE" FETCH FIRST 2 ROWS ONLY;'"'"' >> .command.sql
+echo '"'"'select count(*) from "CE.MEDICALFINDINGTYPE";'"'"' >> .command.sql
+docker cp .command.sql oracle_container:/ORCL/command.sql
+docker exec oracle_container /u01/app/oracle/product/12.2.0/dbhome_1/bin/sqlplus system/Oradoc_db1@localhost:1521/ORCLCDB.localdomain @/ORCL/command.sql | sed -r '"'"'s/(^.{240})(.*)/\1/'"'"' | sed -E '"'"'/SQL\*Plus|Copyright|Last Successful login time:|Oracle Database 12c|Connected to:|^$/d'"'"'
+echo ""
+echo "OppurtunityPointsDiscr"
+echo '"'"'SET LINESIZE 240; '"'"' > .command.sql
+echo '"'"'SET WRAP OFF;'"'"' >> .command.sql
+echo '"'"'SET TRIMSPOOL ON;'"'"' >> .command.sql
+echo '"'"'SET TRIMOUT ON;'"'"' >> .command.sql
+echo '"'"'COLUMN INSERTEDBY FORMAT A12;'"'"' >> .command.sql
+echo '"'"'COLUMN RECORDINSERTDT FORMAT A18;'"'"' >> .command.sql
+echo '"'"'COLUMN RECORDUPDTDT FORMAT A18;'"'"' >> .command.sql
+echo '"'"'COLUMN UPDTDBY FORMAT A12;'"'"' >> .command.sql
+echo '"'"'COLUMN OPPORTUNITYPOINTSDISCNM FORMAT A30;'"'"' >> .command.sql
+echo '"'"'select * from "CE.OPPORTUNITYPOINTSDISCR" FETCH FIRST 2 ROWS ONLY;'"'"' >> .command.sql
+echo '"'"'select count(*) from "CE.OPPORTUNITYPOINTSDISCR";'"'"' >> .command.sql
+docker cp .command.sql oracle_container:/ORCL/command.sql
+docker exec oracle_container /u01/app/oracle/product/12.2.0/dbhome_1/bin/sqlplus system/Oradoc_db1@localhost:1521/ORCLCDB.localdomain @/ORCL/command.sql | sed -r '"'"'s/(^.{240})(.*)/\1/'"'"' | sed -E '"'"'/SQL\*Plus|Copyright|Last Successful login time:|Oracle Database 12c|Connected to:|^$/d'"'"'
+echo ""
+echo "ProductFinding"
+echo '"'"'SET LINESIZE 240; '"'"' > .command.sql
+echo '"'"'SET WRAP OFF;'"'"' >> .command.sql
+echo '"'"'SET TRIMSPOOL ON;'"'"' >> .command.sql
+echo '"'"'SET TRIMOUT ON;'"'"' >> .command.sql
+echo '"'"'COLUMN PRODUCTFINDINGNM FORMAT A30;'"'"' >> .command.sql
+echo '"'"'COLUMN PRODUCTMNEMONICCD FORMAT A20;'"'"' >> .command.sql
+echo '"'"'COLUMN SUBPRODUCTMNEMONICCD FORMAT A20;'"'"' >> .command.sql
+echo '"'"'COLUMN INSERTEDBY FORMAT A12;'"'"' >> .command.sql
+echo '"'"'COLUMN RECORDINSERTDT FORMAT A18;'"'"' >> .command.sql
+echo '"'"'COLUMN RECORDUPDTDT FORMAT A18;'"'"' >> .command.sql
+echo '"'"'COLUMN UPDTDBY FORMAT A12;'"'"' >> .command.sql
+echo '"'"'select * from "CE.PRODUCTFINDING" FETCH FIRST 2 ROWS ONLY;'"'"' >> .command.sql
+echo '"'"'select count(*) from "CE.PRODUCTFINDING";'"'"' >> .command.sql
+docker cp .command.sql oracle_container:/ORCL/command.sql
+docker exec oracle_container /u01/app/oracle/product/12.2.0/dbhome_1/bin/sqlplus system/Oradoc_db1@localhost:1521/ORCLCDB.localdomain @/ORCL/command.sql | sed -r '"'"'s/(^.{240})(.*)/\1/'"'"' | sed -E '"'"'/SQL\*Plus|Copyright|Last Successful login time:|Oracle Database 12c|Connected to:|^$/d'"'"'
+echo ""
+echo "ProductFindingType"
+echo '"'"'SET LINESIZE 240; '"'"' > .command.sql
+echo '"'"'SET WRAP OFF;'"'"' >> .command.sql
+echo '"'"'SET TRIMSPOOL ON;'"'"' >> .command.sql
+echo '"'"'SET TRIMOUT ON;'"'"' >> .command.sql
+echo '"'"'COLUMN PRODUCTFINDINGTYPEDESC FORMAT A30;'"'"' >> .command.sql
+echo '"'"'COLUMN INSERTEDBY FORMAT A12;'"'"' >> .command.sql
+echo '"'"'COLUMN RECORDINSERTDT FORMAT A18;'"'"' >> .command.sql
+echo '"'"'COLUMN RECORDUPDTDT FORMAT A18;'"'"' >> .command.sql
+echo '"'"'COLUMN UPDTDBY FORMAT A12;'"'"' >> .command.sql
+echo '"'"'select * from "CE.PRODUCTFINDINGTYPE" FETCH FIRST 2 ROWS ONLY;'"'"' >> .command.sql
+echo '"'"'select count(*) from "CE.PRODUCTFINDINGTYPE";'"'"' >> .command.sql
+docker cp .command.sql oracle_container:/ORCL/command.sql
+docker exec oracle_container /u01/app/oracle/product/12.2.0/dbhome_1/bin/sqlplus system/Oradoc_db1@localhost:1521/ORCLCDB.localdomain @/ORCL/command.sql | sed -r '"'"'s/(^.{240})(.*)/\1/'"'"' | sed -E '"'"'/SQL\*Plus|Copyright|Last Successful login time:|Oracle Database 12c|Connected to:|^$/d'"'"'
+echo ""
+echo "ProductOpportunityPoints"
+echo '"'"'SET LINESIZE 240; '"'"' > .command.sql
+echo '"'"'SET WRAP OFF;'"'"' >> .command.sql
+echo '"'"'SET TRIMSPOOL ON;'"'"' >> .command.sql
+echo '"'"'SET TRIMOUT ON;'"'"' >> .command.sql
+echo '"'"'COLUMN OPPORTUNITYPOINTSDISCCD FORMAT A20;'"'"' >> .command.sql
+echo '"'"'COLUMN INSERTEDBY FORMAT A12;'"'"' >> .command.sql
+echo '"'"'COLUMN RECORDINSERTDT FORMAT A18;'"'"' >> .command.sql
+echo '"'"'COLUMN RECORDUPDTDT FORMAT A18;'"'"' >> .command.sql
+echo '"'"'COLUMN UPDTDBY FORMAT A12;'"'"' >> .command.sql
+echo '"'"'select * from "CE.PRODUCTOPPORTUNITYPOINTS" FETCH FIRST 2 ROWS ONLY;'"'"' >> .command.sql
+echo '"'"'select count(*) from "CE.PRODUCTOPPORTUNITYPOINTS";'"'"' >> .command.sql
+docker cp .command.sql oracle_container:/ORCL/command.sql
+docker exec oracle_container /u01/app/oracle/product/12.2.0/dbhome_1/bin/sqlplus system/Oradoc_db1@localhost:1521/ORCLCDB.localdomain @/ORCL/command.sql | sed -r '"'"'s/(^.{240})(.*)/\1/'"'"' | sed -E '"'"'/SQL\*Plus|Copyright|Last Successful login time:|Oracle Database 12c|Connected to:|rows will be truncated|^$/d'"'"'
+echo ""
+echo "Recommendation"
+echo '"'"'SET LINESIZE 240; '"'"' > .command.sql
+echo '"'"'SET WRAP OFF;'"'"' >> .command.sql
+echo '"'"'SET TRIMSPOOL ON;'"'"' >> .command.sql
+echo '"'"'SET TRIMOUT ON;'"'"' >> .command.sql
+echo '"'"'COLUMN RECOMMENDATIONSKEY FORMAT 999;'"'"' >> .command.sql
+echo '"'"'COLUMN RECOMMENDATIONID FORMAT 999;'"'"' >> .command.sql
+echo '"'"'COLUMN RECOMMENDATIONCODE FORMAT A18;'"'"' >> .command.sql
+echo '"'"'COLUMN RECOMMENDATIONDESC FORMAT A10;'"'"' >> .command.sql
+echo '"'"'COLUMN RECOMMENDATIONTYPE FORMAT A10;'"'"' >> .command.sql
+echo '"'"'COLUMN RECOMMENDATIONTYPE FORMAT A10;'"'"' >> .command.sql
+echo '"'"'COLUMN CCTYPE FORMAT A20;'"'"' >> .command.sql
+echo '"'"'COLUMN ACTIONCODE FORMAT A10;'"'"' >> .command.sql
+echo '"'"'COLUMN MDCCODE FORMAT A10;'"'"' >> .command.sql
+echo '"'"'COLUMN MCCCODE FORMAT A10;'"'"' >> .command.sql
+echo '"'"'COLUMN PRIVACYCATEGORY FORMAT A1;'"'"' >> .command.sql
+echo '"'"'COLUMN INTERVENTION FORMAT A10;'"'"' >> .command.sql
+echo '"'"'COLUMN CLINICALREVIEWTYPE FORMAT A4;'"'"' >> .command.sql
+echo '"'"'COLUMN OPPORTUNITYPOINTSNBR FORMAT 999;'"'"' >> .command.sql
+echo '"'"'COLUMN DERIVEDFACTPRODUCTUSAGEID FORMAT 999999;'"'"' >> .command.sql
+echo '"'"'COLUMN INSERTEDBY FORMAT A10;'"'"' >> .command.sql
+echo '"'"'COLUMN PRIMARYDIAGNOSIS FORMAT A10;'"'"' >> .command.sql
+echo '"'"'COLUMN RECORDINSERTDT FORMAT A9;'"'"' >> .command.sql
+echo '"'"'COLUMN THERAPEUTICCLASS FORMAT A16;'"'"' >> .command.sql
+echo '"'"'select * from "CE.RECOMMENDATION" FETCH FIRST 2 ROWS ONLY;'"'"' >> .command.sql
+echo '"'"'select count(*) from "CE.RECOMMENDATION";'"'"' >> .command.sql
+docker cp .command.sql oracle_container:/ORCL/command.sql
+docker exec oracle_container /u01/app/oracle/product/12.2.0/dbhome_1/bin/sqlplus system/Oradoc_db1@localhost:1521/ORCLCDB.localdomain @/ORCL/command.sql | sed -r '"'"'s/(^.{240})(.*)/\1/'"'"' | sed -E '"'"'/SQL\*Plus|Copyright|Last Successful login time:|Oracle Database 12c|Connected to:|rows will be truncated|^$/d'"'"'
+rm .control.ctl .command.sql changeSet.xml
+EOF'
+chmod +x .script
+command time -v ./.script 2> .results
+../../getExperimentalResults.sh
+experiment=$(../../getExperimentNumber.sh)
+../../getDataAsCSVline.sh .results ${experiment} "07_Oracle_Local: Check Oracle Data" >> Experimental\ Results.csv
+../../putExperimentalResults.sh
+rm .script .results *.csv
 ```
 Liquibase itself is controlled by a liquibase.properties file for now.
 ```bash
@@ -541,246 +546,323 @@ classpath:  ../../liquibase_drivers/ojdbc7.jar
 ```
 It is also using the changeset generated by the ANTLR4 Translator.
 ```sql
---liquibase formatted sql
+<?xml version="1.0" encoding="UTF-8"?>
 
+<databaseChangeLog
+	xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+	http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.8.xsd">
 
+	<changeSet  id="1"  author="ce">
 
---changeset CE:1
-CREATE TABLE CE.OPPORTUNITYPOINTSDISCR (
-	OPPORTUNITYPOINTSDISCNM VARCHAR,
-	INSERTEDBY VARCHAR,
-	RECORDINSERTDT DATE,
-	RECORDUPDTDT DATE,
-	UPDTDBY VARCHAR,
-	OPPORTUNITYPOINTSDISCRCD VARCHAR PRIMARY KEY
-)
---rollback DROP TABLE CE.OPPORTUNITYPOINTSDISCR;
+		<createTable tableName="CE.OPPORTUNITYPOINTSDISCR" schemaName="CE">
+			<column name="OPPORTUNITYPOINTSDISCNM" type="VARCHAR2(255)"/>
+			<column name="INSERTEDBY" type="VARCHAR2(30)" defaultValue="DEFAULT USER"/>
+			<column name="RECORDINSERTDT" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP"/>
+			<column name="RECORDUPDTDT" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP"/>
+			<column name="UPDTDBY" type="VARCHAR2(30)" defaultValue="DEFAULT USER"/>
+			<column name="OPPORTUNITYPOINTSDISCRCD" type="VARCHAR2(12)">
+				<constraints primaryKey="true"/>
+			</column>
+		</createTable>
 
+		<createTable tableName="CE.DERIVEDFACT" schemaName="CE">
+			<column name="DERIVEDFACTTRACKINGID" type="bigint"/>
+			<column name="DERIVEDFACTTYPEID" type="bigint"/>
+			<column name="INSERTEDBY" type="VARCHAR2(30)" defaultValue="DEFAULT USER"/>
+			<column name="RECORDINSERTDT" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP"/>
+			<column name="RECORDUPDTDT" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP"/>
+			<column name="UPDTDBY" type="VARCHAR2(30)" defaultValue="DEFAULT USER"/>
+			<column name="DERIVEDFACTID" type="bigint">
+				<constraints primaryKey="true"/>
+			</column>
+		</createTable>
 
---changeset CE:2
-CREATE TABLE CE.DERIVEDFACT (
-	DERIVEDFACTTRACKINGID BIGINT,
-	DERIVEDFACTTYPEID BIGINT,
-	INSERTEDBY VARCHAR,
-	RECORDINSERTDT DATE,
-	RECORDUPDTDT DATE,
-	UPDTDBY VARCHAR,
-	DERIVEDFACTID BIGINT PRIMARY KEY
-)
---rollback DROP TABLE CE.DERIVEDFACT;
+		<createTable tableName="CE.RECOMMENDATIONTEXT" schemaName="CE">
+			<column name="RECOMMENDATIONTEXTID" type="bigint"/>
+			<column name="RECOMMENDATIONID" type="NUMBER(10,0)"/>
+			<column name="LANGUAGECD" type="CHAR(2)"/>
+			<column name="RECOMMENDATIONTEXTTYPE" type="VARCHAR2(20)"/>
+			<column name="MESSAGETYPE" type="CHAR(3)"/>
+			<column name="RECOMMENDATIONTITLE" type="VARCHAR2(200)"/>
+			<column name="RECOMMENDATIONTEXT" type="VARCHAR2(4000)"/>
+			<column name="RECORDINSERTDT" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP"/>
+			<column name="RECORDUPDATEDT" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP"/>
+			<column name="INSERTEDBY" type="VARCHAR2(30)" defaultValue="DEFAULT USER"/>
+			<column name="UPDATEDBY" type="VARCHAR2(30)" defaultValue="DEFAULT USER"/>
+			<column name="DEFAULTIN" type="CHAR(1)"/>
+		</createTable>
 
+		<createTable tableName="CE.CLINICAL_CONDITION" schemaName="CE">
+			<column name="CLINICAL_CONDITION_NAM" type="VARCHAR2(200)"/>
+			<column name="INSERTED_BY" type="VARCHAR2(50)"/>
+			<column name="REC_INSERT_DATE" type="DATE"/>
+			<column name="REC_UPD_DATE" type="DATE"/>
+			<column name="UPDATED_BY" type="VARCHAR2(50)"/>
+			<column name="CLINICALCONDITIONCLASSCD" type="bigint"/>
+			<column name="CLINICALCONDITIONTYPECD" type="VARCHAR2(12)"/>
+			<column name="CLINICALCONDITIONABBREV" type="VARCHAR2(50)"/>
+			<column name="CLINICAL_CONDITION_COD" type="bigint">
+				<constraints primaryKey="true"/>
+			</column>
+		</createTable>
 
---changeset CE:3
-CREATE TABLE CE.RECOMMENDATIONTEXT (
-	RECOMMENDATIONTEXTID BIGINT,
-	RECOMMENDATIONID BIGINT PRIMARY KEY,
-	LANGUAGECD VARCHAR,
-	RECOMMENDATIONTEXTTYPE VARCHAR,
-	MESSAGETYPE VARCHAR,
-	RECOMMENDATIONTITLE VARCHAR,
-	RECOMMENDATIONTEXT VARCHAR,
-	RECORDINSERTDT DATE,
-	RECORDUPDATEDT DATE,
-	INSERTEDBY VARCHAR,
-	UPDATEDBY VARCHAR,
-	DEFAULTIN VARCHAR
-)
---rollback DROP TABLE CE.RECOMMENDATIONTEXT;
+		<createTable tableName="CE.PRODUCTOPPORTUNITYPOINTS" schemaName="CE">
+			<column name="OPPORTUNITYPOINTSDISCCD" type="VARCHAR2(100)"/>
+			<column name="EFFECTIVESTARTDT" type="DATE"/>
+			<column name="OPPORTUNITYPOINTSNBR" type="bigint"/>
+			<column name="EFFECTIVEENDDT" type="DATE"/>
+			<column name="DERIVEDFACTPRODUCTUSAGEID" type="bigint"/>
+			<column name="INSERTEDBY" type="VARCHAR2(30)" defaultValue="DEFAULT USER"/>
+			<column name="RECORDINSERTDT" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP"/>
+			<column name="RECORDUPDTDT" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP"/>
+			<column name="UPDTDBY" type="VARCHAR2(30)" defaultValue="DEFAULT USER"/>
+		</createTable>
 
+		<createTable tableName="CE.MEDICALFINDING" schemaName="CE">
+			<column name="MEDICALFINDINGID" type="bigint"/>
+			<column name="MEDICALFINDINGTYPECD" type="VARCHAR2(12)"/>
+			<column name="MEDICALFINDINGNM" type="VARCHAR2(200)"/>
+			<column name="SEVERITYLEVELCD" type="VARCHAR2(12)"/>
+			<column name="IMPACTABLEFLG" type="CHAR(1)"/>
+			<column name="CLINICAL_CONDITION_COD" type="bigint"/>
+			<column name="INSERTEDBY" type="VARCHAR2(30)" defaultValue="DEFAULT USER"/>
+			<column name="RECORDINSERTDT" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP"/>
+			<column name="RECORDUPDTDT" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP"/>
+			<column name="UPDTDBY" type="VARCHAR2(30)" defaultValue="DEFAULT USER"/>
+			<column name="ACTIVEFLG" type="CHAR(1)"/>
+			<column name="OPPORTUNITYPOINTSDISCRCD" type="VARCHAR2(12)"/>
+		</createTable>
 
---changeset CE:4
-CREATE TABLE CE.CLINICAL_CONDITION (
-	CLINICAL_CONDITION_NAM VARCHAR,
-	INSERTED_BY VARCHAR,
-	REC_INSERT_DATE DATE,
-	REC_UPD_DATE DATE,
-	UPDATED_BY VARCHAR,
-	CLINICALCONDITIONCLASSCD BIGINT,
-	CLINICALCONDITIONTYPECD VARCHAR,
-	CLINICALCONDITIONABBREV VARCHAR,
-	CLINICAL_CONDITION_COD BIGINT PRIMARY KEY
-)
---rollback DROP TABLE CE.CLINICAL_CONDITION;
+		<createTable tableName="CE.DERIVEDFACTPRODUCTUSAGE" schemaName="CE">
+			<column name="DERIVEDFACTID" type="bigint"/>
+			<column name="PRODUCTMNEMONICCD" type="VARCHAR2(50)"/>
+			<column name="INSERTEDBY" type="VARCHAR2(30)" defaultValue="DEFAULT USER"/>
+			<column name="RECORDINSERTDT" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP"/>
+			<column name="RECORDUPDTDT" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP"/>
+			<column name="UPDTDBY" type="VARCHAR2(30)" defaultValue="DEFAULT USER"/>
+			<column name="DERIVEDFACTPRODUCTUSAGEID" type="bigint">
+				<constraints primaryKey="true"/>
+			</column>
+		</createTable>
 
+		<createTable tableName="CE.PRODUCTFINDINGTYPE" schemaName="CE">
+			<column name="PRODUCTFINDINGTYPECD" type="VARCHAR2(12)"/>
+			<column name="PRODUCTFINDINGTYPEDESC" type="VARCHAR2(255)"/>
+			<column name="INSERTEDBY" type="VARCHAR2(30)" defaultValue="DEFAULT USER"/>
+			<column name="RECORDINSERTDT" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP"/>
+			<column name="RECORDUPDTDT" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP"/>
+			<column name="UPDTDBY" type="VARCHAR2(30)" defaultValue="DEFAULT USER"/>
+		</createTable>
 
---changeset CE:5
-CREATE TABLE CE.PRODUCTOPPORTUNITYPOINTS (
-	OPPORTUNITYPOINTSDISCCD VARCHAR PRIMARY KEY,
-	EFFECTIVESTARTDT DATE,
-	OPPORTUNITYPOINTSNBR BIGINT,
-	EFFECTIVEENDDT DATE,
-	DERIVEDFACTPRODUCTUSAGEID BIGINT,
-	INSERTEDBY VARCHAR,
-	RECORDINSERTDT DATE,
-	RECORDUPDTDT DATE,
-	UPDTDBY VARCHAR
-)
---rollback DROP TABLE CE.PRODUCTOPPORTUNITYPOINTS;
+		<createTable tableName="CE.RECOMMENDATION" schemaName="CE">
+			<column name="RECOMMENDATIONSKEY" type="bigint"/>
+			<column name="RECOMMENDATIONID" type="NUMBER(10,0)"/>
+			<column name="RECOMMENDATIONCODE" type="VARCHAR2(200)"/>
+			<column name="RECOMMENDATIONDESC" type="VARCHAR2(4000)"/>
+			<column name="RECOMMENDATIONTYPE" type="VARCHAR2(20)"/>
+			<column name="CCTYPE" type="VARCHAR2(50)"/>
+			<column name="CLINICALREVIEWTYPE" type="VARCHAR2(20)"/>
+			<column name="AGERANGEID" type="bigint"/>
+			<column name="ACTIONCODE" type="VARCHAR2(200)"/>
+			<column name="THERAPEUTICCLASS" type="VARCHAR2(300)"/>
+			<column name="MDCCODE" type="VARCHAR2(20)"/>
+			<column name="MCCCODE" type="VARCHAR2(50)"/>
+			<column name="PRIVACYCATEGORY" type="VARCHAR2(20)"/>
+			<column name="INTERVENTION" type="VARCHAR2(200)"/>
+			<column name="RECOMMENDATIONFAMILYID" type="bigint"/>
+			<column name="RECOMMENDPRECEDENCEGROUPID" type="bigint"/>
+			<column name="INBOUNDCOMMUNICATIONROUTE" type="VARCHAR2(15)"/>
+			<column name="SEVERITY" type="VARCHAR2(2)"/>
+			<column name="PRIMARYDIAGNOSIS" type="VARCHAR2(300)"/>
+			<column name="SECONDARYDIAGNOSIS" type="VARCHAR2(300)"/>
+			<column name="ADVERSEEVENT" type="VARCHAR2(300)"/>
+			<column name="ICMCONDITIONID" type="bigint"/>
+			<column name="WELLNESSFLAG" type="CHAR(1)"/>
+			<column name="VBFELIGIBLEFLAG" type="CHAR(1)"/>
+			<column name="COMMUNICATIONRANKING" type="bigint"/>
+			<column name="PRECEDENCERANKING" type="bigint"/>
+			<column name="PATIENTDERIVEDFLAG" type="CHAR(1)"/>
+			<column name="LABREQUIREDFLAG" type="CHAR(1)"/>
+			<column name="UTILIZATIONTEXTAVAILABLEF" type="CHAR(1)"/>
+			<column name="SENSITIVEMESSAGEFLAG" type="CHAR(1)"/>
+			<column name="HIGHIMPACTFLAG" type="CHAR(1)"/>
+			<column name="ICMLETTERFLAG" type="CHAR(1)"/>
+			<column name="REQCLINICIANCLOSINGFLAG" type="CHAR(1)"/>
+			<column name="OPSIMPELMENTATIONPHASE" type="bigint"/>
+			<column name="SEASONALFLAG" type="CHAR(1)"/>
+			<column name="SEASONALSTARTDT" type="DATE"/>
+			<column name="SEASONALENDDT" type="DATE"/>
+			<column name="EFFECTIVESTARTDT" type="DATE"/>
+			<column name="EFFECTIVEENDDT" type="DATE"/>
+			<column name="RECORDINSERTDT" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP"/>
+			<column name="RECORDUPDTDT" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP"/>
+			<column name="INSERTEDBY" type="VARCHAR2(30)" defaultValue="DEFAULT USER"/>
+			<column name="UPDTDBY" type="VARCHAR2(30)" defaultValue="DEFAULT USER"/>
+			<column name="STANDARDRUNFLAG" type="CHAR(1)"/>
+			<column name="INTERVENTIONFEEDBACKFAMILYID" type="bigint"/>
+			<column name="CONDITIONFEEDBACKFAMILYID" type="bigint"/>
+			<column name="ASHWELLNESSELIGIBILITYFLAG" type="CHAR(1)"/>
+			<column name="HEALTHADVOCACYELIGIBILITYFLAG" type="CHAR(1)"/>
+		</createTable>
 
+		<createTable tableName="CE.PRODUCTFINDING" schemaName="CE">
+			<column name="PRODUCTFINDINGID" type="bigint"/>
+			<column name="PRODUCTFINDINGNM" type="VARCHAR2(100)"/>
+			<column name="SEVERITYLEVELCD" type="VARCHAR2(12)"/>
+			<column name="PRODUCTFINDINGTYPECD" type="VARCHAR2(12)"/>
+			<column name="PRODUCTMNEMONICCD" type="VARCHAR2(50)"/>
+			<column name="SUBPRODUCTMNEMONICCD" type="VARCHAR2(50)"/>
+			<column name="INSERTEDBY" type="VARCHAR2(30)" defaultValue="DEFAULT USER"/>
+			<column name="RECORDINSERTDT" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP"/>
+			<column name="RECORDUPDTDT" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP"/>
+			<column name="UPDTDBY" type="VARCHAR2(30)" defaultValue="DEFAULT USER"/>
+		</createTable>
 
---changeset CE:6
-CREATE TABLE CE.MEDICALFINDING (
-	MEDICALFINDINGID BIGINT PRIMARY KEY,
-	MEDICALFINDINGTYPECD VARCHAR,
-	MEDICALFINDINGNM VARCHAR,
-	SEVERITYLEVELCD VARCHAR,
-	IMPACTABLEFLG VARCHAR,
-	CLINICAL_CONDITION_COD BIGINT,
-	INSERTEDBY VARCHAR,
-	RECORDINSERTDT DATE,
-	RECORDUPDTDT DATE,
-	UPDTDBY VARCHAR,
-	ACTIVEFLG VARCHAR,
-	OPPORTUNITYPOINTSDISCRCD VARCHAR
-)
---rollback DROP TABLE CE.MEDICALFINDING;
+		<createTable tableName="CE.MEDICALFINDINGTYPE" schemaName="CE">
+			<column name="MEDICALFINDINGTYPEDESC" type="VARCHAR2(255)"/>
+			<column name="INSERTEDBY" type="VARCHAR2(30)" defaultValue="DEFAULT USER"/>
+			<column name="RECORDINSERTDT" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP"/>
+			<column name="RECORDUPDTDT" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP"/>
+			<column name="UPDTDBY" type="VARCHAR2(30)" defaultValue="DEFAULT USER"/>
+			<column name="HEALTHSTATEAPPLICABLEFLAG" type="CHAR(1)"/>
+			<column name="MEDICALFINDINGTYPECD" type="VARCHAR2(12)">
+				<constraints primaryKey="true"/>
+			</column>
+		</createTable>
 
+		<addNotNullConstraint
+			columnName="RECOMMENDATIONTEXTID"
+			schemaName="CE"
+			columnDataType="NUMBER"
+			tableName="RECOMMENDATIONTEXT"/>
 
---changeset CE:7
-CREATE TABLE CE.DERIVEDFACTPRODUCTUSAGE (
-	DERIVEDFACTID BIGINT,
-	PRODUCTMNEMONICCD VARCHAR,
-	INSERTEDBY VARCHAR,
-	RECORDINSERTDT DATE,
-	RECORDUPDTDT DATE,
-	UPDTDBY VARCHAR,
-	DERIVEDFACTPRODUCTUSAGEID BIGINT PRIMARY KEY
-)
---rollback DROP TABLE CE.DERIVEDFACTPRODUCTUSAGE;
+		<addNotNullConstraint
+			columnName="RECOMMENDATIONID"
+			schemaName="CE"
+			columnDataType="NUMBER(10,0)"
+			tableName="RECOMMENDATIONTEXT"/>
 
+		<addNotNullConstraint
+			columnName="LANGUAGECD"
+			schemaName="CE"
+			columnDataType="CHAR(2)"
+			tableName="RECOMMENDATIONTEXT"/>
 
---changeset CE:8
-CREATE TABLE CE.PRODUCTFINDINGTYPE (
-	PRODUCTFINDINGTYPECD VARCHAR PRIMARY KEY,
-	PRODUCTFINDINGTYPEDESC VARCHAR,
-	INSERTEDBY VARCHAR,
-	RECORDINSERTDT DATE,
-	RECORDUPDTDT DATE,
-	UPDTDBY VARCHAR
-)
---rollback DROP TABLE CE.PRODUCTFINDINGTYPE;
+		<addNotNullConstraint
+			columnName="RECOMMENDATIONTEXTTYPE"
+			schemaName="CE"
+			columnDataType="VARCHAR2(20)"
+			tableName="RECOMMENDATIONTEXT"/>
 
+		<addNotNullConstraint
+			columnName="MESSAGETYPE"
+			schemaName="CE"
+			columnDataType="CHAR(3)"
+			tableName="RECOMMENDATIONTEXT"/>
 
---changeset CE:9
-CREATE TABLE CE.RECOMMENDATION (
-	RECOMMENDATIONSKEY BIGINT PRIMARY KEY,
-	RECOMMENDATIONID BIGINT,
-	RECOMMENDATIONCODE VARCHAR,
-	RECOMMENDATIONDESC VARCHAR,
-	RECOMMENDATIONTYPE VARCHAR,
-	CCTYPE VARCHAR,
-	CLINICALREVIEWTYPE VARCHAR,
-	AGERANGEID BIGINT,
-	ACTIONCODE VARCHAR,
-	THERAPEUTICCLASS VARCHAR,
-	MDCCODE VARCHAR,
-	MCCCODE VARCHAR,
-	PRIVACYCATEGORY VARCHAR,
-	INTERVENTION VARCHAR,
-	RECOMMENDATIONFAMILYID BIGINT,
-	RECOMMENDPRECEDENCEGROUPID BIGINT,
-	INBOUNDCOMMUNICATIONROUTE VARCHAR,
-	SEVERITY VARCHAR,
-	PRIMARYDIAGNOSIS VARCHAR,
-	SECONDARYDIAGNOSIS VARCHAR,
-	ADVERSEEVENT VARCHAR,
-	ICMCONDITIONID BIGINT,
-	WELLNESSFLAG VARCHAR,
-	VBFELIGIBLEFLAG VARCHAR,
-	COMMUNICATIONRANKING BIGINT,
-	PRECEDENCERANKING BIGINT,
-	PATIENTDERIVEDFLAG VARCHAR,
-	LABREQUIREDFLAG VARCHAR,
-	UTILIZATIONTEXTAVAILABLEF VARCHAR,
-	SENSITIVEMESSAGEFLAG VARCHAR,
-	HIGHIMPACTFLAG VARCHAR,
-	ICMLETTERFLAG VARCHAR,
-	REQCLINICIANCLOSINGFLAG VARCHAR,
-	OPSIMPELMENTATIONPHASE BIGINT,
-	SEASONALFLAG VARCHAR,
-	SEASONALSTARTDT DATE,
-	SEASONALENDDT DATE,
-	EFFECTIVESTARTDT DATE,
-	EFFECTIVEENDDT DATE,
-	RECORDINSERTDT DATE,
-	RECORDUPDTDT DATE,
-	INSERTEDBY VARCHAR,
-	UPDTDBY VARCHAR,
-	STANDARDRUNFLAG VARCHAR,
-	INTERVENTIONFEEDBACKFAMILYID BIGINT,
-	CONDITIONFEEDBACKFAMILYID BIGINT,
-	ASHWELLNESSELIGIBILITYFLAG VARCHAR,
-	HEALTHADVOCACYELIGIBILITYFLAG VARCHAR
-)
---rollback DROP TABLE CE.RECOMMENDATION;
+		<addNotNullConstraint
+			columnName="RECOMMENDATIONSKEY"
+			schemaName="CE"
+			columnDataType="NUMBER"
+			tableName="RECOMMENDATION"/>
 
+		<addNotNullConstraint
+			columnName="RECOMMENDATIONID"
+			schemaName="CE"
+			columnDataType="NUMBER(10,0)"
+			tableName="RECOMMENDATION"/>
 
---changeset CE:10
-CREATE TABLE CE.PRODUCTFINDING (
-	PRODUCTFINDINGID BIGINT PRIMARY KEY,
-	PRODUCTFINDINGNM VARCHAR,
-	SEVERITYLEVELCD VARCHAR,
-	PRODUCTFINDINGTYPECD VARCHAR,
-	PRODUCTMNEMONICCD VARCHAR,
-	SUBPRODUCTMNEMONICCD VARCHAR,
-	INSERTEDBY VARCHAR,
-	RECORDINSERTDT DATE,
-	RECORDUPDTDT DATE,
-	UPDTDBY VARCHAR
-)
---rollback DROP TABLE CE.PRODUCTFINDING;
+		<addNotNullConstraint
+			columnName="RECOMMENDATIONTYPE"
+			schemaName="CE"
+			columnDataType="VARCHAR2(20)"
+			tableName="RECOMMENDATION"/>
 
+		<addNotNullConstraint
+			columnName="CLINICALREVIEWTYPE"
+			schemaName="CE"
+			columnDataType="VARCHAR2(20)"
+			tableName="RECOMMENDATION"/>
 
---changeset CE:11
-CREATE TABLE CE.MEDICALFINDINGTYPE (
-	MEDICALFINDINGTYPEDESC VARCHAR,
-	INSERTEDBY VARCHAR,
-	RECORDINSERTDT DATE,
-	RECORDUPDTDT DATE,
-	UPDTDBY VARCHAR,
-	HEALTHSTATEAPPLICABLEFLAG VARCHAR,
-	MEDICALFINDINGTYPECD VARCHAR PRIMARY KEY
-)
---rollback DROP TABLE CE.MEDICALFINDINGTYPE;
+		<addNotNullConstraint
+			columnName="PRIVACYCATEGORY"
+			schemaName="CE"
+			columnDataType="VARCHAR2(20)"
+			tableName="RECOMMENDATION"/>
 
---changeset CE:12
-CREATE TABLE CE.MEMBERHEALTHSTATE (
-    MEMBERHEALTHSTATESKEY BIGINT PRIMARY KEY,
-    EPISODEID BIGINT,
-    VERSIONNBR BIGINT,
-    STATETYPECD VARCHAR,
-    STATECOMPONENTID BIGINT,
-    MEMBERID BIGINT,
-    HEALTHSTATESTATUSCD VARCHAR,
-    HEALTHSTATESTATUSCHANGERSNCD VARCHAR,
-    HEALTHSTATESTATUSCHANGEDT DATE,
-    HEALTHSTATECHANGEDT DATE,
-    SEVERITYLEVEL VARCHAR,
-    COMPLETIONFLG VARCHAR,
-    CLINICALREVIEWSTATUSCD VARCHAR,
-    CLINICALREVIEWSTATUSDT DATE,
-    LASTEVALUATIONDT DATE,
-    VOIDFLG VARCHAR,
-    INSERTEDBY VARCHAR,
-    INSERTEDDT DATE,
-    UPDATEDBY VARCHAR,
-    UPDATEDDT DATE,
-    SEVERITYSCORE BIGINT,
-    MASTERSUPPLIERID BIGINT,
-    YEARQTR BIGINT,
-    PDCSCOREPERC BIGINT
-)
--- rollback DROP TABLE CE.MEMBERHEALTHSTATE;
+		<addNotNullConstraint
+			columnName="EFFECTIVESTARTDT"
+			schemaName="CE"
+			columnDataType="DATE"
+			tableName="RECOMMENDATION"/>
+
+	</changeSet>
+
+</databaseChangeLog>
 ```
-### 03_shutdown.sh
+
+### 03_startup_app.sh
+Here, we bring up the CECacheServer with docker-compose with the same network as we used to bring up Apache Ignite in, so the CECacheServer can make requests of the database.
+<BR/>
+Normally, we would do this in the 01_startup.sh script, but we want to seperate out the effects of the database from the application for performance collection purposes, so we do it here.
+
+```bash
+#!/usr/bin/env bash
+
+bash -c 'cat << "EOF" > .script
+#!/usr/bin/env bash
+figlet -w 240 -f small "Startup CECacheServer Locally"
+docker volume rm 07_oracle_local_oracle_data
+docker-compose -f docker-compose.app.yml up -d --build
+
+echo "Wait For CECacheServer To Start"
+while true ; do
+  docker logs cecacheserver_fororacle_container > stdout.txt 2> stderr.txt
+#  result=$(grep -cE "<<<<< Local Cache Statistics <<<<<" stdout.txt) cecacheserver_formongodb_container is failing!
+  result=$(grep -cE "using Agent sizeof engine" stdout.txt)
+  if [ $result != 0 ] ; then
+    echo "CECacheServer has started"
+    break
+  fi
+  sleep 5
+done
+rm stdout.txt stderr.txt
+EOF'
+chmod +x .script
+command time -v ./.script 2> .results
+../../getExperimentalResults.sh
+experiment=$(../../getExperimentNumber.sh)
+../../getDataAsCSVline.sh .results ${experiment} "07_Oracle_Local: Startup CECacheServer Locally" >> Experimental\ Results.csv
+../../putExperimentalResults.sh
+rm .script .results Experimental\ Results.csv
+```
+
+### 04_shutdown.sh
 This script is brutely simple.  It uses docker-compose to bring down the environment it established, and then uses docker volume rm to delete the data which held the bits for out database data.
 
 ```bash
 #!/usr/bin/env bash
 
-figlet -w 160 -f small "Shutdown Oracle Locally"
-docker-compose -f docker-compose.yml down
+bash -c 'cat << "EOF" > .script
+#!/usr/bin/env bash
+figlet -w 240 -f small "Shutdown Oracle and CECacheServer Locally"
+docker-compose -f docker-compose.app.yml down
+docker volume rm 07_oracle_local_cecacheserver_data
+docker-compose -f docker-compose.yml -f docker-compose.app.yml down
 docker volume rm 07_oracle_local_oracle_data
+docker volume rm 07_oracle_local_cecacheserver_data
+EOF'
+chmod +x .script
+command time -v ./.script 2> .results
+../../getExperimentalResults.sh
+experiment=$(../../getExperimentNumber.sh)
+../../getDataAsCSVline.sh .results  ${experiment} "07_Oracle_Local: Shutdown Oracle and CECacheServer Locally" >> Experimental\ Results.csv
+../../putExperimentalResults.sh
+rm .script .results Experimental\ Results.csv
+
+../../endExperiment.sh
 ```
 
 ### Putting it all together...
@@ -793,32 +875,11 @@ It all looks something like this:
 ![02_populate_02](README_assets/02_populate_02.png)\
 ![02_populate_03](README_assets/02_populate_03.png)\
 ![02_populate_04](README_assets/02_populate_04.png)\
-![02_populate_05](README_assets/02_populate_05.png)\
-![02_populate_06](README_assets/02_populate_06.png)\
-![02_populate_07](README_assets/02_populate_07.png)\
-![02_populate_08](README_assets/02_populate_08.png)\
-![02_populate_09](README_assets/02_populate_09.png)\
-![02_populate_10](README_assets/02_populate_10.png)\
-![02_populate_11](README_assets/02_populate_11.png)\
-![02_populate_12](README_assets/02_populate_12.png)\
-![02_populate_13](README_assets/02_populate_13.png)\
-![02_populate_14](README_assets/02_populate_14.png)\
-![02_populate_15](README_assets/02_populate_15.png)\
-![02_populate_16](README_assets/02_populate_16.png)\
-![02_populate_17](README_assets/02_populate_17.png)\
-![02_populate_18](README_assets/02_populate_18.png)\
-![02_populate_19](README_assets/02_populate_19.png)\
-![02_populate_20](README_assets/02_populate_20.png)\
-![02_populate_21](README_assets/02_populate_21.png)\
-![02_populate_22](README_assets/02_populate_22.png)\
-![02_populate_23](README_assets/02_populate_23.png)\
-![02_populate_24](README_assets/02_populate_24.png)\
-![02_populate_25](README_assets/02_populate_25.png)\
-![02_populate_26](README_assets/02_populate_26.png)\
-![02_populate_27](README_assets/02_populate_27.png)\
-![02_populate_28](README_assets/02_populate_28.png)\
-![02_populate_29](README_assets/02_populate_29.png)\
 <BR />
-![03_shutdown](README_assets/03_shutdown.png)\
+![03_startup_app](README_assets/03_startup_app.png)\
 <BR />
-
+![04_shutdown](README_assets/04_shutdown.png)\
+<BR />
+And just for laughs, here's the timings for this run.  All kept in a csv file in S3 at s3://health-engine-aws-poc/Experimental Results.csv
+![Experimental Results](README_assets/Experimental Results.png)\
+<BR />
