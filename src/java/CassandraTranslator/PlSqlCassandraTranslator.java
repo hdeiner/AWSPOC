@@ -165,6 +165,9 @@ public class PlSqlCassandraTranslator {
 		StringBuilder changeSet = new StringBuilder();
 		changeSet.append(createHeader());
 
+		boolean hasPrimaryKey = false;
+		boolean isFirstColumn = true;
+
 		// Construct createTable
 		for (Map.Entry<String, List<Translator.ColumnProperty>> entry : converter.map.entrySet()) {
 			mapValuesCount = 0;
@@ -173,14 +176,22 @@ public class PlSqlCassandraTranslator {
 			String key = entry.getKey();
 			changeSet.append(createTableStart(key));
 			List<Translator.ColumnProperty> value = entry.getValue();
+
+			// Check if there is primary key in table
+			hasPrimaryKey = CheckPrimaryKeyExisting(value);
+			isFirstColumn = true;
+
 			mapValuesSize = value.size();
 			for (Translator.ColumnProperty column : value) {
 				mapValuesCount++;
-				if (column.isPrimaryKey()) {
+				// make first column as primary key for now if no primary key from Oracle DDL
+				if (column.isPrimaryKey() || (!hasPrimaryKey && isFirstColumn)) {
 					changeSet.append(columnWithConstraint(column));
 				} else {
 					changeSet.append(columnWithoutConstraint(column));
 				}
+
+				isFirstColumn = false;
 			}
 
 			changeSet.append(createTableEnd());
@@ -290,15 +301,30 @@ public class PlSqlCassandraTranslator {
 	 * @param sb
 	 * @param column
 	 */
-	private static void convertColumnDataType(StringBuilder sb, ColumnProperty column) {
+	private static void convertColumnDataType(StringBuilder sb, Translator.ColumnProperty column) {
 		String dataType = column.getColumnDataType();
 		if (dataType.contains("NUMBER")) {
 			sb.append("BIGINT");
-		} else if (dataType.contains("TIMESTAMP") || dataType.contains("DATE")) {
+		} else if (dataType.contains("DATE")) {
 			sb.append("DATE");
 		} else if (dataType.contains("VARCHAR") || dataType.contains("CHAR")) {
 			sb.append("VARCHAR");
+		} else if (dataType.contains("TIMESTAMP")) {
+			sb.append("TIMESTAMP");
 		}
+	}
+
+	private static boolean CheckPrimaryKeyExisting(List<Translator.ColumnProperty> columns) {
+		boolean hasPrimaryKey = false;
+
+		for (ColumnProperty column : columns) {
+			if (column.isPrimaryKey()) {
+				hasPrimaryKey = true;
+				break;
+			}
+		}
+
+		return hasPrimaryKey;
 	}
 
 }

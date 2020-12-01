@@ -9,7 +9,8 @@ services:
       cassandra_PASSWORD: password
       cassandra_USER: cassandra
     volumes:
-      - cassandra_data:/var/lib/cassandraql/data
+      - cassandra_data:/var/lib/cassandra
+      - cassandra_config:/etc/cassandra
     restart: unless-stopped
     ports:
       - 7000:7001 # cluster communication
@@ -35,25 +36,12 @@ services:
     networks:
       container_network:
 
-  cecacheserver_service:
-    build: ../../src/application/CacheServerDocker/DockerImageForCassandra
-    container_name: cecacheserver_forcassandra_container
-    volumes:
-      - cecacheserver_data:/var/lib/cecacheserver
-    restart: unless-stopped
-    ports:
-      - 12405:12405
-    networks:
-      container_network:   
-    depends_on:
-      - cassandra_service
-
 networks:
   container_network:
     driver: bridge
 
 volumes:
   cassandra_data:
+  cassandra_config:
   cassandraweb_data:
-  cecacheserver_data:
   

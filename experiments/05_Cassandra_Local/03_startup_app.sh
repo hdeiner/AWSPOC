@@ -2,13 +2,13 @@
 
 bash -c 'cat << "EOF" > .script
 #!/usr/bin/env bash
-figlet -w 240 -f small "Startup CECacheServer Locally"
-docker volume rm 07_oracle_local_cecacheserver_data
+figlet -w 160 -f small "Startup CECacheServer Locally"
+docker volume rm 05_cassandra_local_cecacheserver_data
 docker-compose -f docker-compose.app.yml up -d --build
 
 echo "Wait For CECacheServer To Start"
 while true ; do
-  docker logs cecacheserver_fororacle_container > stdout.txt 2> stderr.txt
+  docker logs cecacheserver_forcassandra_container > stdout.txt 2> stderr.txt
 #  result=$(grep -cE "<<<<< Local Cache Statistics <<<<<" stdout.txt) cecacheserver_formongodb_container is failing!
   result=$(grep -cE "using Agent sizeof engine" stdout.txt)
   if [ $result != 0 ] ; then
@@ -23,6 +23,6 @@ chmod +x .script
 command time -v ./.script 2> .results
 ../../getExperimentalResults.sh
 experiment=$(../../getExperimentNumber.sh)
-../../getDataAsCSVline.sh .results ${experiment} "07_Oracle_Local: Startup CECacheServer Locally" >> Experimental\ Results.csv
+../../getDataAsCSVline.sh .results ${experiment} "05_Cassandra_Local: Startup CECacheServer Locally" >> Experimental\ Results.csv
 ../../putExperimentalResults.sh
 rm .script .results Experimental\ Results.csv

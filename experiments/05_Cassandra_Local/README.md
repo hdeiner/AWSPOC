@@ -39,12 +39,14 @@ Since we do not want to make use of the database until it actually starts, I mon
 ```bash
 #!/usr/bin/env bash
 
+../../startExperiment.sh
+
 bash -c 'cat << "EOF" > .script
 #!/usr/bin/env bash
-figlet -w 240 -f small "Startup Cassandra/CassandraWeb/CECacheServer Locally"
-docker volume rm 05_Cassandra_local_cassandra_data
-docker volume rm 05_Cassandra_local_cassandraweb_data
-docker volume rm 05_Cassandra_local_cecacheserver_data
+figlet -w 240 -f small "Startup Cassandra/CassandraWeb Locally"
+docker volume rm 05_cassandra_local_cassandra_data
+docker volume rm 05_cassandra_local_cassandra_config
+docker volume rm 05_cassandra_local_cassandraweb_data
 docker-compose -f docker-compose.yml up -d
 
 figlet -w 240 -f small "Wait For Cassandra To Start"
@@ -62,7 +64,8 @@ EOF'
 chmod +x .script
 command time -v ./.script 2> .results
 ../../getExperimentalResults.sh
-../../getDataAsCSVline.sh .results "Howard Deiner" "Local Startup Cassandra" >> Experimental\ Results.csv
+experiment=$(../../getExperimentNumber.sh)
+../../getDataAsCSVline.sh .results ${experiment} "05_Cassandra_Local: Startup Cassandra Locally" >> Experimental\ Results.csv
 ../../putExperimentalResults.sh
 rm .script .results Experimental\ Results.csv
 ```
@@ -86,7 +89,8 @@ EOF'
 chmod +x .script
 command time -v ./.script 2> .results
 ../../getExperimentalResults.sh
-../../getDataAsCSVline.sh .results "Howard Deiner" "Update Cassanda Schema" >> Experimental\ Results.csv
+experiment=$(../../getExperimentNumber.sh)
+../../getDataAsCSVline.sh .results ${experiment} "05_Cassandra_Local: Populate Cassandra Schema" >> Experimental\ Results.csv
 ../../putExperimentalResults.sh
 rm .script .results Experimental\ Results.csv
 
@@ -107,7 +111,8 @@ EOF'
 chmod +x .script
 command time -v ./.script 2> .results
 ../../getExperimentalResults.sh
-../../getDataAsCSVline.sh .results "Howard Deiner" "Local Get Cassandra Data from S3 Bucket" >> Experimental\ Results.csv
+experiment=$(../../getExperimentNumber.sh)
+../../getDataAsCSVline.sh .results ${experiment} "05_Cassanda_Local: Get Data from S3 Bucket" >> Experimental\ Results.csv
 ../../putExperimentalResults.sh
 rm .script .results Experimental\ Results.csv
 
@@ -128,7 +133,8 @@ EOF'
 chmod +x .script
 command time -v ./.script 2> .results
 ../../getExperimentalResults.sh
-../../getDataAsCSVline.sh .results "Howard Deiner" "Local Process S3 Data into Cassandra CSV File For Inport" >> Experimental\ Results.csv
+experiment=$(../../getExperimentNumber.sh)
+../../getDataAsCSVline.sh .results ${experiment} "05_Cassanda_Local: Process S3 Data into CSV Files For Import" >> Experimental\ Results.csv
 ../../putExperimentalResults.sh
 rm .script .results Experimental\ Results.csv
 
@@ -172,54 +178,56 @@ EOF'
 chmod +x .script
 command time -v ./.script 2> .results
 ../../getExperimentalResults.sh
-../../getDataAsCSVline.sh .results "Howard Deiner" "Local Load Cassandra Data" >> Experimental\ Results.csv
+experiment=$(../../getExperimentNumber.sh)
+../../getDataAsCSVline.sh .results ${experiment} "05_Cassanda_Local: Populate Oracle Data" >> Experimental\ Results.csv
 ../../putExperimentalResults.sh
 rm .script .results Experimental\ Results.csv
 
 bash -c 'cat << "EOF" > .script
 #!/usr/bin/env bash
-figlet -w 240 -f small "Test That Cassandra Data Loaded"
+figlet -w 240 -f small "Check Cassanda Data"
 echo "CE.CLINICAL_CONDITION"
-docker exec cassandra_container cqlsh  -e '"'"'select * from CE.CLINICAL_CONDITION LIMIT 2;'"'"'
-docker exec cassandra_container cqlsh  -e '"'"'select count(*) from CE.CLINICAL_CONDITION;'"'"'
+docker exec cassandra_container cqlsh  -e '"'"'select * from CE.CLINICAL_CONDITION LIMIT 2;'"'"' | sed -r '"'"'s/(^.{240})(.*)/\1/'"'"' | sed -E '"'"'/Warnings \:|Aggregation query used without partition key|\(see tombstone_warn_threshold\)|yyy|^$/d'"'"'
+docker exec cassandra_container cqlsh  -e '"'"'select count(*) from CE.CLINICAL_CONDITION;'"'"' | sed -r '"'"'s/(^.{240})(.*)/\1/'"'"' | sed -E '"'"'/Warnings \:|Aggregation query used without partition key|\(see tombstone_warn_threshold\)|yyy|^$/d'"'"'
 echo "CE.DERIVEDFACT"
-docker exec cassandra_container cqlsh  -e '"'"'select * from CE.DERIVEDFACT LIMIT 2;'"'"'
-docker exec cassandra_container cqlsh  -e '"'"'select count(*) from CE.DERIVEDFACT;'"'"'
+docker exec cassandra_container cqlsh  -e '"'"'select * from CE.DERIVEDFACT LIMIT 2;'"'"' | sed -r '"'"'s/(^.{240})(.*)/\1/'"'"' | sed -E '"'"'/Warnings \:|Aggregation query used without partition key|\(see tombstone_warn_threshold\)|yyy|^$/d'"'"'
+docker exec cassandra_container cqlsh  -e '"'"'select count(*) from CE.DERIVEDFACT;'"'"' | sed -r '"'"'s/(^.{240})(.*)/\1/'"'"' | sed -E '"'"'/Warnings \:|Aggregation query used without partition key|\(see tombstone_warn_threshold\)|yyy|^$/d'"'"'
 echo "CE.DERIVEDFACTPRODUCTUSAGE"
-docker exec cassandra_container cqlsh  -e '"'"'select * from CE.DERIVEDFACTPRODUCTUSAGE LIMIT 2;'"'"'
-docker exec cassandra_container cqlsh  -e '"'"'select count(*) from CE.DERIVEDFACTPRODUCTUSAGE;'"'"'
+docker exec cassandra_container cqlsh  -e '"'"'select * from CE.DERIVEDFACTPRODUCTUSAGE LIMIT 2;'"'"' | sed -r '"'"'s/(^.{240})(.*)/\1/'"'"' | sed -E '"'"'/Warnings \:|Aggregation query used without partition key|\(see tombstone_warn_threshold\)|yyy|^$/d'"'"'
+docker exec cassandra_container cqlsh  -e '"'"'select count(*) from CE.DERIVEDFACTPRODUCTUSAGE;'"'"' | sed -r '"'"'s/(^.{240})(.*)/\1/'"'"' | sed -E '"'"'/Warnings \:|Aggregation query used without partition key|\(see tombstone_warn_threshold\)|yyy|^$/d'"'"'
 echo "CE.MEDICALFINDING"
-docker exec cassandra_container cqlsh  -e '"'"'select * from CE.MEDICALFINDING LIMIT 2;'"'"'
-docker exec cassandra_container cqlsh  -e '"'"'select count(*) from CE.MEDICALFINDING;'"'"'
+docker exec cassandra_container cqlsh  -e '"'"'select * from CE.MEDICALFINDING LIMIT 2;'"'"' | sed -r '"'"'s/(^.{240})(.*)/\1/'"'"' | sed -E '"'"'/Warnings \:|Aggregation query used without partition key|\(see tombstone_warn_threshold\)|yyy|^$/d'"'"'
+docker exec cassandra_container cqlsh  -e '"'"'select count(*) from CE.MEDICALFINDING;'"'"' | sed -r '"'"'s/(^.{240})(.*)/\1/'"'"' | sed -E '"'"'/Warnings \:|Aggregation query used without partition key|\(see tombstone_warn_threshold\)|yyy|^$/d'"'"'
 echo "CE.MEDICALFINDINGTYPE"
-docker exec cassandra_container cqlsh  -e '"'"'select * from CE.MEDICALFINDINGTYPE LIMIT 2;'"'"'
-docker exec cassandra_container cqlsh  -e '"'"'select count(*) from CE.MEDICALFINDINGTYPE;'"'"'
+docker exec cassandra_container cqlsh  -e '"'"'select * from CE.MEDICALFINDINGTYPE LIMIT 2;'"'"' | sed -r '"'"'s/(^.{240})(.*)/\1/'"'"' | sed -E '"'"'/Warnings \:|Aggregation query used without partition key|\(see tombstone_warn_threshold\)|yyy|^$/d'"'"'
+docker exec cassandra_container cqlsh  -e '"'"'select count(*) from CE.MEDICALFINDINGTYPE;'"'"' | sed -r '"'"'s/(^.{240})(.*)/\1/'"'"' | sed -E '"'"'/Warnings \:|Aggregation query used without partition key|\(see tombstone_warn_threshold\)|yyy|^$/d'"'"'
 echo "CE.OPPORTUNITYPOINTSDISCR"
-docker exec cassandra_container cqlsh  -e '"'"'select * from CE.OPPORTUNITYPOINTSDISCR LIMIT 2;'"'"'
-docker exec cassandra_container cqlsh  -e '"'"'select count(*) from CE.OPPORTUNITYPOINTSDISCR;'"'"'
+docker exec cassandra_container cqlsh  -e '"'"'select * from CE.OPPORTUNITYPOINTSDISCR LIMIT 2;'"'"' | sed -r '"'"'s/(^.{240})(.*)/\1/'"'"' | sed -E '"'"'/Warnings \:|Aggregation query used without partition key|\(see tombstone_warn_threshold\)|yyy|^$/d'"'"'
+docker exec cassandra_container cqlsh  -e '"'"'select count(*) from CE.OPPORTUNITYPOINTSDISCR;'"'"' | sed -r '"'"'s/(^.{240})(.*)/\1/'"'"' | sed -E '"'"'/Warnings \:|Aggregation query used without partition key|\(see tombstone_warn_threshold\)|yyy|^$/d'"'"'
 echo "CE.PRODUCTFINDING"
-docker exec cassandra_container cqlsh  -e '"'"'select * from CE.PRODUCTFINDING LIMIT 2;'"'"'
-docker exec cassandra_container cqlsh  -e '"'"'select count(*) from CE.PRODUCTFINDING;'"'"'
+docker exec cassandra_container cqlsh  -e '"'"'select * from CE.PRODUCTFINDING LIMIT 2;'"'"' | sed -r '"'"'s/(^.{240})(.*)/\1/'"'"' | sed -E '"'"'/Warnings \:|Aggregation query used without partition key|\(see tombstone_warn_threshold\)|yyy|^$/d'"'"'
+docker exec cassandra_container cqlsh  -e '"'"'select count(*) from CE.PRODUCTFINDING;'"'"' | sed -r '"'"'s/(^.{240})(.*)/\1/'"'"' | sed -E '"'"'/Warnings \:|Aggregation query used without partition key|\(see tombstone_warn_threshold\)|yyy|^$/d'"'"'
 echo "CE.PRODUCTFINDINGTYPE"
-docker exec cassandra_container cqlsh  -e '"'"'select * from CE.PRODUCTFINDINGTYPE LIMIT 2;'"'"'
-docker exec cassandra_container cqlsh  -e '"'"'select count(*) from CE.PRODUCTFINDINGTYPE;'"'"'
+docker exec cassandra_container cqlsh  -e '"'"'select * from CE.PRODUCTFINDINGTYPE LIMIT 2;'"'"' | sed -r '"'"'s/(^.{240})(.*)/\1/'"'"' | sed -E '"'"'/Warnings \:|Aggregation query used without partition key|\(see tombstone_warn_threshold\)|yyy|^$/d'"'"'
+docker exec cassandra_container cqlsh  -e '"'"'select count(*) from CE.PRODUCTFINDINGTYPE;'"'"' | sed -r '"'"'s/(^.{240})(.*)/\1/'"'"' | sed -E '"'"'/Warnings \:|Aggregation query used without partition key|\(see tombstone_warn_threshold\)|yyy|^$/d'"'"'
 echo "CE.PRODUCTOPPORTUNITYPOINTS"
-docker exec cassandra_container cqlsh  -e '"'"'select * from CE.PRODUCTOPPORTUNITYPOINTS LIMIT 2;'"'"'
-docker exec cassandra_container cqlsh  -e '"'"'select count(*) from CE.PRODUCTOPPORTUNITYPOINTS;'"'"'
+docker exec cassandra_container cqlsh  -e '"'"'select * from CE.PRODUCTOPPORTUNITYPOINTS LIMIT 2;'"'"' | sed -r '"'"'s/(^.{240})(.*)/\1/'"'"' | sed -E '"'"'/Warnings \:|Aggregation query used without partition key|\(see tombstone_warn_threshold\)|yyy|^$/d'"'"'
+docker exec cassandra_container cqlsh  -e '"'"'select count(*) from CE.PRODUCTOPPORTUNITYPOINTS;'"'"' | sed -r '"'"'s/(^.{240})(.*)/\1/'"'"' | sed -E '"'"'/Warnings \:|Aggregation query used without partition key|\(see tombstone_warn_threshold\)|yyy|^$/d'"'"'
 echo "CE.RECOMMENDATION"
-docker exec cassandra_container cqlsh  -e '"'"'select * from CE.RECOMMENDATION WHERE recommendationskey;'"'"'
-docker exec cassandra_container cqlsh  -e '"'"'select count(*) from CE.RECOMMENDATION;'"'"'
+docker exec cassandra_container cqlsh  -e '"'"'select * from CE.RECOMMENDATION WHERE recommendationskey;'"'"' | sed -r '"'"'s/(^.{240})(.*)/\1/'"'"' | sed -E '"'"'/Warnings \:|Aggregation query used without partition key|\(see tombstone_warn_threshold\)|yyy|^$/d'"'"'
+docker exec cassandra_container cqlsh  -e '"'"'select count(*) from CE.RECOMMENDATION;'"'"' | sed -r '"'"'s/(^.{240})(.*)/\1/'"'"' | sed -E '"'"'/Warnings \:|Aggregation query used without partition key|\(see tombstone_warn_threshold\)|yyy|^$/d'"'"'
 EOF'
 chmod +x .script
 command time -v ./.script 2> .results
 ../../getExperimentalResults.sh
-../../getDataAsCSVline.sh .results "Howard Deiner" "Local Test That Cassandra Data Loaded" >> Experimental\ Results.csv
+experiment=$(../../getExperimentNumber.sh)
+../../getDataAsCSVline.sh .results ${experiment} "05_Cassanda_Local: Check Cassanda Data" >> Experimental\ Results.csv
 ../../putExperimentalResults.sh
-rm .script .results Experimental\ Results.csv *.csv
+rm .script .results *.csv
 ```
 Liquibase itself is controlled by a liquibase.properties file for now.
 ```bash
-changeLogFile: ../../src/db/changeset.cassandra.sql
+changeLogFile: ../../src/java/CassandraTranslator/changeSet.cassandra.sql
 url:  jdbc:cassandra://localhost:9042/CE;DefaultKeyspace=CE
 username:  cassandra
 password:  cassandra
@@ -227,61 +235,236 @@ driver: com.simba.cassandra.jdbc42.Driver
 defaultSchemaName: CE
 classpath:  ../../liquibase_drivers/CassandraJDBC42.jar:../../liquibase_drivers/liquibase-cassandra-4.0.0.2.jar
 ```
-It is also using this changeset.cassandrq.sql
+It is also using this changeSet.cassandrq.sql, produced by the CassandraTranslator, which uses ANTLR4 for lexing, parsing, and producing the changeset from the present Oracle DDL.
 ```sql
 --liquibase formatted sql
 
---changeset howarddeiner:1
-CREATE TABLE testdatabase.DERIVEDFACT (
-    DERIVEDFACTID BIGINT PRIMARY KEY,
-    DERIVEDFACTTRACKINGID BIGINT,
-    DERIVEDFACTTYPEID BIGINT,
-    INSERTEDBY VARCHAR,
-    RECORDINSERTDT DATE,
-    RECORDUPDTDT DATE,
-    UPDTDBY VARCHAR
-)
--- rollback DROP TABLE testdatabase.DERIVEDFACT;
 
---changeset howarddeiner:2
-CREATE TABLE testdatabase.MEMBERHEALTHSTATE (
-    MEMBERHEALTHSTATESKEY BIGINT PRIMARY KEY,
-    EPISODEID BIGINT,
-    VERSIONNBR BIGINT,
-    STATETYPECD VARCHAR,
-    STATECOMPONENTID BIGINT,
-    MEMBERID BIGINT,
-    HEALTHSTATESTATUSCD VARCHAR,
-    HEALTHSTATESTATUSCHANGERSNCD VARCHAR,
-    HEALTHSTATESTATUSCHANGEDT DATE,
-    HEALTHSTATECHANGEDT DATE,
-    SEVERITYLEVEL VARCHAR,
-    COMPLETIONFLG VARCHAR,
-    CLINICALREVIEWSTATUSCD VARCHAR,
-    CLINICALREVIEWSTATUSDT DATE,
-    LASTEVALUATIONDT DATE,
-    VOIDFLG VARCHAR,
-    INSERTEDBY VARCHAR,
-    INSERTEDDT DATE,
-    UPDATEDBY VARCHAR,
-    UPDATEDDT DATE,
-    SEVERITYSCORE BIGINT,
-    MASTERSUPPLIERID BIGINT,
-    YEARQTR BIGINT,
-    PDCSCOREPERC BIGINT
+
+--changeset CE:1
+CREATE TABLE CE.OPPORTUNITYPOINTSDISCR (
+	OPPORTUNITYPOINTSDISCNM VARCHAR,
+	INSERTEDBY VARCHAR,
+	RECORDINSERTDT TIMESTAMP,
+	RECORDUPDTDT TIMESTAMP,
+	UPDTDBY VARCHAR,
+	OPPORTUNITYPOINTSDISCRCD VARCHAR PRIMARY KEY
 )
--- rollback DROP TABLE testdatabase.MEMBERHEALTHSTATE;
+--rollback DROP TABLE CE.OPPORTUNITYPOINTSDISCR;
+
+
+--changeset CE:2
+CREATE TABLE CE.DERIVEDFACT (
+	DERIVEDFACTTRACKINGID BIGINT,
+	DERIVEDFACTTYPEID BIGINT,
+	INSERTEDBY VARCHAR,
+	RECORDINSERTDT TIMESTAMP,
+	RECORDUPDTDT TIMESTAMP,
+	UPDTDBY VARCHAR,
+	DERIVEDFACTID BIGINT PRIMARY KEY
+)
+--rollback DROP TABLE CE.DERIVEDFACT;
+
+
+--changeset CE:3
+CREATE TABLE CE.RECOMMENDATIONTEXT (
+	RECOMMENDATIONTEXTID BIGINT PRIMARY KEY,
+	RECOMMENDATIONID BIGINT,
+	LANGUAGECD VARCHAR,
+	RECOMMENDATIONTEXTTYPE VARCHAR,
+	MESSAGETYPE VARCHAR,
+	RECOMMENDATIONTITLE VARCHAR,
+	RECOMMENDATIONTEXT VARCHAR,
+	RECORDINSERTDT TIMESTAMP,
+	RECORDUPDATEDT TIMESTAMP,
+	INSERTEDBY VARCHAR,
+	UPDATEDBY VARCHAR,
+	DEFAULTIN VARCHAR
+)
+--rollback DROP TABLE CE.RECOMMENDATIONTEXT;
+
+
+--changeset CE:4
+CREATE TABLE CE.CLINICAL_CONDITION (
+	CLINICAL_CONDITION_NAM VARCHAR,
+	INSERTED_BY VARCHAR,
+	REC_INSERT_DATE DATE,
+	REC_UPD_DATE DATE,
+	UPDATED_BY VARCHAR,
+	CLINICALCONDITIONCLASSCD BIGINT,
+	CLINICALCONDITIONTYPECD VARCHAR,
+	CLINICALCONDITIONABBREV VARCHAR,
+	CLINICAL_CONDITION_COD BIGINT PRIMARY KEY
+)
+--rollback DROP TABLE CE.CLINICAL_CONDITION;
+
+
+--changeset CE:5
+CREATE TABLE CE.PRODUCTOPPORTUNITYPOINTS (
+	OPPORTUNITYPOINTSDISCCD VARCHAR PRIMARY KEY,
+	EFFECTIVESTARTDT DATE,
+	OPPORTUNITYPOINTSNBR BIGINT,
+	EFFECTIVEENDDT DATE,
+	DERIVEDFACTPRODUCTUSAGEID BIGINT,
+	INSERTEDBY VARCHAR,
+	RECORDINSERTDT TIMESTAMP,
+	RECORDUPDTDT TIMESTAMP,
+	UPDTDBY VARCHAR
+)
+--rollback DROP TABLE CE.PRODUCTOPPORTUNITYPOINTS;
+
+
+--changeset CE:6
+CREATE TABLE CE.MEDICALFINDING (
+	MEDICALFINDINGID BIGINT PRIMARY KEY,
+	MEDICALFINDINGTYPECD VARCHAR,
+	MEDICALFINDINGNM VARCHAR,
+	SEVERITYLEVELCD VARCHAR,
+	IMPACTABLEFLG VARCHAR,
+	CLINICAL_CONDITION_COD BIGINT,
+	INSERTEDBY VARCHAR,
+	RECORDINSERTDT TIMESTAMP,
+	RECORDUPDTDT TIMESTAMP,
+	UPDTDBY VARCHAR,
+	ACTIVEFLG VARCHAR,
+	OPPORTUNITYPOINTSDISCRCD VARCHAR
+)
+--rollback DROP TABLE CE.MEDICALFINDING;
+
+
+--changeset CE:7
+CREATE TABLE CE.DERIVEDFACTPRODUCTUSAGE (
+	DERIVEDFACTID BIGINT,
+	PRODUCTMNEMONICCD VARCHAR,
+	INSERTEDBY VARCHAR,
+	RECORDINSERTDT TIMESTAMP,
+	RECORDUPDTDT TIMESTAMP,
+	UPDTDBY VARCHAR,
+	DERIVEDFACTPRODUCTUSAGEID BIGINT PRIMARY KEY
+)
+--rollback DROP TABLE CE.DERIVEDFACTPRODUCTUSAGE;
+
+
+--changeset CE:8
+CREATE TABLE CE.PRODUCTFINDINGTYPE (
+	PRODUCTFINDINGTYPECD VARCHAR PRIMARY KEY,
+	PRODUCTFINDINGTYPEDESC VARCHAR,
+	INSERTEDBY VARCHAR,
+	RECORDINSERTDT TIMESTAMP,
+	RECORDUPDTDT TIMESTAMP,
+	UPDTDBY VARCHAR
+)
+--rollback DROP TABLE CE.PRODUCTFINDINGTYPE;
+
+
+--changeset CE:9
+CREATE TABLE CE.RECOMMENDATION (
+	RECOMMENDATIONSKEY BIGINT PRIMARY KEY,
+	RECOMMENDATIONID BIGINT,
+	RECOMMENDATIONCODE VARCHAR,
+	RECOMMENDATIONDESC VARCHAR,
+	RECOMMENDATIONTYPE VARCHAR,
+	CCTYPE VARCHAR,
+	CLINICALREVIEWTYPE VARCHAR,
+	AGERANGEID BIGINT,
+	ACTIONCODE VARCHAR,
+	THERAPEUTICCLASS VARCHAR,
+	MDCCODE VARCHAR,
+	MCCCODE VARCHAR,
+	PRIVACYCATEGORY VARCHAR,
+	INTERVENTION VARCHAR,
+	RECOMMENDATIONFAMILYID BIGINT,
+	RECOMMENDPRECEDENCEGROUPID BIGINT,
+	INBOUNDCOMMUNICATIONROUTE VARCHAR,
+	SEVERITY VARCHAR,
+	PRIMARYDIAGNOSIS VARCHAR,
+	SECONDARYDIAGNOSIS VARCHAR,
+	ADVERSEEVENT VARCHAR,
+	ICMCONDITIONID BIGINT,
+	WELLNESSFLAG VARCHAR,
+	VBFELIGIBLEFLAG VARCHAR,
+	COMMUNICATIONRANKING BIGINT,
+	PRECEDENCERANKING BIGINT,
+	PATIENTDERIVEDFLAG VARCHAR,
+	LABREQUIREDFLAG VARCHAR,
+	UTILIZATIONTEXTAVAILABLEF VARCHAR,
+	SENSITIVEMESSAGEFLAG VARCHAR,
+	HIGHIMPACTFLAG VARCHAR,
+	ICMLETTERFLAG VARCHAR,
+	REQCLINICIANCLOSINGFLAG VARCHAR,
+	OPSIMPELMENTATIONPHASE BIGINT,
+	SEASONALFLAG VARCHAR,
+	SEASONALSTARTDT DATE,
+	SEASONALENDDT DATE,
+	EFFECTIVESTARTDT DATE,
+	EFFECTIVEENDDT DATE,
+	RECORDINSERTDT TIMESTAMP,
+	RECORDUPDTDT TIMESTAMP,
+	INSERTEDBY VARCHAR,
+	UPDTDBY VARCHAR,
+	STANDARDRUNFLAG VARCHAR,
+	INTERVENTIONFEEDBACKFAMILYID BIGINT,
+	CONDITIONFEEDBACKFAMILYID BIGINT,
+	ASHWELLNESSELIGIBILITYFLAG VARCHAR,
+	HEALTHADVOCACYELIGIBILITYFLAG VARCHAR
+)
+--rollback DROP TABLE CE.RECOMMENDATION;
+
+
+--changeset CE:10
+CREATE TABLE CE.PRODUCTFINDING (
+	PRODUCTFINDINGID BIGINT PRIMARY KEY,
+	PRODUCTFINDINGNM VARCHAR,
+	SEVERITYLEVELCD VARCHAR,
+	PRODUCTFINDINGTYPECD VARCHAR,
+	PRODUCTMNEMONICCD VARCHAR,
+	SUBPRODUCTMNEMONICCD VARCHAR,
+	INSERTEDBY VARCHAR,
+	RECORDINSERTDT TIMESTAMP,
+	RECORDUPDTDT TIMESTAMP,
+	UPDTDBY VARCHAR
+)
+--rollback DROP TABLE CE.PRODUCTFINDING;
+
+
+--changeset CE:11
+CREATE TABLE CE.MEDICALFINDINGTYPE (
+	MEDICALFINDINGTYPEDESC VARCHAR,
+	INSERTEDBY VARCHAR,
+	RECORDINSERTDT TIMESTAMP,
+	RECORDUPDTDT TIMESTAMP,
+	UPDTDBY VARCHAR,
+	HEALTHSTATEAPPLICABLEFLAG VARCHAR,
+	MEDICALFINDINGTYPECD VARCHAR PRIMARY KEY
+)
+--rollback DROP TABLE CE.MEDICALFINDINGTYPE;
 ```
 
-### 03_shutdown.sh
+### 04_shutdown.sh
 This script is brutely simple.  It uses docker-compose to bring down the environment it established, and then uses docker volume rm to delete the data which held the bits for out database data.
 
 ```bash
 #!/usr/bin/env bash
 
-figlet -w 160 -f small "Shutdown Cassandra Locally"
-docker-compose -f docker-compose.yml down
-docker volume rm 01_cassandra_local_cassandra_data
+bash -c 'cat << "EOF" > .script
+#!/usr/bin/env bash
+figlet -w 240 -f small "Shutdown Cassandra and CECacheServer Locally"
+docker-compose -f docker-compose.app.yml down
+docker volume rm 05_cassandra_local_cecacheserver_data
+docker-compose -f docker-compose.yml -f docker-compose.app.yml down
+docker volume rm 05_cassandra_local_cassandra_data
+docker volume rm 05_cassandra_local_cassandra_config
+docker volume rm 05_cassandra_local_cassandraweb_data
+EOF'
+chmod +x .script
+command time -v ./.script 2> .results
+../../getExperimentalResults.sh
+experiment=$(../../getExperimentNumber.sh)
+../../getDataAsCSVline.sh .results ${experiment} "05_Cassandra_Local: Shutdown Cassandra and CECacheServer Locally" >> Experimental\ Results.csv
+../../putExperimentalResults.sh
+rm .script .results Experimental\ Results.csv
+
+../../endExperiment.sh
 ```
 
 ### Putting it all together...
@@ -296,9 +479,10 @@ It all looks something like this:
 ![02_populate_04](README_assets/02_populate_04.png)\
 ![02_populate_05](README_assets/02_populate_05.png)\
 ![02_populate_06](README_assets/02_populate_06.png)\
-![02_populate_07](README_assets/02_populate_07.png)\
 <BR />
-![03_shutdown](README_assets/03_shutdown.png)\
+![03_startup_app](README_assets/03_startup_app.png)\
+<BR />
+![04_shutdown](README_assets/04_shutdown.png)\
 <BR />
 And just for laughs, here's the timings for this run.  All kept in a csv file in S3 at s3://health-engine-aws-poc/Experimental Results.csv
 ![Experimental Results](README_assets/Experimental Results.png)\
