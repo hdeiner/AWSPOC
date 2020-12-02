@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+../../startExperiment.sh
+
 bash -c 'cat << "EOF" > .script
 #!/usr/bin/env bash
 figlet -w 200 -f small "Startup Cassandra on AWS"
@@ -9,6 +11,7 @@ EOF'
 chmod +x .script
 command time -v ./.script 2> .results
 ../../getExperimentalResults.sh
-../../getDataAsCSVline.sh .results "Howard Deiner" "AWS Startup Cassandra (Client Side)" >> Experimental\ Results.csv
+experiment=$(../../getExperimentNumber.sh)
+../../getDataAsCSVline.sh .results "${experiment}" "06_Cassandra_AWS: Startup Cassandra AWS" >> Experimental\ Results.csv
 ../../putExperimentalResults.sh
 rm .script .results Experimental\ Results.csv

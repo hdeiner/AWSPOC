@@ -1,7 +1,7 @@
 resource "aws_instance" "cassandra_ec2_instance" {
   ami = "ami-0ac80df6eff0e70b5"  #  Ubuntu 18.04 LTS - Bionic - hvm:ebs-ssde  https://cloud-images.ubuntu.com/locator/ec2/
   instance_type = "m5.large"   # $0.096/hour ; 2 vCPU  ; 10 ECU  ; 8 GiB memory   ; EBS disk              ; EBS Optimized by default
-#  instance_type = "m5d.metal" # $5.424/hour ; 96 vCPU ; 345 ECU ; 384 GiB memory ; 4 x 900 NVMe SSD disk ; EBS Optimized by default ; max bandwidth 19,000 Mbps ; max throughput 2,375 MB/s ; Max IOPS 80,000
+  #  instance_type = "m5d.metal" # $5.424/hour ; 96 vCPU ; 345 ECU ; 384 GiB memory ; 4 x 900 NVMe SSD disk ; EBS Optimized by default ; max bandwidth 19,000 Mbps ; max throughput 2,375 MB/s ; Max IOPS 80,000
   key_name = aws_key_pair.cassandra_key_pair.key_name
   ebs_optimized = true
   security_groups = [aws_security_group.cassandra.name]
@@ -48,14 +48,15 @@ resource "aws_instance" "cassandra_ec2_instance" {
     source = "~/.aws/credentials"
     destination = "/home/ubuntu/.aws/credentials"
   }
-  provisioner "remote-exec" {
+  provisioner "file" {
     connection {
       type = "ssh"
       user = "ubuntu"
       host = self.public_dns
       private_key = file("~/.ssh/id_rsa")
     }
-    script = "provision.cassandra.sh"
+    source      = "../../getExperimentNumber.sh"
+    destination = "/tmp/getExperimentNumber.sh"
   }
   provisioner "file" {
     connection {
@@ -64,8 +65,74 @@ resource "aws_instance" "cassandra_ec2_instance" {
       host = self.public_dns
       private_key = file("~/.ssh/id_rsa")
     }
-    source      = "../../src/db/changeset.cassandra.sql"
-    destination = "/tmp/changeset.cassandra.sql"
+    source      = "../../getExperimentalResults.sh"
+    destination = "/tmp/getExperimentalResults.sh"
+  }
+  provisioner "file" {
+    connection {
+      type = "ssh"
+      user = "ubuntu"
+      host = self.public_dns
+      private_key = file("~/.ssh/id_rsa")
+    }
+    source      = "../../getDataAsCSVline.sh"
+    destination = "/tmp/getDataAsCSVline.sh"
+  }
+  provisioner "file" {
+    connection {
+      type = "ssh"
+      user = "ubuntu"
+      host = self.public_dns
+      private_key = file("~/.ssh/id_rsa")
+    }
+    source      = "../../putExperimentalResults.sh"
+    destination = "/tmp/putExperimentalResults.sh"
+  }
+  provisioner "remote-exec" {
+    connection {
+      type = "ssh"
+      user = "ubuntu"
+      host = self.public_dns
+      private_key = file("~/.ssh/id_rsa")
+    }
+    inline = [
+      "chmod +x /tmp/getExperimentNumber.sh",
+      "chmod +x /tmp/getExperimentalResults.sh",
+      "chmod +x /tmp/getDataAsCSVline.sh",
+      "chmod +x /tmp/putExperimentalResults.sh"
+    ]
+  }
+  provisioner "file" {
+    connection {
+      type = "ssh"
+      user = "ubuntu"
+      host = self.public_dns
+      private_key = file("~/.ssh/id_rsa")
+    }
+    source      = "provision.cassandra.sh"
+    destination = "/tmp/provision.cassandra.sh"
+  }
+  provisioner "remote-exec" {
+    connection {
+      type = "ssh"
+      user = "ubuntu"
+      host = self.public_dns
+      private_key = file("~/.ssh/id_rsa")
+    }
+    inline = [
+      "chmod +x /tmp/provision.cassandra.sh",
+      "/tmp/provision.cassandra.sh",
+    ]
+  }
+  provisioner "file" {
+    connection {
+      type = "ssh"
+      user = "ubuntu"
+      host = self.public_dns
+      private_key = file("~/.ssh/id_rsa")
+    }
+    source      = "../../src/java/CassandraTranslator/changeSet.cassandra.sql"
+    destination = "/tmp/changeSet.cassandra.sql"
   }
   provisioner "file" {
     connection {
@@ -153,8 +220,8 @@ resource "aws_instance" "cassandra_ec2_instance" {
     inline = [
       "chmod +x /tmp/import_GPG_keys.sh",
       "/tmp/import_GPG_keys.sh /tmp/HealthEngine.AWSPOC.public.key /tmp/HealthEngine.AWSPOC.private.key",
-      "rm /tmp/import_GPG_keys.sh /tmp/HealthEngine.AWSPOC.public.key /tmp/HealthEngine.AWSPOC.private.key",
-      "chmod +x /tmp/transfer_from_s3_and_decrypt.sh"
+      "chmod +x /tmp/transfer_from_s3_and_decrypt.sh",
+      "rm /tmp/import_GPG_keys.sh /tmp/*.key"
     ]
   }
   provisioner "file" {
@@ -164,50 +231,7 @@ resource "aws_instance" "cassandra_ec2_instance" {
       host = self.public_dns
       private_key = file("~/.ssh/id_rsa")
     }
-    source      = "../../getExperimentalResults.sh"
-    destination = "/tmp/getExperimentalResults.sh"
-  }
-  provisioner "file" {
-    connection {
-      type = "ssh"
-      user = "ubuntu"
-      host = self.public_dns
-      private_key = file("~/.ssh/id_rsa")
-    }
-    source      = "../../getDataAsCSVline.sh"
-    destination = "/tmp/getDataAsCSVline.sh"
-  }
-  provisioner "file" {
-    connection {
-      type = "ssh"
-      user = "ubuntu"
-      host = self.public_dns
-      private_key = file("~/.ssh/id_rsa")
-    }
-    source      = "../../putExperimentalResults.sh"
-    destination = "/tmp/putExperimentalResults.sh"
-  }
-  provisioner "remote-exec" {
-    connection {
-      type = "ssh"
-      user = "ubuntu"
-      host = self.public_dns
-      private_key = file("~/.ssh/id_rsa")
-    }
-    inline = [
-      "chmod +x /tmp/getExperimentalResults.sh",
-      "chmod +x /tmp/getDataAsCSVline.sh",
-      "chmod +x /tmp/putExperimentalResults.sh"
-    ]
-  }
-  provisioner "file" {
-    connection {
-      type = "ssh"
-      user = "ubuntu"
-      host = self.public_dns
-      private_key = file("~/.ssh/id_rsa")
-    }
-    source      = "../../transform_Oracle_ce.ClinicalCondition_to_csv.sh"
+    source      = "../transform_Oracle_ce.ClinicalCondition_to_csv.sh"
     destination = "/tmp/transform_Oracle_ce.ClinicalCondition_to_csv.sh"
   }
   provisioner "file" {
@@ -217,7 +241,7 @@ resource "aws_instance" "cassandra_ec2_instance" {
       host = self.public_dns
       private_key = file("~/.ssh/id_rsa")
     }
-    source      = "../../transform_Oracle_ce.DerivedFact_to_csv.sh"
+    source      = "../transform_Oracle_ce.DerivedFact_to_csv.sh"
     destination = "/tmp/transform_Oracle_ce.DerivedFact_to_csv.sh"
   }
   provisioner "file" {
@@ -227,7 +251,7 @@ resource "aws_instance" "cassandra_ec2_instance" {
       host = self.public_dns
       private_key = file("~/.ssh/id_rsa")
     }
-    source      = "../../transform_Oracle_ce.DerivedFactProductUsage_to_csv.sh"
+    source      = "../transform_Oracle_ce.DerivedFactProductUsage_to_csv.sh"
     destination = "/tmp/transform_Oracle_ce.DerivedFactProductUsage_to_csv.sh"
   }
   provisioner "file" {
@@ -237,7 +261,7 @@ resource "aws_instance" "cassandra_ec2_instance" {
       host = self.public_dns
       private_key = file("~/.ssh/id_rsa")
     }
-    source      = "../../transform_Oracle_ce.MedicalFinding_to_csv.sh"
+    source      = "../transform_Oracle_ce.MedicalFinding_to_csv.sh"
     destination = "/tmp/transform_Oracle_ce.MedicalFinding_to_csv.sh"
   }
   provisioner "file" {
@@ -247,7 +271,7 @@ resource "aws_instance" "cassandra_ec2_instance" {
       host = self.public_dns
       private_key = file("~/.ssh/id_rsa")
     }
-    source      = "../../transform_Oracle_ce.MedicalFindingType_to_csv.sh"
+    source      = "../transform_Oracle_ce.MedicalFindingType_to_csv.sh"
     destination = "/tmp/transform_Oracle_ce.MedicalFindingType_to_csv.sh"
   }
   provisioner "file" {
@@ -257,7 +281,7 @@ resource "aws_instance" "cassandra_ec2_instance" {
       host = self.public_dns
       private_key = file("~/.ssh/id_rsa")
     }
-    source      = "../../transform_Oracle_ce.OpportunityPointsDiscr_to_csv.sh"
+    source      = "../transform_Oracle_ce.OpportunityPointsDiscr_to_csv.sh"
     destination = "/tmp/transform_Oracle_ce.OpportunityPointsDiscr_to_csv.sh"
   }
   provisioner "file" {
@@ -267,7 +291,7 @@ resource "aws_instance" "cassandra_ec2_instance" {
       host = self.public_dns
       private_key = file("~/.ssh/id_rsa")
     }
-    source      = "../../transform_Oracle_ce.ProductFinding_to_csv.sh"
+    source      = "../transform_Oracle_ce.ProductFinding_to_csv.sh"
     destination = "/tmp/transform_Oracle_ce.ProductFinding_to_csv.sh"
   }
   provisioner "file" {
@@ -277,7 +301,7 @@ resource "aws_instance" "cassandra_ec2_instance" {
       host = self.public_dns
       private_key = file("~/.ssh/id_rsa")
     }
-    source      = "../../transform_Oracle_ce.ProductFindingType_to_csv.sh"
+    source      = "../transform_Oracle_ce.ProductFindingType_to_csv.sh"
     destination = "/tmp/transform_Oracle_ce.ProductFindingType_to_csv.sh"
   }
   provisioner "file" {
@@ -287,7 +311,7 @@ resource "aws_instance" "cassandra_ec2_instance" {
       host = self.public_dns
       private_key = file("~/.ssh/id_rsa")
     }
-    source      = "../../transform_Oracle_ce.ProductOpportunityPoints_to_csv.sh"
+    source      = "../transform_Oracle_ce.ProductOpportunityPoints_to_csv.sh"
     destination = "/tmp/transform_Oracle_ce.ProductOpportunityPoints_to_csv.sh"
   }
   provisioner "file" {
@@ -297,7 +321,7 @@ resource "aws_instance" "cassandra_ec2_instance" {
       host = self.public_dns
       private_key = file("~/.ssh/id_rsa")
     }
-    source      = "../../transform_Oracle_ce.Recommendation_to_csv.sh"
+    source      = "../transform_Oracle_ce.Recommendation_to_csv.sh"
     destination = "/tmp/transform_Oracle_ce.Recommendation_to_csv.sh"
   }
   provisioner "remote-exec" {
@@ -320,6 +344,16 @@ resource "aws_instance" "cassandra_ec2_instance" {
       "chmod +x /tmp/transform_Oracle_ce.Recommendation_to_csv.sh",
     ]
   }
+  provisioner "file" {
+    connection {
+      type = "ssh"
+      user = "ubuntu"
+      host = self.public_dns
+      private_key = file("~/.ssh/id_rsa")
+    }
+    source      = "02_populate.sh"
+    destination = "/tmp/02_populate.sh"
+  }
   provisioner "remote-exec" {
     connection {
       type = "ssh"
@@ -327,7 +361,10 @@ resource "aws_instance" "cassandra_ec2_instance" {
       host = self.public_dns
       private_key = file("~/.ssh/id_rsa")
     }
-    script = "02_populate.sh"
+    inline = [
+      "chmod +x /tmp/02_populate.sh",
+      "/tmp/02_populate.sh"
+    ]
   }
 }
 
@@ -347,4 +384,3 @@ resource "aws_instance" "cassandra_ec2_instance" {
 # FOR NOW, JUST USE ROOT DEVICE   instance_id = aws_instance.cassandra_ec2_instance.id
 # FOR NOW, JUST USE ROOT DEVICE   volume_id   = aws_ebs_volume.cassandra_ebs_volume.id
 # FOR NOW, JUST USE ROOT DEVICE }
-
