@@ -246,7 +246,8 @@ resource "aws_instance" "oracle_ec2_instance" {
       "chmod +x /tmp/import_GPG_keys.sh",
       "/tmp/import_GPG_keys.sh /tmp/HealthEngine.AWSPOC.public.key /tmp/HealthEngine.AWSPOC.private.key",
       "chmod +x /tmp/transfer_from_s3_and_decrypt.sh",
-      "rm /tmp/import_GPG_keys.sh /tmp/*.key"]
+      "rm /tmp/import_GPG_keys.sh /tmp/*.key"
+    ]
   }
   provisioner "file" {
     connection {
