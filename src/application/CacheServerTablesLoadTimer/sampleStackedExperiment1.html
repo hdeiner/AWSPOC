@@ -1,0 +1,125 @@
+<!doctype html>
+<html>
+
+<head>
+	<title>HealthEngineAWSPOC</title>
+	<script src="dist/chart.min.js"></script>
+	<script src="utils.js"></script>
+	<style>
+	canvas {
+		-moz-user-select: none;
+		-webkit-user-select: none;
+		-ms-user-select: none;
+	}
+	</style>
+</head>
+
+<body>
+	<div style="width: 75%">
+		<canvas id="canvas"></canvas>
+	</div>
+
+	<style>
+		div {
+			display: table;
+			margin-right: auto;
+			margin-left: auto;
+		}
+	</style>
+
+	<script>
+		var barChartData = {
+			labels: ['Postgres', 'MySQL', 'Cassandra', 'Oracle', 'MongoDB', 'Ignite'],
+			datasets: [{
+				label: 'CE.DerivedFact',
+				backgroundColor: window.chartColors.red,
+				data: [
+					755, 999, 12835, 0, 2005, 962
+				]
+			}, {
+				label: 'CE.MedicalFinding',
+				backgroundColor: window.chartColors.blue,
+				data: [
+					47, 57, 1565, 0, 170, 56
+				]
+			}, {
+				label: 'CE.ClinicalCondition',
+				backgroundColor: '#191970',
+				data: [
+					8, 21, 105, 0, 19, 27
+				]
+			}, {
+				label: 'CE.DerivedFactProductUsage',
+				backgroundColor: window.chartColors.green,
+				data: [
+					23, 51, 1132, 0, 57, 62
+				]
+			}, {
+				label: 'CE.MedicalFindingType',
+				backgroundColor: window.chartColors.orange,
+				data: [
+					4, 4, 14, 0, 5, 7
+				]
+			}, {
+				label: 'CE.OpportunityPointsDiscr',
+				backgroundColor: window.chartColors.purple,
+				data: [
+					3, 3, 17, 0, 4, 7
+				]
+			}, {
+				label: 'CE.ProductFinding',
+				backgroundColor: '#FFFF00',
+				data: [
+					3, 4, 26, 0, 8, 9
+				]
+			}, {
+				label: 'CE.ProductFindingType',
+				backgroundColor: '#008B8B',
+				data: [
+					3, 4, 22, 0, 4, 10
+				]
+			}, {
+				label: 'CE.ProductOpportunityPoints',
+				backgroundColor: '#FF69B4',
+				data: [
+					17, 29, 34, 0, 64, 4
+				]
+			}, {
+				label: 'CE.Recommendation',
+				backgroundColor: '#800000',
+				data: [
+					9, 11, 11, 0, 221, 9
+				]
+			}]
+
+		};
+		window.onload = function() {
+			var ctx = document.getElementById('canvas').getContext('2d');
+			window.myBar = new Chart(ctx, {
+				type: 'bar',
+				data: barChartData,
+				options: {
+					title: {
+						display: true,
+						text: 'Tables data load elapsed time (milliseconds)'
+					},
+					tooltips: {
+						mode: 'index',
+						intersect: false
+					},
+					responsive: true,
+					scales: {
+						x: {
+							stacked: true,
+						},
+						y: {
+							stacked: true
+						}
+					}
+				}
+			});
+		};
+	</script>
+</body>
+
+</html>

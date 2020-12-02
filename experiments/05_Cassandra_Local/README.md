@@ -440,6 +440,77 @@ CREATE TABLE CE.MEDICALFINDINGTYPE (
 --rollback DROP TABLE CE.MEDICALFINDINGTYPE;
 ```
 
+### 03_startup_app.sh
+Here, we bring up the CECacheServer with docker-compose with the same network as we used to bring up Apache Ignite in, so the CECacheServer can make requests of the database.
+<BR/>
+Normally, we would do this in the 01_startup.sh script, but we want to seperate out the effects of the database from the application for performance collection purposes, so we do it here.
+
+```bash
+#!/usr/bin/env bash
+
+bash -c 'cat << "EOF" > .script
+#!/usr/bin/env bash
+figlet -w 240 -f small "Startup CECacheServer Locally"
+docker volume rm 07_oracle_local_oracle_data
+docker-compose -f docker-compose.app.yml up -d --build
+
+echo "Wait For CECacheServer To Start"
+while true ; do
+  docker logs cecacheserver_fororacle_container > stdout.txt 2> stderr.txt
+#  result=$(grep -cE "<<<<< Local Cache Statistics <<<<<" stdout.txt) cecacheserver_formongodb_container is failing!
+  result=$(grep -cE "using Agent sizeof engine" stdout.txt)
+  if [ $result != 0 ] ; then
+    echo "CECacheServer has started"
+    break
+  fi
+  sleep 5
+done
+rm stdout.txt stderr.txt
+EOF'
+chmod +x .script
+command time -v ./.script 2> .results
+../../getExperimentalResults.sh
+experiment=$(../../getExperimentNumber.sh)
+../../getDataAsCSVline.sh .results ${experiment} "07_Oracle_Local: Startup CECacheServer Locally" >> Experimental\ Results.csv
+../../putExperimentalResults.sh
+rm .script .results Experimental\ Results.csv
+```
+
+### 03_startup_app.sh
+Here, we bring up the CECacheServer with docker-compose with the same network as we used to bring up Apache Cassandra in, so the CECacheServer can make requests of the database.
+<BR/>
+Normally, we would do this in the 01_startup.sh script, but we want to seperate out the effects of the database from the application for performance collection purposes, so we do it here.
+
+```bash
+#!/usr/bin/env bash
+
+bash -c 'cat << "EOF" > .script
+#!/usr/bin/env bash
+figlet -w 160 -f small "Startup CECacheServer Locally"
+docker volume rm 05_cassandra_local_cecacheserver_data
+docker-compose -f docker-compose.app.yml up -d --build
+
+echo "Wait For CECacheServer To Start"
+while true ; do
+  docker logs cecacheserver_forcassandra_container > stdout.txt 2> stderr.txt
+  result=$(grep -cE "<<<<< Local Cache Statistics <<<<<" stdout.txt)
+  if [ $result != 0 ] ; then
+    echo "CECacheServer has started"
+    break
+  fi
+  sleep 5
+done
+rm stdout.txt stderr.txt
+EOF'
+chmod +x .script
+command time -v ./.script 2> .results
+../../getExperimentalResults.sh
+experiment=$(../../getExperimentNumber.sh)
+../../getDataAsCSVline.sh .results ${experiment} "05_Cassandra_Local: Startup CECacheServer Locally" >> Experimental\ Results.csv
+../../putExperimentalResults.sh
+rm .script .results Experimental\ Results.csv
+```
+
 ### 04_shutdown.sh
 This script is brutely simple.  It uses docker-compose to bring down the environment it established, and then uses docker volume rm to delete the data which held the bits for out database data.
 

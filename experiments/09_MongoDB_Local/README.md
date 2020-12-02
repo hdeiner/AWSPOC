@@ -228,7 +228,7 @@ rm .script .mongo.js .results *.csv
 ```
 
 ### 03_startup_app.sh
-Here, we bring up the CECacheServer with docker-compose with the same network as we used to bring up Apache Ignite in, so the CECacheServer can make requests of the database.
+Here, we bring up the CECacheServer with docker-compose with the same network as we used to bring up MongoDB in, so the CECacheServer can make requests of the database.
 <BR/>
 Normally, we would do this in the 01_startup.sh script, but we want to seperate out the effects of the database from the application for performance collection purposes, so we do it here.
 

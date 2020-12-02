@@ -9,8 +9,7 @@ docker-compose -f docker-compose.app.yml up -d --build
 echo "Wait For CECacheServer To Start"
 while true ; do
   docker logs cecacheserver_fororacle_container > stdout.txt 2> stderr.txt
-#  result=$(grep -cE "<<<<< Local Cache Statistics <<<<<" stdout.txt) cecacheserver_formongodb_container is failing!
-  result=$(grep -cE "using Agent sizeof engine" stdout.txt)
+  result=$(grep -cE "<<<<< Local Cache Statistics <<<<<" stdout.txt)
   if [ $result != 0 ] ; then
     echo "CECacheServer has started"
     break

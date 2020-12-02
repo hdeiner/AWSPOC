@@ -3,6 +3,8 @@
 bash -c 'cat << "EOF" > .script
 #!/usr/bin/env bash
 figlet -w 160 -f small "Populate MySQL Locally"
+
+figlet -w 240 -f small "Apply Schema for MySQL Locally"
 docker exec mysql_container echo '"'"'CREATE DATABASE CE;'"'"' | mysql -h 127.0.0.1 -P 3306 -u root --password=password
 cp ../../src/java/Translator/changeSet.xml changeSet.xml
 # fix <createTable tableName="CE. to become <createTable tableName="
@@ -13,13 +15,14 @@ EOF'
 chmod +x .script
 command time -v ./.script 2> .results
 ../../getExperimentalResults.sh
-../../getDataAsCSVline.sh .results "Howard Deiner" "Local Update MySQL Schema" >> Experimental\ Results.csv
+experiment=$(../../getExperimentNumber.sh)
+../../getDataAsCSVline.sh .results ${experiment} "03_MySQL_Local: Populate MySQL Schema" >> Experimental\ Results.csv
 ../../putExperimentalResults.sh
 rm .script .results Experimental\ Results.csv
 
 bash -c 'cat << "EOF" > .script
 #!/usr/bin/env bash
-figlet -w 240 -f small "Get MySQL Data from S3 Bucket"
+figlet -w 240 -f small "Get Data from S3 Bucket"
 ../../data/transfer_from_s3_and_decrypt.sh ce.ClinicalCondition.csv
 ../../data/transfer_from_s3_and_decrypt.sh ce.DerivedFact.csv
 ../../data/transfer_from_s3_and_decrypt.sh ce.DerivedFactProductUsage.csv
@@ -34,13 +37,14 @@ EOF'
 chmod +x .script
 command time -v ./.script 2> .results
 ../../getExperimentalResults.sh
-../../getDataAsCSVline.sh .results "Howard Deiner" "Local Get MySQL Data from S3 Bucket" >> Experimental\ Results.csv
+experiment=$(../../getExperimentNumber.sh)
+../../getDataAsCSVline.sh .results ${experiment} "03_MySQL_Local: Get Data from S3 Bucket" >> Experimental\ Results.csv
 ../../putExperimentalResults.sh
 rm .script .results Experimental\ Results.csv
 
 bash -c 'cat << "EOF" > .script
 #!/usr/bin/env bash
-figlet -w 240 -f small "Process S3 Data into MySQL CSV File For Import"
+figlet -w 240 -f small "Process S3 Data into CSV Files For Import"
 ../transform_Oracle_ce.ClinicalCondition_to_csv.sh
 ../transform_Oracle_ce.DerivedFact_to_csv.sh
 ../transform_Oracle_ce.DerivedFactProductUsage_to_csv.sh
@@ -55,13 +59,14 @@ EOF'
 chmod +x .script
 command time -v ./.script 2> .results
 ../../getExperimentalResults.sh
-../../getDataAsCSVline.sh .results "Howard Deiner" "Local Process S3 Data into MySQL CSV File For Import" >> Experimental\ Results.csv
+experiment=$(../../getExperimentNumber.sh)
+../../getDataAsCSVline.sh .results ${experiment} "03_MySQL_Local: Process S3 Data into CSV Files For Import" >> Experimental\ Results.csv
 ../../putExperimentalResults.sh
 rm .script .results Experimental\ Results.csv
 
 bash -c 'cat << "EOF" > .script
 #!/usr/bin/env bash
-figlet -w 240 -f small "Load MySQL Data"
+figlet -w 240 -f small "Populate Oracle Data"
 echo "CE.CLINICAL_CONDITION"
 docker cp ce.ClinicalCondition.csv mysql_container:/tmp/ce.ClinicalCondition.csv
 docker exec mysql_container echo '"'"'LOAD DATA INFILE "/tmp/ce.ClinicalCondition.csv" INTO TABLE CE.CLINICAL_CONDITION FIELDS TERMINATED BY "," LINES TERMINATED BY "\n" IGNORE 1 ROWS (CLINICAL_CONDITION_COD,CLINICAL_CONDITION_NAM,INSERTED_BY,REC_INSERT_DATE,REC_UPD_DATE,UPDATED_BY,@CLINICALCONDITIONCLASSCD,CLINICALCONDITIONTYPECD,CLINICALCONDITIONABBREV) SET CLINICALCONDITIONCLASSCD = IF(@CLINICALCONDITIONCLASSCD="",NULL,@CLINICALCONDITIONCLASSCD);'"'"' | mysql -h 127.0.0.1 -P 3306 -u root --password=password CE
@@ -96,13 +101,14 @@ EOF'
 chmod +x .script
 command time -v ./.script 2> .results
 ../../getExperimentalResults.sh
-../../getDataAsCSVline.sh .results "Howard Deiner" "Local Load MySQL Data" >> Experimental\ Results.csv
+experiment=$(../../getExperimentNumber.sh)
+../../getDataAsCSVline.sh .results ${experiment} "03_MySQL_Local: Populate MySQL Data" >> Experimental\ Results.csv
 ../../putExperimentalResults.sh
 rm .script .results Experimental\ Results.csv
 
 bash -c 'cat << "EOF" > .script
 #!/usr/bin/env bash
-figlet -w 160 -f small "Check MySQL Locally"
+figlet -w 160 -f small "Check MySQL Data"
 echo "CE.CLINICAL_CONDITION"
 docker exec mysql_container echo '"'"'select * from CE.CLINICAL_CONDITION LIMIT 2;'"'"' | mysql -h 127.0.0.1 -P 3306 -u root --password=password CE
 docker exec mysql_container echo '"'"'select count(*) from CE.CLINICAL_CONDITION;'"'"' | mysql -h 127.0.0.1 -P 3306 -u root --password=password CE
@@ -137,6 +143,7 @@ EOF'
 chmod +x .script
 command time -v ./.script 2> .results
 ../../getExperimentalResults.sh
-../../getDataAsCSVline.sh .results "Howard Deiner" "Local Test That MySQL Data Loaded" >> Experimental\ Results.csv
+experiment=$(../../getExperimentNumber.sh)
+../../getDataAsCSVline.sh .results ${experiment} "03_MySQL_Local: Check MySQL Data" >> Experimental\ Results.csv
 ../../putExperimentalResults.sh
 rm .script .results *.csv

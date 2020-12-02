@@ -33,12 +33,13 @@ Since we do not want to make use of the database until it actually starts, I mon
 ```bash
 #!/usr/bin/env bash
 
+../../startExperiment.sh
+
 bash -c 'cat << "EOF" > .script
 #!/usr/bin/env bash
-figlet -w 240 -f small "Startup MySQL/MySQLClient/CECacheServer Locally"
+figlet -w 240 -f small "Startup MySQL/MySQLClient Locally"
 docker volume rm 03_mysql_local_mysql_data
 docker volume rm 03_mysql_local_mysqlclient_data
-docker volume rm 03_mysql_local_cecacheserver_data
 docker-compose -f docker-compose.yml up -d
 figlet -w 160 -f small "Wait For MySQL To Start"
 while true ; do
@@ -56,7 +57,8 @@ EOF'
 chmod +x .script
 command time -v ./.script 2> .results
 ../../getExperimentalResults.sh
-../../getDataAsCSVline.sh .results "Howard Deiner" "Local Startup MySQL" >> Experimental\ Results.csv
+experiment=$(../../getExperimentNumber.sh)
+../../getDataAsCSVline.sh .results ${experiment} "03_MySQL_Local: Startup MySQL Locally" >> Experimental\ Results.csv
 ../../putExperimentalResults.sh
 rm .script .results Experimental\ Results.csv
 ```
@@ -72,6 +74,8 @@ The script then demonstrates that the tables created have data in them, all mana
 bash -c 'cat << "EOF" > .script
 #!/usr/bin/env bash
 figlet -w 160 -f small "Populate MySQL Locally"
+
+figlet -w 240 -f small "Apply Schema for MySQL Locally"
 docker exec mysql_container echo '"'"'CREATE DATABASE CE;'"'"' | mysql -h 127.0.0.1 -P 3306 -u root --password=password
 cp ../../src/java/Translator/changeSet.xml changeSet.xml
 # fix <createTable tableName="CE. to become <createTable tableName="
@@ -82,13 +86,14 @@ EOF'
 chmod +x .script
 command time -v ./.script 2> .results
 ../../getExperimentalResults.sh
-../../getDataAsCSVline.sh .results "Howard Deiner" "Local Update MySQL Schema" >> Experimental\ Results.csv
+experiment=$(../../getExperimentNumber.sh)
+../../getDataAsCSVline.sh .results ${experiment} "03_MySQL_Local: Populate MySQL Schema" >> Experimental\ Results.csv
 ../../putExperimentalResults.sh
 rm .script .results Experimental\ Results.csv
 
 bash -c 'cat << "EOF" > .script
 #!/usr/bin/env bash
-figlet -w 240 -f small "Get MySQL Data from S3 Bucket"
+figlet -w 240 -f small "Get Data from S3 Bucket"
 ../../data/transfer_from_s3_and_decrypt.sh ce.ClinicalCondition.csv
 ../../data/transfer_from_s3_and_decrypt.sh ce.DerivedFact.csv
 ../../data/transfer_from_s3_and_decrypt.sh ce.DerivedFactProductUsage.csv
@@ -103,13 +108,14 @@ EOF'
 chmod +x .script
 command time -v ./.script 2> .results
 ../../getExperimentalResults.sh
-../../getDataAsCSVline.sh .results "Howard Deiner" "Local Get MySQL Data from S3 Bucket" >> Experimental\ Results.csv
+experiment=$(../../getExperimentNumber.sh)
+../../getDataAsCSVline.sh .results ${experiment} "03_MySQL_Local: Get Data from S3 Bucket" >> Experimental\ Results.csv
 ../../putExperimentalResults.sh
 rm .script .results Experimental\ Results.csv
 
 bash -c 'cat << "EOF" > .script
 #!/usr/bin/env bash
-figlet -w 240 -f small "Process S3 Data into MySQL CSV File For Inport"
+figlet -w 240 -f small "Process S3 Data into CSV Files For Import"
 ../transform_Oracle_ce.ClinicalCondition_to_csv.sh
 ../transform_Oracle_ce.DerivedFact_to_csv.sh
 ../transform_Oracle_ce.DerivedFactProductUsage_to_csv.sh
@@ -124,13 +130,14 @@ EOF'
 chmod +x .script
 command time -v ./.script 2> .results
 ../../getExperimentalResults.sh
-../../getDataAsCSVline.sh .results "Howard Deiner" "Local Process S3 Data into MySQL CSV File For Inport" >> Experimental\ Results.csv
+experiment=$(../../getExperimentNumber.sh)
+../../getDataAsCSVline.sh .results ${experiment} "03_MySQL_Local: Process S3 Data into CSV Files For Import" >> Experimental\ Results.csv
 ../../putExperimentalResults.sh
 rm .script .results Experimental\ Results.csv
 
 bash -c 'cat << "EOF" > .script
 #!/usr/bin/env bash
-figlet -w 240 -f small "Load MySQL Data"
+figlet -w 240 -f small "Populate Oracle Data"
 echo "CE.CLINICAL_CONDITION"
 docker cp ce.ClinicalCondition.csv mysql_container:/tmp/ce.ClinicalCondition.csv
 docker exec mysql_container echo '"'"'LOAD DATA INFILE "/tmp/ce.ClinicalCondition.csv" INTO TABLE CE.CLINICAL_CONDITION FIELDS TERMINATED BY "," LINES TERMINATED BY "\n" IGNORE 1 ROWS (CLINICAL_CONDITION_COD,CLINICAL_CONDITION_NAM,INSERTED_BY,REC_INSERT_DATE,REC_UPD_DATE,UPDATED_BY,@CLINICALCONDITIONCLASSCD,CLINICALCONDITIONTYPECD,CLINICALCONDITIONABBREV) SET CLINICALCONDITIONCLASSCD = IF(@CLINICALCONDITIONCLASSCD="",NULL,@CLINICALCONDITIONCLASSCD);'"'"' | mysql -h 127.0.0.1 -P 3306 -u root --password=password CE
@@ -165,13 +172,14 @@ EOF'
 chmod +x .script
 command time -v ./.script 2> .results
 ../../getExperimentalResults.sh
-../../getDataAsCSVline.sh .results "Howard Deiner" "Local Load MySQL Data" >> Experimental\ Results.csv
+experiment=$(../../getExperimentNumber.sh)
+../../getDataAsCSVline.sh .results ${experiment} "03_MySQL_Local: Populate MySQL Data" >> Experimental\ Results.csv
 ../../putExperimentalResults.sh
 rm .script .results Experimental\ Results.csv
 
 bash -c 'cat << "EOF" > .script
 #!/usr/bin/env bash
-figlet -w 160 -f small "Check MySQL Locally"
+figlet -w 160 -f small "Check MySQL Data"
 echo "CE.CLINICAL_CONDITION"
 docker exec mysql_container echo '"'"'select * from CE.CLINICAL_CONDITION LIMIT 2;'"'"' | mysql -h 127.0.0.1 -P 3306 -u root --password=password CE
 docker exec mysql_container echo '"'"'select count(*) from CE.CLINICAL_CONDITION;'"'"' | mysql -h 127.0.0.1 -P 3306 -u root --password=password CE
@@ -206,7 +214,8 @@ EOF'
 chmod +x .script
 command time -v ./.script 2> .results
 ../../getExperimentalResults.sh
-../../getDataAsCSVline.sh .results "Howard Deiner" "Local Test That MySQL Data Loaded" >> Experimental\ Results.csv
+experiment=$(../../getExperimentNumber.sh)
+../../getDataAsCSVline.sh .results ${experiment} "03_MySQL_Local: Check MySQL Data" >> Experimental\ Results.csv
 ../../putExperimentalResults.sh
 rm .script .results *.csv
 ```
@@ -470,7 +479,43 @@ It is also using this changeset.
 ```
 We will be reusing that changeset for all the RDBMSs we explore.
 
-### 03_shutdown.sh
+
+### 03_startup_app.sh
+Here, we bring up the CECacheServer with docker-compose with the same network as we used to bring up MySQL in, so the CECacheServer can make requests of the database.
+<BR/>
+Normally, we would do this in the 01_startup.sh script, but we want to seperate out the effects of the database from the application for performance collection purposes, so we do it here.
+
+```bash
+#!/usr/bin/env bash
+
+bash -c 'cat << "EOF" > .script
+#!/usr/bin/env bash
+figlet -w 160 -f small "Startup CECacheServer Locally"
+docker volume rm 03_mysql_local_cecacheserver_data
+docker-compose -f docker-compose.app.yml up -d --build
+
+echo "Wait For CECacheServer To Start"
+while true ; do
+  docker logs cecacheserver_formysql_container > stdout.txt 2> stderr.txt
+  result=$(grep -cE "<<<<< Local Cache Statistics <<<<<" stdout.txt)
+  if [ $result != 0 ] ; then
+    echo "CECacheServer has started"
+    break
+  fi
+  sleep 5
+done
+rm stdout.txt stderr.txt
+EOF'
+chmod +x .script
+command time -v ./.script 2> .results
+../../getExperimentalResults.sh
+experiment=$(../../getExperimentNumber.sh)
+../../getDataAsCSVline.sh .results ${experiment} "03_MySQL_Local: Startup CECacheServer Locally" >> Experimental\ Results.csv
+../../putExperimentalResults.sh
+rm .script .results Experimental\ Results.csv
+```
+
+### 04_shutdown.sh
 This script is brutely simple.  It uses docker-compose to bring down the environment it established, and then uses docker volume rm to delete the data which held the bits for out database data.
 
 ```bash
@@ -478,7 +523,7 @@ This script is brutely simple.  It uses docker-compose to bring down the environ
 
 bash -c 'cat << "EOF" > .script
 #!/usr/bin/env bash
-figlet -w 240 -f small "Shutdown MySQL/MySQLClient/CECacheServer Locally"
+figlet -w 240 -f small "Shutdown MySQL and CECacheServer Locally"
 docker-compose -f docker-compose.yml down
 docker volume rm 03_mysql_local_mysql_data
 docker volume rm 03_mysql_local_mysqlclient_data
@@ -487,9 +532,12 @@ EOF'
 chmod +x .script
 command time -v ./.script 2> .results
 ../../getExperimentalResults.sh
-../../getDataAsCSVline.sh .results "Howard Deiner" "Local Shutdown MySQL" >> Experimental\ Results.csv
+experiment=$(../../getExperimentNumber.sh)
+../../getDataAsCSVline.sh .results ${experiment} "03_MySQL_Local: Shutdown MySQL and CECacheServer Locally" >> Experimental\ Results.csv
 ../../putExperimentalResults.sh
 rm .script .results Experimental\ Results.csv
+
+../../endExperiment.sh
 ```
 
 ### Putting it all together...
@@ -501,9 +549,10 @@ It all looks something like this:
 ![02_populate_01](README_assets/02_populate_01.png)\
 ![02_populate_02](README_assets/02_populate_02.png)\
 ![02_populate_03](README_assets/02_populate_03.png)\
-![02_populate_04](README_assets/02_populate_04.png)\
 <BR />
-![03_shutdown](README_assets/03_shutdown.png)\
+![03_startup_app](README_assets/03_startup_app.png)\
+<BR />
+![04_shutdown](README_assets/04_shutdown.png)\
 <BR />
 And just for laughs, here's the timings for this run.  All kept in a csv file in S3 at s3://health-engine-aws-poc/Experimental Results.csv
 ![Experimental Results](README_assets/Experimental Results.png)\
