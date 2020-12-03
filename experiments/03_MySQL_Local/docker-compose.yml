@@ -27,19 +27,6 @@ services:
     networks:
       container_network:
 
-  cecacheserver_service:
-    build: ../../src/application/CacheServerDocker/DockerImageForMySql
-    container_name: cecacheserver_formysql_container
-    volumes:
-      - cecacheserver_data:/var/lib/cecacheserver
-    restart: unless-stopped
-    ports:
-      - 12405:12405
-    networks:
-      container_network:
-    depends_on:
-      - mysql_service
-
 networks:
   container_network:
     driver: bridge
@@ -47,5 +34,5 @@ networks:
 volumes:
   mysql_data:
   mysqlclient_data:
-  cecacheserver_data:
+
 

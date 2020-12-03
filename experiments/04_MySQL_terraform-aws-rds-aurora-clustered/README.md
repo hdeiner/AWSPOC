@@ -21,25 +21,27 @@ This script uses simple Terraform and applies it.  You get 14 resources of ready
 ```bash
 #!/usr/bin/env bash
 
+../../startExperiment.sh
+
 bash -c 'cat << "EOF" > .script
 #!/usr/bin/env bash
-figlet -w 200 -f small "Startup MySQL Clustered on AWS RDS Aurora"
+figlet -w 200 -f small "Startup MySQL AWS Cluster"
 terraform init
 terraform apply -auto-approve
 EOF'
 chmod +x .script
 command time -v ./.script 2> .results
 ../../getExperimentalResults.sh
-../../getDataAsCSVline.sh .results "Howard Deiner" "AWS Startup MySQL (Client Side)" >> Experimental\ Results.csv
+experiment=$(../../getExperimentNumber.sh)
+../../getDataAsCSVline.sh .results ${experiment} "04_MySQL_AWS_Clustered: Startup MySQL AWS Cluster" >> Experimental\ Results.csv
 ../../putExperimentalResults.sh
 rm .script .results Experimental\ Results.csv
 
 bash -c 'cat << "EOF" > .script
 #!/usr/bin/env bash
-figlet -w 240 -f small "Startup MySQL/MySQLClient/CECacheServer Locally"
+figlet -w 240 -f small "Startup MySQL/MySQLClient Locally"
 docker volume rm 03_mysql_local_mysql_data
 docker volume rm 03_mysql_local_mysqlclient_data
-docker volume rm 03_mysql_local_cecacheserver_data
 docker-compose -f ../03_MySQL_Local/docker-compose.yml up -d
 figlet -w 160 -f small "Wait For MySQL To Start"
 while true ; do
@@ -57,7 +59,8 @@ EOF'
 chmod +x .script
 command time -v ./.script 2> .results
 ../../getExperimentalResults.sh
-../../getDataAsCSVline.sh .results "Howard Deiner" "AWS Startup MySQL Locally (Client Side)" >> Experimental\ Results.csv
+experiment=$(../../getExperimentNumber.sh)
+../../getDataAsCSVline.sh .results ${experiment} "04_MySQL_AWS_Clustered: Startup MySQL Locally" >> Experimental\ Results.csv
 ../../putExperimentalResults.sh
 rm .script .results Experimental\ Results.csv
 ```
@@ -86,7 +89,7 @@ module "aurora" {
   source  = "terraform-aws-modules/rds-aurora/aws"
   version = "~> 2.0"
 
-  name                            = "aurora-example-mysql-clustered"
+  name                            = "mysql-aurora-clustered"
   engine                          = "aurora-mysql"
   engine_version                  = "5.7"
   username                        = "root"
@@ -101,8 +104,8 @@ module "aurora" {
   instance_type_replica           = "db.t3.medium" # 2 vCPU	variable ECU 4 GiB Memory EBS Only	$0.0416 per Hour
   apply_immediately               = true
   skip_final_snapshot             = true
-  db_parameter_group_name         = aws_db_parameter_group.aurora_db_postgres11_parameter_group.id
-  db_cluster_parameter_group_name = aws_rds_cluster_parameter_group.aurora_cluster_postgres11_parameter_group.id
+  db_parameter_group_name         = aws_db_parameter_group.aurora_db_mysql57_parameter_group.id
+  db_cluster_parameter_group_name = aws_rds_cluster_parameter_group.aurora_cluster_mysql57_parameter_group.id
   #  enabled_cloudwatch_logs_exports = ["audit", "error", "general", "slowquery"]
   security_group_description      = ""
   tags = {
@@ -111,16 +114,16 @@ module "aurora" {
   }
 }
 
-resource "aws_db_parameter_group" "aurora_db_postgres11_parameter_group" {
-  name        = "test-aurora-db-postgres11-parameter-group"
+resource "aws_db_parameter_group" "aurora_db_mysql57_parameter_group" {
+  name        = "test-aurora-db-mysql57-parameter-group"
   family      = "aurora-mysql5.7"
-  description = "test-aurora-db-postgres11-parameter-group"
+  description = "test-aurora-db-mysql57-parameter-group"
 }
 
-resource "aws_rds_cluster_parameter_group" "aurora_cluster_postgres11_parameter_group" {
-  name        = "test-aurora-postgres11-cluster-parameter-group"
+resource "aws_rds_cluster_parameter_group" "aurora_cluster_mysql57_parameter_group" {
+  name        = "test-aurora-mysql57-cluster-parameter-group"
   family      = "aurora-mysql5.7"
-  description = "test-aurora-postgres11-cluster-parameter-group"
+  description = "test-aurora-mysql57-cluster-parameter-group"
 }
 
 #############################
@@ -216,6 +219,10 @@ echo `terraform output database_port | grep -Eo '"'"'[0-9]{1,}'"'"' | cut -d '"'
 echo `terraform output database_username | grep -o '"'"'".*"'"'"' | cut -d '"'"'"'"'"' -f2` > .database_username
 echo `terraform output database_password | grep -o '"'"'".*"'"'"' | cut -d '"'"'"'"'"' -f2` > .database_password
 
+cp .database_dns .database_name
+sed --in-place --regexp-extended '"'"'s/\..*//g'"'"' .database_name  # take away everything starting with the first dot on the dns name and make it the database name
+
+figlet -w 240 -f small "Apply Schema for MySQL AWS RDS Aurora"
 docker exec mysql_container echo '"'"'CREATE DATABASE CE;'"'"' | mysql -h $(<.database_dns) -P $(<.database_port) -u $(<.database_username) --password=$(<.database_password)
 #docker exec mysql_container echo '"'"'SHOW DATABASES;'"'"' | mysql -h $(<.database_dns) -P $(<.database_port) -u $(<.database_username) --password=$(<.database_password)
 
@@ -235,13 +242,14 @@ EOF'
 chmod +x .script
 command time -v ./.script 2> .results
 ../../getExperimentalResults.sh
-../../getDataAsCSVline.sh .results "Howard Deiner" "AWS Update MySQL Schema" >> Experimental\ Results.csv
+experiment=$(../../getExperimentNumber.sh)
+../../getDataAsCSVline.sh .results ${experiment} "04_MySQL_AWS_Clustered: Populate MySQL Schema "$(<.database_name) >> Experimental\ Results.csv
 ../../putExperimentalResults.sh
 rm .script .results Experimental\ Results.csv
 
 bash -c 'cat << "EOF" > .script
 #!/usr/bin/env bash
-figlet -w 240 -f small "Get MySQL Data from S3 Bucket"
+figlet -w 240 -f small "Get Data from S3 Bucket"
 ../../data/transfer_from_s3_and_decrypt.sh ce.ClinicalCondition.csv
 ../../data/transfer_from_s3_and_decrypt.sh ce.DerivedFact.csv
 ../../data/transfer_from_s3_and_decrypt.sh ce.DerivedFactProductUsage.csv
@@ -256,13 +264,14 @@ EOF'
 chmod +x .script
 command time -v ./.script 2> .results
 ../../getExperimentalResults.sh
-../../getDataAsCSVline.sh .results "Howard Deiner" "AWS Get MySQL Data from S3 Bucket" >> Experimental\ Results.csv
+experiment=$(../../getExperimentNumber.sh)
+../../getDataAsCSVline.sh .results ${experiment} "04_MySQL_AWS_Clustered: Get Data from S3 Bucket "$(<.database_name) >> Experimental\ Results.csv
 ../../putExperimentalResults.sh
 rm .script .results Experimental\ Results.csv
 
 bash -c 'cat << "EOF" > .script
 #!/usr/bin/env bash
-figlet -w 240 -f small "Process S3 Data into MySQL CSV File For Inport"
+figlet -w 240 -f small "Process S3 Data into CSV Files For Import"
 ../transform_Oracle_ce.ClinicalCondition_to_csv.sh
 ../transform_Oracle_ce.DerivedFact_to_csv.sh
 ../transform_Oracle_ce.DerivedFactProductUsage_to_csv.sh
@@ -277,14 +286,15 @@ EOF'
 chmod +x .script
 command time -v ./.script 2> .results
 ../../getExperimentalResults.sh
-../../getDataAsCSVline.sh .results "Howard Deiner" "AWS Process S3 Data into MySQL CSV File For Import" >> Experimental\ Results.csv
+experiment=$(../../getExperimentNumber.sh)
+../../getDataAsCSVline.sh .results ${experiment} "04_MySQL_AWS_Clustered: Process S3 Data into CSV Files For Import "$(<.database_name) >> Experimental\ Results.csv
 ../../putExperimentalResults.sh
 rm .script .results Experimental\ Results.csv
 
 bash -c 'cat << "EOF" > .script
 #!/usr/bin/env bash
 MYSQL='"'"'mysql -h '"'"'$(<.database_dns)'"'"' -P '"'"'$(<.database_port)'"'"' -u '"'"'$(<.database_username)'"'"' --password='"'"'$(<.database_password)'"'"' --local-infile'"'"'
-figlet -w 240 -f small "Load MySQL Data"
+figlet -w 240 -f small "Populate MySQL Data"
 echo "CE.CLINICAL_CONDITION"
 docker exec mysql_container echo '"'"'USE CE;LOAD DATA LOCAL INFILE "./ce.ClinicalCondition.csv" INTO TABLE CE.CLINICAL_CONDITION FIELDS TERMINATED BY "," LINES TERMINATED BY "\n" IGNORE 1 ROWS (CLINICAL_CONDITION_COD,CLINICAL_CONDITION_NAM,INSERTED_BY,REC_INSERT_DATE,REC_UPD_DATE,UPDATED_BY,@CLINICALCONDITIONCLASSCD,CLINICALCONDITIONTYPECD,CLINICALCONDITIONABBREV) SET CLINICALCONDITIONCLASSCD = IF(@CLINICALCONDITIONCLASSCD="",NULL,@CLINICALCONDITIONCLASSCD);'"'"' | $MYSQL
 echo "CE.DERIVEDFACT"
@@ -309,13 +319,14 @@ EOF'
 chmod +x .script
 command time -v ./.script 2> .results
 ../../getExperimentalResults.sh
-../../getDataAsCSVline.sh .results "Howard Deiner" "AWS Load MySQL Data" >> Experimental\ Results.csv
+experiment=$(../../getExperimentNumber.sh)
+../../getDataAsCSVline.sh .results ${experiment} "04_MySQL_AWS_Clustered: Populate MySQL Data "$(<.database_name) >> Experimental\ Results.csv
 ../../putExperimentalResults.sh
 rm .script .results Experimental\ Results.csv
 
 bash -c 'cat << "EOF" > .script
 #!/usr/bin/env bash
-figlet -w 160 -f small "Check MySQL Locally"
+figlet -w 160 -f small "Check MySQL Data"
 echo "CE.CLINICAL_CONDITION"
 docker exec mysql_container echo '"'"'select * from CE.CLINICAL_CONDITION LIMIT 2;'"'"' | mysql -h $(<.database_dns) -P $(<.database_port) -u $(<.database_username) --password=$(<.database_password) CE
 docker exec mysql_container echo '"'"'select count(*) from CE.CLINICAL_CONDITION;'"'"' | mysql -h $(<.database_dns) -P $(<.database_port) -u $(<.database_username) --password=$(<.database_password) CE
@@ -350,17 +361,17 @@ EOF'
 chmod +x .script
 command time -v ./.script 2> .results
 ../../getExperimentalResults.sh
-../../getDataAsCSVline.sh .results "Howard Deiner" "AWS Test That MySQL Data Loaded" >> Experimental\ Results.csv
+experiment=$(../../getExperimentNumber.sh)
+../../getDataAsCSVline.sh .results ${experiment} "04_MySQL_AWS_Clustered: Check MySQL Data "$(<.database_name) >> Experimental\ Results.csv
 ../../putExperimentalResults.sh
 rm .script .results Experimental\ Results.csv
 
-rm .database_dns .database_port .database_username .database_password liquibase.properties changeSet.xml ce.*.csv
+rm .database_dns .database_port .database_username .database_password .database_name liquibase.properties changeSet.xml ce.*.csv
 ```
 This is what the console looks like when the script is executed.
 ![02_populate_console_01](README_assets/02_populate_console_01.png)\
 ![02_populate_console_02](README_assets/02_populate_console_02.png)\
 ![02_populate_console_03](README_assets/02_populate_console_03.png)\
-![02_populate_console_04](README_assets/02_populate_console_04.png)\
 <BR/>
 ### 03_shutdown.sh
 This script is extremely simple.  It tells terraform to destroy all that it created.
@@ -376,24 +387,27 @@ EOF'
 chmod +x .script
 command time -v ./.script 2> .results
 ../../getExperimentalResults.sh
-../../getDataAsCSVline.sh .results "Howard Deiner" "AWS Shutdown MySQL (Client Side)" >> Experimental\ Results.csv
+experiment=$(../../getExperimentNumber.sh)
+../../getDataAsCSVline.sh .results ${experiment} "04_MySQL_AWS_Clustered: Shutdown MySQL AWS Cluster" >> Experimental\ Results.csv
 ../../putExperimentalResults.sh
 rm .script .results Experimental\ Results.csv
 
 bash -c 'cat << "EOF" > .script
 #!/usr/bin/env bash
-figlet -w 240 -f small "Shutdown MySQL/MySQLClient/CECacheServer Locally"
+figlet -w 240 -f small "Shutdown MySQL/MySQLClient Locally"
 docker-compose -f ../03_MySQL_Local/docker-compose.yml down
 docker volume rm 03_mysql_local_mysql_data
 docker volume rm 03_mysql_local_mysqlclient_data
-docker volume rm 03_mysql_local_cecacheserver_data
 EOF'
 chmod +x .script
 command time -v ./.script 2> .results
 ../../getExperimentalResults.sh
-../../getDataAsCSVline.sh .results "Howard Deiner" "AWS Shutdown MySQL Locally (Client Side)" >> Experimental\ Results.csv
+experiment=$(../../getExperimentNumber.sh)
+../../getDataAsCSVline.sh .results ${experiment} "04_MySQL_AWS_Clustered: Shutdown MySQL Locally" >> Experimental\ Results.csv
 ../../putExperimentalResults.sh
 rm .script .results Experimental\ Results.csv
+
+../../endExperiment.sh
 ```
 The console shows what it does.
 ![03_shutdown_console_01](README_assets/03_shutdown_console_01.png)\

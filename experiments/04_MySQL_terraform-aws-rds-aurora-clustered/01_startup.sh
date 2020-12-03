@@ -1,24 +1,26 @@
 #!/usr/bin/env bash
 
+../../startExperiment.sh
+
 bash -c 'cat << "EOF" > .script
 #!/usr/bin/env bash
-figlet -w 200 -f small "Startup MySQL Clustered on AWS RDS Aurora"
+figlet -w 200 -f small "Startup MySQL AWS Cluster"
 terraform init
 terraform apply -auto-approve
 EOF'
 chmod +x .script
 command time -v ./.script 2> .results
 ../../getExperimentalResults.sh
-../../getDataAsCSVline.sh .results "Howard Deiner" "AWS Startup MySQL (Client Side)" >> Experimental\ Results.csv
+experiment=$(../../getExperimentNumber.sh)
+../../getDataAsCSVline.sh .results ${experiment} "04_MySQL_AWS_Clustered: Startup MySQL AWS Cluster" >> Experimental\ Results.csv
 ../../putExperimentalResults.sh
 rm .script .results Experimental\ Results.csv
 
 bash -c 'cat << "EOF" > .script
 #!/usr/bin/env bash
-figlet -w 240 -f small "Startup MySQL/MySQLClient/CECacheServer Locally"
+figlet -w 240 -f small "Startup MySQL/MySQLClient Locally"
 docker volume rm 03_mysql_local_mysql_data
 docker volume rm 03_mysql_local_mysqlclient_data
-docker volume rm 03_mysql_local_cecacheserver_data
 docker-compose -f ../03_MySQL_Local/docker-compose.yml up -d
 figlet -w 160 -f small "Wait For MySQL To Start"
 while true ; do
@@ -36,6 +38,7 @@ EOF'
 chmod +x .script
 command time -v ./.script 2> .results
 ../../getExperimentalResults.sh
-../../getDataAsCSVline.sh .results "Howard Deiner" "AWS Startup MySQL Locally (Client Side)" >> Experimental\ Results.csv
+experiment=$(../../getExperimentNumber.sh)
+../../getDataAsCSVline.sh .results ${experiment} "04_MySQL_AWS_Clustered: Startup MySQL Locally" >> Experimental\ Results.csv
 ../../putExperimentalResults.sh
 rm .script .results Experimental\ Results.csv
