@@ -13,3 +13,4 @@ output "database_username" {
 output "database_password" {
   value = [module.aurora.this_rds_cluster_master_password]
 }
+

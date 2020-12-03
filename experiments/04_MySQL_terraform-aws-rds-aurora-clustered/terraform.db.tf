@@ -21,7 +21,7 @@ module "aurora" {
   source  = "terraform-aws-modules/rds-aurora/aws"
   version = "~> 2.0"
 
-  name                            = "aurora-example-mysql-clustered"
+  name                            = "mysql-aurora-clustered"
   engine                          = "aurora-mysql"
   engine_version                  = "5.7"
   username                        = "root"
