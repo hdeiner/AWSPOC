@@ -1,0 +1,22 @@
+version: '3.1'
+
+services:
+
+  cecacheserver_service:
+    build: ../../src/application/CacheServerDocker/DockerImageForPostgres
+    container_name: cecacheserver_forpostgres_container
+    volumes:
+      - cecacheserver_data:/var/lib/cecacheserver
+    restart: unless-stopped
+    ports:
+      - 12405:12405
+    networks:
+      container_network:   
+
+networks:
+  container_network:
+    driver: bridge
+
+volumes:
+  cecacheserver_data:
+  

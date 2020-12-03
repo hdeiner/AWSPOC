@@ -1,11 +1,12 @@
 #!/usr/bin/env bash
 
+../../startExperiment.sh
+
 bash -c 'cat << "EOF" > .script
 #!/usr/bin/env bash
-figlet -w 240 -f small "Startup Postgres/pgadmin/cecacheserver Locally"
+figlet -w 240 -f small "Startup Postgres/pgadmin Locally"
 docker volume rm 01_postgres_local_postgres_data
 docker volume rm 01_postgres_local_pgadmin_data
-docker volume rm 01_postgres_local_cecacheserver_data
 docker-compose -f docker-compose.yml up -d
 
 figlet -w 240 -f small "Wait For Postgres To Start"
@@ -24,6 +25,7 @@ EOF'
 chmod +x .script
 command time -v ./.script 2> .results
 ../../getExperimentalResults.sh
-../../getDataAsCSVline.sh .results "Howard Deiner" "Local Startup Postgres" >> Experimental\ Results.csv
+experiment=$(../../getExperimentNumber.sh)
+../../getDataAsCSVline.sh .results ${experiment} "01_Postgres_Local: Startup Postgres Locally" >> Experimental\ Results.csv
 ../../putExperimentalResults.sh
 rm .script .results Experimental\ Results.csv
