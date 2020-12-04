@@ -13,7 +13,6 @@ sed --in-place --regexp-extended '"'"'s/\..*//g'"'"' .database_name
 
 figlet -w 240 -f small "Apply Schema for MySQL AWS RDS Aurora"
 docker exec mysql_container echo '"'"'CREATE DATABASE CE;'"'"' | mysql -h $(<.database_dns) -P $(<.database_port) -u $(<.database_username) --password=$(<.database_password)
-#docker exec mysql_container echo '"'"'SHOW DATABASES;'"'"' | mysql -h $(<.database_dns) -P $(<.database_port) -u $(<.database_username) --password=$(<.database_password)
 
 cp ../../src/java/Translator/changeSet.xml changeSet.xml
 # fix <createTable tableName="CE. to become <createTable tableName="

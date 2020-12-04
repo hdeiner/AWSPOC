@@ -21,7 +21,7 @@ module "aurora" {
   source  = "terraform-aws-modules/rds-aurora/aws"
   version = "~> 2.0"
 
-  name                            = "aurora-example-postgresql"
+  name                            = "postgresql-aurora-clustered"
   engine                          = "aurora-postgresql"
   engine_version                  = "11.6"
   username                        = "postgres"
