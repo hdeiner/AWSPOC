@@ -1,0 +1,19 @@
+DERIVEDFACT table ---> timestampStart:2020-12-03 19:46:09.0; timestampEnd:2020-12-03 19:46:09.737; timeLapsed: 737 milliseconds
+CLINICAL_CONDITION table ---> timestampStart:2020-12-03 19:46:09.75; timestampEnd:2020-12-03 19:46:09.757; timeLapsed: 7 milliseconds
+DERIVEDFACTPRODUCTUSAGE table ---> timestampStart:2020-12-03 19:46:09.761; timestampEnd:2020-12-03 19:46:09.78; timeLapsed: 19 milliseconds
+MEDICALFINDING table ---> timestampStart:2020-12-03 19:46:09.784; timestampEnd:2020-12-03 19:46:09.832; timeLapsed: 48 milliseconds
+MEDICALFINDINGTYPE table ---> timestampStart:2020-12-03 19:46:09.836; timestampEnd:2020-12-03 19:46:09.839; timeLapsed: 3 milliseconds
+OPPORTUNITYPOINTSDISCR table ---> timestampStart:2020-12-03 19:46:09.84; timestampEnd:2020-12-03 19:46:09.843; timeLapsed: 3 milliseconds
+PRODUCTFINDING table ---> timestampStart:2020-12-03 19:46:09.844; timestampEnd:2020-12-03 19:46:09.847; timeLapsed: 3 milliseconds
+PRODUCTFINDINGTYPE table ---> timestampStart:2020-12-03 19:46:09.848; timestampEnd:2020-12-03 19:46:09.851; timeLapsed: 3 milliseconds
+PRODUCTOPPORTUNITYPOINT table ---> timestampStart:2020-12-03 19:46:09.852; timestampEnd:2020-12-03 19:46:09.873; timeLapsed: 21 milliseconds
+RECOMMENDATION table ---> timestampStart:2020-12-03 19:46:10.148; timestampEnd:2020-12-03 19:46:10.151; timeLapsed: 3 milliseconds
+
+Total space: 58.42 GB
+Free space: 32.34 GB
+Usable space: 29.34 GB
+
+Initial memory: 1.00 GB
+Used heap memory: 0.61 GB
+Max heap memory: 26.67 GB
+Committed memory: 1.52 GB

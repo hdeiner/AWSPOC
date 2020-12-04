@@ -1,0 +1,10 @@
+DERIVEDFACT table ---> timestampStart:2020-12-02 21:06:04.006; timestampEnd:2020-12-02 21:06:06.772; timeLapsed: 2766 milliseconds
+CLINICAL_CONDITION table ---> timestampStart:2020-12-02 21:06:06.803; timestampEnd:2020-12-02 21:06:06.82; timeLapsed: 17 milliseconds
+DERIVEDFACTPRODUCTUSAGE table ---> timestampStart:2020-12-02 21:06:06.822; timestampEnd:2020-12-02 21:06:06.962; timeLapsed: 140 milliseconds
+MEDICALFINDING table ---> timestampStart:2020-12-02 21:06:06.966; timestampEnd:2020-12-02 21:06:06.994; timeLapsed: 28 milliseconds
+MEDICALFINDINGTYPE table ---> timestampStart:2020-12-02 21:06:06.996; timestampEnd:2020-12-02 21:06:07.003; timeLapsed: 7 milliseconds
+OPPORTUNITYPOINTSDISCR table ---> timestampStart:2020-12-02 21:06:07.004; timestampEnd:2020-12-02 21:06:07.011; timeLapsed: 7 milliseconds
+PRODUCTFINDING table ---> timestampStart:2020-12-02 21:06:07.012; timestampEnd:2020-12-02 21:06:07.022; timeLapsed: 10 milliseconds
+PRODUCTFINDINGTYPE table ---> timestampStart:2020-12-02 21:06:07.023; timestampEnd:2020-12-02 21:06:07.025; timeLapsed: 2 milliseconds
+PRODUCTOPPORTUNITYPOINT table ---> timestampStart:2020-12-02 21:06:07.027; timestampEnd:2020-12-02 21:06:07.033; timeLapsed: 6 milliseconds
+RECOMMENDATION table ---> timestampStart:2020-12-02 21:06:07.034; timestampEnd:2020-12-02 21:06:07.051; timeLapsed: 17 milliseconds

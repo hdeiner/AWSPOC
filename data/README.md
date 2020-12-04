@@ -181,3 +181,31 @@ aws s3 cp s3://health-engine-aws-poc/$1 $1.gpg
 gpg2 --decrypt --batch --passphrase xyzzy $1.gpg > $1
 rm $1.gpg
 ```
+
+### encryptPGYR19_P063020_and_send_to_S3.sh
+This sends data from /tmp/PGYR19_P063020.zip to S3.  This is data for large volume testing.  The data is the "Complete 2019 Program Year Open Payments Dataset" from the Center for Medicare & Medicade Services.  See https://www.cms.gov/OpenPayments/Explore-the-Data/Dataset-Downloads for details.  In total, there is over 6GB in this dataset.  Also see "CMS Open Payments Public Use Files - Methodology and Data Dictionary Document.pdf" in this directory.
+```bash
+#!/usr/bin/env bash
+
+echo "Encrypting PGYR19_P063020 from /tmp"
+gpg2 --batch --passphrase xyzzy --symmetric --cipher-algo AES256 --output PGYR19_P063020.ZIP < /tmp/PGYR19_P063020.ZIP
+echo "Sending PGYR19_P063020 to S3"
+aws s3 cp PGYR19_P063020.ZIP s3://health-engine-aws-poc/PGYR19_P063020.ZIP
+echo "Removing PGYR19_P063020 from machine"
+rm PGYR19_P063020.ZIP /tmp/PGYR19_P063020.ZIP
+```
+
+### transferPGYR19_P063020_from_s3_and_decrypt.sh
+This transfers the dataset for large volume testing.  The data is the "Complete 2019 Program Year Open Payments Dataset" from the Center for Medicare & Medicade Services.  See https://www.cms.gov/OpenPayments/Explore-the-Data/Dataset-Downloads for details.  In total, there is over 6GB in this dataset. Also see "CMS Open Payments Public Use Files - Methodology and Data Dictionary Document.pdf" in this directory.
+```bash
+#!/usr/bin/env bash
+
+echo "Retrieving PGYR19_P063020 from S3"
+aws s3 cp s3://health-engine-aws-poc/PGYR19_P063020.ZIP /tmp/PGYR19_P063020.ZIP.gpg
+echo "Decrypting PGYR19_P063020 in /tmp"
+gpg2 --decrypt --batch --passphrase xyzzy /tmp/PGYR19_P063020.ZIP.gpg > /tmp/PGYR19_P063020.ZIP
+rm /tmp/PGYR19_P063020.ZIP.gpg
+echo "Creating PGYR19_P063020 in /tmp"
+unzip  /tmp/PGYR19_P063020.ZIP -d /tmp/PGYR19_P063020
+rm /tmp/PGYR19_P063020.ZIP
+```

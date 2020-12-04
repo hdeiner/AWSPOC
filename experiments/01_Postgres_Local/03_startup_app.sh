@@ -22,7 +22,7 @@ chmod +x .script
 command time -v ./.script 2> .results
 ../../getExperimentalResults.sh
 experiment=$(../../getExperimentNumber.sh)
-../../getDataAsCSVline.sh .results ${experiment} "03_MySQL_Local: Startup CECacheServer Locally" >> Experimental\ Results.csv
+../../getDataAsCSVline.sh .results ${experiment} "01_PostgresL_Local: Startup CECacheServer Locally" >> Experimental\ Results.csv
 ../../putExperimentalResults.sh
 rm .script .results Experimental\ Results.csv
 
@@ -48,7 +48,7 @@ do
   totalswap=$(echo $memory | perl -n -e'/.*Swap:\s([0-9\.A-Z]+)\s([0-9\.A-Z]+)\s([0-9\.A-Z]+)/ && print $1')
   usedswap=$(echo $memory | perl -n -e'/.*Swap:\s([0-9\.A-Z]+)\s([0-9\.A-Z]+)\s([0-9\.A-Z]+)/ && print $2')
   freeswap=$(echo $memory | perl -n -e'/.*Swap:\s([0-9\.A-Z]+)\s([0-9\.A-Z]+)\s([0-9\.A-Z]+)/ && print $3')
-  command="03_MySQL_Local: Startup CECacheServer Locally Table: "$table
+  command="01_PostgresL_Local: Startup CECacheServer Locally Table: "$table
   usertime=""
   systemtime=""
   percentcpu=""
