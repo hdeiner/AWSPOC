@@ -810,3 +810,7 @@ This particular run generated the following results.
 
 ![Experimental Results 1000000](README_assets/Experimental Results 1000000.png)\
 <BR />
+When rerun with sample sizes of 3,000,000 and then 9,000,000 records, the following results can be observed for comparison.  For clarity, many of the metrics are hidden to make the observations more easily observed: 
+
+![Experimental Results Comparisions](README_assets/Experimental Results Comparisions.png)\
+<BR />
