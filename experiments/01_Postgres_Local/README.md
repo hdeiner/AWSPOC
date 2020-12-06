@@ -805,7 +805,6 @@ When run in conjunction with 01_startup.sh and 03_shutdown.sh for a sample size 
 ![02_populate_large_data_1000000_01](README_assets/02_populate_large_data_1000000_01.png)\
 ![02_populate_large_data_1000000_02](README_assets/02_populate_large_data_1000000_02.png)\
 ![02_populate_large_data_1000000_03](README_assets/02_populate_large_data_1000000_03.png)\
-![02_populate_large_data_1000000_04](README_assets/02_populate_large_data_1000000_04.png)\
 <BR />
 This particular run generated the following results.
 
