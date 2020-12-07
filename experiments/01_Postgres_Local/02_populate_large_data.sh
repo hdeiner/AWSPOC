@@ -25,6 +25,7 @@ figlet -w 240 -f small "Populate Postgres Locally - Large Data - $(numfmt --grou
 figlet -w 240 -f small "Apply Schema for Postgres - Large Data - $(numfmt --grouping $ROWS) rows"
 docker exec postgres_container psql --port=5432 --username=postgres --no-password --no-align -c '"'"'create database PGYR19_P063020;'"'"'
 docker exec postgres_container psql --port=5432 --username=postgres --no-password --no-align -d pgyr19_p063020 -c '"'"'create schema PI;'"'"'
+
 liquibase --changeLogFile=../../ddl/PGYR19_P063020/changeset.xml --url=jdbc:postgresql://localhost:5432/pgyr19_p063020 --username=postgres --password=password  --driver=org.postgresql.Driver --classpath=../../liquibase_drivers/postgresql-42.2.18.jre6.jar update
 EOF'
 chmod +x .script
@@ -83,8 +84,8 @@ echo ""
 echo "Top ten earning physicians"
 echo "SELECT physician_first_name, physician_last_name, SUM(total_amount_of_payment_usdollars), COUNT(total_amount_of_payment_usdollars)" > .sql
 echo "FROM PI.OP_DTL_GNRL_PGYR2019_P06302020" >> .sql
-echo "WHERE physician_first_name <> '"'"''"'"'" >> .sql
-echo "  AND physician_last_name <> '"'"''"'"'" >> .sql
+echo "WHERE physician_first_name IS NOT NULL" >> .sql
+echo "  AND physician_last_name IS NOT NULL" >> .sql
 echo "GROUP BY physician_first_name, physician_last_name" >> .sql
 echo "ORDER BY SUM(total_amount_of_payment_usdollars) DESC" >> .sql
 echo "LIMIT 10;" >> .sql
