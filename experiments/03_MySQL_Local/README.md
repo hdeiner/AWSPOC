@@ -558,3 +558,232 @@ It all looks something like this:
 And just for laughs, here's the timings for this run.  All kept in a csv file in S3 at s3://health-engine-aws-poc/Experimental Results.csv
 ![Experimental Results](README_assets/Experimental Results.png)\
 <BR />
+
+### Large Data Experiments
+
+A different script is available for large data testing.  This transfers the dataset for large volume testing.  It uses the data from the "Complete 2019 Program Year Open Payments Dataset" from the Center for Medicare & Medicade Services.  See https://www.cms.gov/OpenPayments/Explore-the-Data/Dataset-Downloads for details.  In total, there is over 6GB in this dataset.
+
+The script 02_populate_large_data.sh is a variation on 02_populate.sh.
+```bash
+#!/usr/bin/env bash
+
+if [ $# -eq 0 ]
+  then
+    echo "must supply the command with the number of rows to use"
+    exit 1
+fi
+
+re='^[0-9]+$'
+if ! [[ $1 =~ $re ]] ; then
+    echo "must supply the command with the number of rows to use"
+   exit 1
+fi
+
+ROWS=$1
+export ROWS
+
+bash -c 'cat << "EOF" > .script
+#!/usr/bin/env bash
+
+echo $1
+
+figlet -w 240 -f small "Populate MySQL Locally - Large Data - $(numfmt --grouping $ROWS) rows"
+
+figlet -w 240 -f small "Apply Schema for MySQL - Large Data - $(numfmt --grouping $ROWS) rows"
+docker exec mysql_container echo '"'"'CREATE DATABASE PI;'"'"' | mysql -h 127.0.0.1 -P 3306 -u root --password=password
+liquibase --changeLogFile=../../ddl/PGYR19_P063020/changeset.xml --url='"'"'jdbc:mysql://localhost:3306/PI?autoReconnect=true&verifyServerCertificate=false&useSSL=false'"'"' --username=root --password=password  --driver=org.gjt.mm.mysql.Driver --classpath=../../liquibase_drivers/mysql-connector-java-5.1.48.jar update
+EOF'
+chmod +x .script
+command time -v ./.script 2> .results
+../../getExperimentalResults.sh
+experiment=$(../../getExperimentNumber.sh)
+../../getDataAsCSVline.sh .results ${experiment} "03_MySQL_Local: Populate MySQL Schema - Large Data - $ROWS rows" >> Experimental\ Results.csv
+../../putExperimentalResults.sh
+rm .script .results Experimental\ Results.csv
+
+bash -c 'cat << "EOF" > .script
+#!/usr/bin/env bash
+figlet -w 240 -f small "Get Data from S3 Bucket"
+../../data/transferPGYR19_P063020_from_s3_and_decrypt.sh
+EOF'
+chmod +x .script
+command time -v ./.script 2> .results
+../../getExperimentalResults.sh
+experiment=$(../../getExperimentNumber.sh)
+../../getDataAsCSVline.sh .results ${experiment} "03_MySQL_Local: Get Data from S3 Bucket - Large Data - $ROWS rows" >> Experimental\ Results.csv
+../../putExperimentalResults.sh
+rm .script .results Experimental\ Results.csv
+ls -lh /tmp/PGYR19_P063020
+
+command time -v ./02_populate_large_data_load_data.sh $ROWS 2> .results
+../../getExperimentalResults.sh
+experiment=$(../../getExperimentNumber.sh)
+../../getDataAsCSVline.sh .results ${experiment} "03_MySQL_Local: Populate MySQL Data - Large Data - $ROWS rows" >> Experimental\ Results.csv
+../../putExperimentalResults.sh
+rm -rf .script .results Experimental\ Results.csv
+
+bash -c 'cat << "EOF" > .script
+#!/usr/bin/env bash
+figlet -w 240 -f small "Check MySQL Data - Large Data - $(numfmt --grouping $ROWS) rows"
+echo ""
+echo "First two rows of data"
+docker exec mysql_container echo '"'"'select * from PI.OP_DTL_GNRL_PGYR2019_P06302020 LIMIT 2;'"'"' | mysql -h 127.0.0.1 -P 3306 -u root --password=password PI
+echo ""
+echo "Count of rows of data"
+docker exec mysql_container echo '"'"'select count(*) from PI.OP_DTL_GNRL_PGYR2019_P06302020 LIMIT 2;'"'"' | mysql -h 127.0.0.1 -P 3306 -u root --password=password PI
+echo ""
+echo "Average of total_amount_of_payment_usdollars"
+docker exec mysql_container echo '"'"'select avg(total_amount_of_payment_usdollars) from PI.OP_DTL_GNRL_PGYR2019_P06302020;'"'"' | mysql -h 127.0.0.1 -P 3306 -u root --password=password PI
+echo ""
+echo "Top ten earning physicians"
+docker exec mysql_container echo '"'"'SELECT physician_first_name, physician_last_name, SUM(total_amount_of_payment_usdollars), COUNT(total_amount_of_payment_usdollars) FROM PI.OP_DTL_GNRL_PGYR2019_P06302020 WHERE physician_first_name IS NOT NULL AND physician_last_name IS NOT NULL GROUP BY physician_first_name, physician_last_name ORDER BY SUM(total_amount_of_payment_usdollars) DESC LIMIT 10;'"'"' | mysql -h 127.0.0.1 -P 3306 -u root --password=password PI
+EOF'
+
+chmod +x .script
+command time -v ./.script 2> .results
+../../getExperimentalResults.sh
+experiment=$(../../getExperimentNumber.sh)
+../../getDataAsCSVline.sh .results ${experiment} "03_MySQL_Local: Check MySQL Data - Large Data - $ROWS rows" >> Experimental\ Results.csv
+../../putExperimentalResults.sh
+rm -rf .script .sql .results *.csv /tmp/PGYR19_P063020
+```
+Due to the emount of effort I was spending on the "Here Document" sections of the 02_populate_large_data.sh script, I decided to take the Populate and Test portion into it's own script, called 02_populate_large_data_load_data.sh.  I believe this makes this important piece of the code more readable.
+```bash
+#!/usr/bin/env bash
+
+ROWS=$1
+
+figlet -w 240 -f small "Populate MySQL Data - Large Data - $ROWS rows"
+head -n `echo "$ROWS+1" | bc` /tmp/PGYR19_P063020/OP_DTL_GNRL_PGYR2019_P06302020.csv > /tmp/PGYR19_P063020/OP_DTL_GNRL_PGYR2019_P06302020.subset.csv
+sed --in-place s/Applicable_Manufacturer_or_Applicable_GPO_Making_Payment_Country/Applicable_Manufacturer_or_Applicable_GPO_Making_Payment_Countr/g /tmp/PGYR19_P063020/OP_DTL_GNRL_PGYR2019_P06302020.subset.csv
+sed --in-place s/Name_of_Third_Party_Entity_Receiving_Payment_or_Transfer_of_Value/Name_of_Third_Party_Entity_Receiving_Payment_or_transfer_of_Val/g /tmp/PGYR19_P063020/OP_DTL_GNRL_PGYR2019_P06302020.subset.csv
+docker cp /tmp/PGYR19_P063020/OP_DTL_GNRL_PGYR2019_P06302020.subset.csv mysql_container:/tmp/OP_DTL_GNRL_PGYR2019_P06302020.subset.csv
+head -n 1 /tmp/PGYR19_P063020/OP_DTL_GNRL_PGYR2019_P06302020.subset.csv > .columns
+sed --in-place -e 's/Teaching_Hospital_ID,/@Teaching_Hospital_ID,/' .columns
+sed --in-place -e 's/Date_of_Payment,/@Date_of_Payment,/' .columns
+sed --in-place -e 's/Payment_Publication_Date/@Payment_Publication_Date/' .columns
+sed --in-place -e 's/Physician_Profile_ID/@Physician_Profile_ID/' .columns
+echo 'LOAD DATA INFILE '\''/tmp/OP_DTL_GNRL_PGYR2019_P06302020.subset.csv'\'' ' > .command
+echo ' INTO TABLE PI.OP_DTL_GNRL_PGYR2019_P06302020 ' >> .command
+echo ' FIELDS TERMINATED BY '\'\,\'' ' >> .command
+echo ' OPTIONALLY ENCLOSED BY '\'\"\'' ' >> .command
+echo ' LINES TERMINATED BY '\'\\\n\'' ' >> .command
+echo ' IGNORE 1 ROWS' >> .command
+echo ' ('$(<.columns)') ' >> .command
+echo ' SET Teaching_Hospital_ID = IF(@Teaching_Hospital_ID='\'\'',-1,@Teaching_Hospital_ID), ' >> .command
+echo '     Date_of_Payment = STR_TO_DATE(@Date_of_Payment,'\'%m/%d/%Y\''), ' >> .command
+echo '     Payment_Publication_Date = STR_TO_DATE(@Payment_Publication_Date,'\'%m/%d/%Y\''), ' >> .command
+echo '     Physician_Profile_ID = IF(@Physician_Profile_ID='\'\'',-1,@Physician_Profile_ID) ' >> .command
+docker exec mysql_container echo $(<.command) | mysql -h 127.0.0.1 -P 3306 -u root --password=password PI
+rm .columns .sql
+```
+
+It uses the following changeset.
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+
+<databaseChangeLog
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.8.xsd">
+
+    <changeSet  id="1"  author="howarddeiner">
+
+        <createTable tableName="OP_DTL_GNRL_PGYR2019_P06302020" schemaName="PI">
+            <column name="change_type" type="VARCHAR2(20)"/>
+            <column name="covered_recipient_type" type="VARCHAR2(50)"/>
+            <column name="teaching_hospital_ccn" type="VARCHAR2(06)"/>
+            <column name="teaching_hospital_id" type="NUMBER(38,0)"/>
+            <column name="teaching_hospital_name" type="VARCHAR2(100)"/>
+            <column name="physician_profile_id" type="NUMBER(38,0)"/>
+            <column name="physician_first_name" type="VARCHAR2(20)"/>
+            <column name="physician_middle_name" type="VARCHAR2(20)"/>
+            <column name="physician_last_name" type="VARCHAR2(35)"/>
+            <column name="physician_name_suffix" type="VARCHAR2(5)"/>
+            <column name="recipient_primary_business_street_address_line1" type="VARCHAR2(55)"/>
+            <column name="recipient_primary_business_street_address_line2" type="VARCHAR2(55)"/>
+            <column name="recipient_city" type="VARCHAR2(40)"/>
+            <column name="recipient_state" type="CHAR(2)"/>
+            <column name="recipient_zip_code" type="VARCHAR2(10)"/>
+            <column name="recipient_country" type="VARCHAR2(100)"/>
+            <column name="recipient_province" type="VARCHAR2(20)"/>
+            <column name="recipient_postal_code" type="VARCHAR2(20)"/>
+            <column name="physician_primary_type" type="VARCHAR2(100)"/>
+            <column name="physician_specialty" type="VARCHAR2(300)"/>
+            <column name="physician_license_state_code1" type="CHAR(2)"/>
+            <column name="physician_license_state_code2" type="CHAR(2)"/>
+            <column name="physician_license_state_code3" type="CHAR(2)"/>
+            <column name="physician_license_state_code4" type="CHAR(2)"/>
+            <column name="physician_license_state_code5" type="CHAR(2)"/>
+            <column name="submitting_applicable_manufacturer_or_applicable_gpo_name" type="VARCHAR2(100)"/>
+            <column name="applicable_manufacturer_or_applicable_gpo_making_payment_id" type="VARCHAR2(12)"/>
+            <column name="applicable_manufacturer_or_applicable_gpo_making_payment_name" type="VARCHAR2(100)"/>
+            <column name="applicable_manufacturer_or_applicable_gpo_making_payment_state" type="CHAR(2)"/>
+            <column name="applicable_manufacturer_or_applicable_gpo_making_payment_countr" type="VARCHAR2(100)"/>
+            <column name="total_amount_of_payment_usdollars" type="NUMBER(12,2)"/>
+            <column name="date_of_payment" type="DATE"/>
+            <column name="number_of_payments_included_in_total_amount" type="NUMBER(3,0)"/>
+            <column name="form_of_payment_or_transfer_of_value" type="VARCHAR2(100)"/>
+            <column name="nature_of_payment_or_transfer_of_value" type="VARCHAR2(200)"/>
+            <column name="city_of_travel" type="VARCHAR2(40)"/>
+            <column name="state_of_travel" type="CHAR(2)"/>
+            <column name="country_of_travel" type="VARCHAR2(100)"/>
+            <column name="physician_ownership_indicator" type="CHAR(3)"/>
+            <column name="third_party_payment_recipient_indicator" type="VARCHAR2(50)"/>
+            <column name="name_of_third_party_entity_receiving_payment_or_transfer_of_val" type="VARCHAR2(50)"/>
+            <column name="charity_indicator" type="CHAR(3)"/>
+            <column name="third_party_equals_covered_recipient_indicator" type="CHAR(3)"/>
+            <column name="contextual_information" type="VARCHAR2(500)"/>
+            <column name="delay_in_publication_indicator" type="CHAR(3)"/>
+            <column name="record_id" type="NUMBER(38,0)"/>
+            <column name="dispute_status_for_publication" type="CHAR(3)"/>
+            <column name="related_product_indicator" type="VARCHAR2(100)"/>
+            <column name="covered_or_noncovered_indicator_1" type="VARCHAR2(100)"/>
+            <column name="indicate_drug_or_biological_or_device_or_medical_supply_1" type="VARCHAR2(100)"/>
+            <column name="product_category_or_therapeutic_area_1" type="VARCHAR2(100)"/>
+            <column name="name_of_drug_or_biological_or_device_or_medical_supply_1" type="VARCHAR2(500)"/>
+            <column name="associated_drug_or_biological_ndc_1" type="VARCHAR2(100)"/>
+            <column name="covered_or_noncovered_indicator_2" type="VARCHAR2(100)"/>
+            <column name="indicate_drug_or_biological_or_device_or_medical_supply_2" type="VARCHAR2(100)"/>
+            <column name="product_category_or_therapeutic_area_2" type="VARCHAR2(100)"/>
+            <column name="name_of_drug_or_biological_or_device_or_medical_supply_2" type="VARCHAR2(500)"/>
+            <column name="associated_drug_or_biological_ndc_2" type="VARCHAR2(100)"/>
+            <column name="covered_or_noncovered_indicator_3" type="VARCHAR2(100)"/>
+            <column name="indicate_drug_or_biological_or_device_or_medical_supply_3" type="VARCHAR2(100)"/>
+            <column name="product_category_or_therapeutic_area_3" type="VARCHAR2(100)"/>
+            <column name="name_of_drug_or_biological_or_device_or_medical_supply_3" type="VARCHAR2(500)"/>
+            <column name="associated_drug_or_biological_ndc_3" type="VARCHAR2(100)"/>
+            <column name="covered_or_noncovered_indicator_4" type="VARCHAR2(100)"/>
+            <column name="indicate_drug_or_biological_or_device_or_medical_supply_4" type="VARCHAR2(100)"/>
+            <column name="product_category_or_therapeutic_area_4" type="VARCHAR2(100)"/>
+            <column name="name_of_drug_or_biological_or_device_or_medical_supply_4" type="VARCHAR2(500)"/>
+            <column name="associated_drug_or_biological_ndc_4" type="VARCHAR2(100)"/>
+            <column name="covered_or_noncovered_indicator_5" type="VARCHAR2(100)"/>
+            <column name="indicate_drug_or_biological_or_device_or_medical_supply_5" type="VARCHAR2(100)"/>
+            <column name="product_category_or_therapeutic_area_5" type="VARCHAR2(100)"/>
+            <column name="name_of_drug_or_biological_or_device_or_medical_supply_5" type="VARCHAR2(500)"/>
+            <column name="associated_drug_or_biological_ndc_5" type="VARCHAR2(100)"/>
+            <column name="program_year" type="CHAR(4)"/>
+            <column name="payment_publication_date" type="DATE"/>
+        </createTable>
+
+    </changeSet>
+
+</databaseChangeLog>
+```
+<BR />
+When run in conjunction with 01_startup.sh and 04_shutdown.sh for a sample size of 1,000,000 records, you will see:
+
+![02_populate_large_data_1000000_01](README_assets/02_populate_large_data_1000000_01.png)\
+![02_populate_large_data_1000000_02](README_assets/02_populate_large_data_1000000_02.png)\
+![02_populate_large_data_1000000_03](README_assets/02_populate_large_data_1000000_03.png)\
+<BR />
+This particular run generated the following results.
+
+![Experimental Results 1000000](README_assets/Experimental Results 1000000.png)\
+<BR />
+When rerun with sample sizes of 3,000,000 and then 9,000,000 records, the following results can be observed for comparison.  For clarity, many of the metrics are hidden to make the observations more easily observed:
+
+![Experimental Results Comparisions](README_assets/Experimental Results Comparisions.png)\
+<BR />

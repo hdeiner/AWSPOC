@@ -800,7 +800,7 @@ It uses the following changeset.
 </databaseChangeLog>
 ```
 <BR />
-When run in conjunction with 01_startup.sh and 03_shutdown.sh for a sample size of 1,000,000 records, you will see:
+When run in conjunction with 01_startup.sh and 04_shutdown.sh for a sample size of 1,000,000 records, you will see:
 
 ![02_populate_large_data_1000000_01](README_assets/02_populate_large_data_1000000_01.png)\
 ![02_populate_large_data_1000000_02](README_assets/02_populate_large_data_1000000_02.png)\
