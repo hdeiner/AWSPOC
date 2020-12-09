@@ -156,6 +156,6 @@ chmod +x .script
 command time -v ./.script 2> .results
 ../../getExperimentalResults.sh
 experiment=$(../../getExperimentNumber.sh)
-../../getDataAsCSVline.sh .results ${experiment} "04_PostgreSQL_AWS_Clustered: Check PostgreSQL Data "$(<.database_name) >> Experimental\ Results.csv
+../../getDataAsCSVline.sh .results ${experiment} "02_PostgreSQL_AWS_Clustered: Check PostgreSQL Data "$(<.database_name) >> Experimental\ Results.csv
 ../../putExperimentalResults.sh
 rm .database_dns .database_port .database_username .database_password .database_name ce.*.csv
