@@ -12,7 +12,6 @@ sed --in-place -e 's/Date_of_Payment,/@Date_of_Payment,/' .columns
 sed --in-place -e 's/Payment_Publication_Date/@Payment_Publication_Date/' .columns
 sed --in-place -e 's/Physician_Profile_ID/@Physician_Profile_ID/' .columns
 
-#echo 'SET GLOBAL local_infile = true;'' ' > .command
 echo 'LOAD DATA LOCAL INFILE '\''/tmp/OP_DTL_GNRL_PGYR2019_P06302020.subset.csv'\'' ' > .command
 echo ' INTO TABLE PI.OP_DTL_GNRL_PGYR2019_P06302020 ' >> .command
 echo ' FIELDS TERMINATED BY '\'\,\'' ' >> .command

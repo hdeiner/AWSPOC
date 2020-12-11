@@ -874,3 +874,7 @@ This is what the console looks like when the script is executed.
 And just for laughs, here's the timings for this run.  All kept in a csv file in S3 at s3://health-engine-aws-poc/Experimental Results.csv
 ![Experimental Results](README_assets/Experimental Results.png)\
 <BR/>
+
+### Large Data Experiments
+
+Large data experiments were not carried out on Cassandra AWS due to the unsuitability described in the README.md in experiment 05_Cassandra_Local.
