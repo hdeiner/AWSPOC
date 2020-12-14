@@ -1082,7 +1082,6 @@ docker exec oracle_container /u01/app/oracle/product/12.2.0/dbhome_1/bin/sqlldr 
 rm .columns .command .control.ctl
 ```
 
-
 It uses the following schema.
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
@@ -1196,9 +1195,9 @@ When rerun with sample sizes of 3,000,000 and then 9,000,000 records, the follow
 Just to draw a quick conclusion, when compared to the results of the 01_Postgres_Local expriments on just elapsed time for population of data...
 <TABLE>
 <TR><TD>Sample Size</TD><TD>Elapsed Time Postgres<TD>Elapsed Time Oracle</TD><TD>Oracle Penalty</TD></TR>
-<TR><TD>1,000,000</TD><TD>16.7</TD></TD>16:01.6<TD>5658%</TD></TR>
-<TR><TD>3,000,000</TD><TD>55.8</TD>47:19.2<TD>4988%</TD></TR>
-<TR><TD>9,000,000</TD><TD>2:42.7</TD>3:28:51.0<TD>7602%</TD></TR>
+<TR><TD>1,000,000</TD><TD>16.7</TD></TD>16:01.6</TD><TD>5658%</TD></TR>
+<TR><TD>3,000,000</TD><TD>55.8</TD><TD>47:19.2</TD><TD>4988%</TD></TR>
+<TR><TD>9,000,000</TD><TD>2:42.7</TD><TD>3:28:51.0</TD><TD>7602%</TD></TR>
 </TABLE>
 That seems to put Oracle at an almost 2 orders of magnitude disadvantage compared to Postgres.
 <BR />

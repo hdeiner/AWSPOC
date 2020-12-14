@@ -22,13 +22,16 @@ This script uses simple Terraform and applies it.
 ```bash
 #!/usr/bin/env bash
 
+cp terraform.aws_instance.tf.original terraform.aws_instance.tf
+
 ../../startExperiment.sh
 
 bash -c 'cat << "EOF" > .script
 #!/usr/bin/env bash
 figlet -w 200 -f small "Startup Oracle AWS"
 terraform init
-terraform apply -auto-approve
+echo "ALL" > .rows
+terraform apply -var rows=$(<.rows) -auto-approve
 EOF'
 chmod +x .script
 command time -v ./.script 2> .results
@@ -38,16 +41,16 @@ experiment=$(../../getExperimentNumber.sh)
 ../../putExperimentalResults.sh
 rm .script .results Experimental\ Results.csv
 ```
-The terraform.aws_instance.tf is the most interesting of the terraform scripts because it does does all of the heavy lifting through provisiong.
+The terraform.aws_instance.tf.original is the most interesting of the terraform scripts because it does does all of the heavy lifting through provisiong.
 
 The reason for doing the provisioning of the actual database, setting up the DDL using Liquibase, and loading sample data is that I don't want to install local clients (such as sqlplus) on the invoking machine.
 ```hcl-terraform
 resource "aws_instance" "oracle_ec2_instance" {
   ami = "ami-00cf6ad74f988f94b"  #  Oracle Linux 7 update 7
   instance_type = "m5.large"   # $0.096/hour ; 2 vCPU  ; 10 ECU  ; 8 GiB memory   ; EBS disk              ; EBS Optimized by default
-# instance_type = "m5.xlarge"   # $0.192/hour ; 4 vCPU  ; 16 ECU  ; 16 GiB memory   ; EBS disk              ; EBS Optimized by default
-# instance_type = "m5.16xlarge"   # $3.027/hour ; 64 vCPU  ; 256 ECU  ; 256 GiB memory   ; EBS disk              ; EBS Optimized by default
-# instance_type = "m5d.metal" # $5.424/hour ; 96 vCPU ; 345 ECU ; 384 GiB memory ; 4 x 900 NVMe SSD disk ; EBS Optimized by default ; max bandwidth 19,000 Mbps ; max throughput 2,375 MB/s ; Max IOPS 80,000
+  # instance_type = "m5.xlarge"   # $0.192/hour ; 4 vCPU  ; 16 ECU  ; 16 GiB memory   ; EBS disk              ; EBS Optimized by default
+  # instance_type = "m5.16xlarge"   # $3.027/hour ; 64 vCPU  ; 256 ECU  ; 256 GiB memory   ; EBS disk              ; EBS Optimized by default
+  # instance_type = "m5d.metal" # $5.424/hour ; 96 vCPU ; 345 ECU ; 384 GiB memory ; 4 x 900 NVMe SSD disk ; EBS Optimized by default ; max bandwidth 19,000 Mbps ; max throughput 2,375 MB/s ; Max IOPS 80,000
   key_name = aws_key_pair.oracle_key_pair.key_name
   ebs_optimized = true
   security_groups = [aws_security_group.oracle.name]
@@ -290,7 +293,8 @@ resource "aws_instance" "oracle_ec2_instance" {
       "chmod +x /tmp/import_GPG_keys.sh",
       "/tmp/import_GPG_keys.sh /tmp/HealthEngine.AWSPOC.public.key /tmp/HealthEngine.AWSPOC.private.key",
       "chmod +x /tmp/transfer_from_s3_and_decrypt.sh",
-      "rm /tmp/import_GPG_keys.sh /tmp/*.key"]
+      "rm /tmp/import_GPG_keys.sh /tmp/*.key"
+    ]
   }
   provisioner "file" {
     connection {
@@ -1010,12 +1014,270 @@ This script is extremely simple.  It tells terraform to destroy all that it crea
 ```bash
 #!/usr/bin/env bash
 
+bash -c 'cat << "EOF" > .script
+#!/usr/bin/env bash
 figlet -w 200 -f small "Shutdown Oracle AWS"
-terraform destroy -auto-approve
+terraform destroy -var rows=$(<.rows) -auto-approve
+EOF'
+chmod +x .script
+command time -v ./.script 2> .results
+../../getExperimentalResults.sh
+experiment=$(../../getExperimentNumber.sh)
+../../getDataAsCSVline.sh .results ${experiment} "08_Oracle_AWS: Shutdown Oracle AWS" >> Experimental\ Results.csv
+../../putExperimentalResults.sh
+rm .rows .script .results terraform.aws_instance.tf Experimental\ Results.csv
+
+../../endExperiment.sh
 ```
-The console shows what it does.
-![03_shutdown_console_01](README_assets/03_shutdown_console_01.png)\
-<BR/>
-And just for laughs, here's the timings for this run.  All kept in a csv file in S3 at s3://health-engine-aws-poc/Experimental Results.csv
-![Experimental Results](README_assets/Experimental Results.png)\
+### Large Data Experiments
+
+Due to the necessity to pass a parameter to the 02_populate_large_data.sh, a variant of the 01_start.sh script is used, called 01_startup_large_data.sh.
+
+The basic difference between the two startup scripts is which terraform.aws_instance file to use.
+
+```bash
+#!/usr/bin/env bash
+
+if [ $# -eq 0 ]
+  then
+    echo "must supply the command with the number of rows to use"
+    exit 1
+fi
+
+re='^[0-9]+$'
+if ! [[ $1 =~ $re ]] ; then
+    echo "must supply the command with the number of rows to use"
+   exit 1
+fi
+
+ROWS=$1
+export ROWS
+
+cp terraform.aws_instance.tf.large_data terraform.aws_instance.tf
+
+../../startExperiment.sh
+
+bash -c 'cat << "EOF" > .script
+#!/usr/bin/env bash
+figlet -w 200 -f small "Startup Oracle AWS" - Large Data - $(numfmt --grouping $ROWS) rows
+terraform init
+echo "$ROWS" > .rows
+terraform apply -var rows=$ROWS -auto-approve
+EOF'
+chmod +x .script
+command time -v ./.script 2> .results
+../../getExperimentalResults.sh
+experiment=$(../../getExperimentNumber.sh)
+../../getDataAsCSVline.sh .results ${experiment} "08_Oracle_AWS: Startup Oracle AWS" - Large Data - $(numfmt --grouping $ROWS) rows >> Experimental\ Results.csv
+../../putExperimentalResults.sh
+rm .script .results Experimental\ Results.csv
+```
+
+The script invoked the same provision.oracle.sh discussed previously.
+
+However, a different script is used for large data testing.  This transfers the dataset for large volume testing.  It uses the data from the "Complete 2019 Program Year Open Payments Dataset" from the Center for Medicare & Medicade Services.  See https://www.cms.gov/OpenPayments/Explore-the-Data/Dataset-Downloads for details.  In total, there is over 6GB in this dataset.
+
+The script 02_populate_large_data.sh is a variation on 02_populate.sh.
+```bash
+#!/usr/bin/env bash
+
+if [ $# -eq 0 ]
+  then
+    echo "must supply the command with the number of rows to use"
+    exit 1
+fi
+
+re='^[0-9]+$'
+if ! [[ $1 =~ $re ]] ; then
+    echo "must supply the command with the number of rows to use"
+   exit 1
+fi
+
+ROWS=$1
+export ROWS
+
+cp terraform.aws_instance.tf.large_data terraform.aws_instance.tf
+
+../../startExperiment.sh
+
+bash -c 'cat << "EOF" > .script
+#!/usr/bin/env bash
+figlet -w 200 -f small "Startup Oracle AWS" - Large Data - $(numfmt --grouping $ROWS) rows
+terraform init
+echo "$ROWS" > .rows
+terraform apply -var rows=$ROWS -auto-approve
+EOF'
+chmod +x .script
+command time -v ./.script 2> .results
+../../getExperimentalResults.sh
+experiment=$(../../getExperimentNumber.sh)
+../../getDataAsCSVline.sh .results ${experiment} "08_Oracle_AWS: Startup Oracle AWS" - Large Data - $(numfmt --grouping $ROWS) rows >> Experimental\ Results.csv
+../../putExperimentalResults.sh
+rm .script .results Experimental\ Results.csv
+```
+It uses the following changeset.
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+
+<databaseChangeLog
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.8.xsd">
+
+    <changeSet  id="1"  author="howarddeiner">
+
+        <createTable tableName="OP_DTL_GNRL_PGYR2019_P06302020" schemaName="PI">
+            <column name="change_type" type="VARCHAR2(20)"/>
+            <column name="covered_recipient_type" type="VARCHAR2(50)"/>
+            <column name="teaching_hospital_ccn" type="VARCHAR2(06)"/>
+            <column name="teaching_hospital_id" type="NUMBER(38,0)"/>
+            <column name="teaching_hospital_name" type="VARCHAR2(100)"/>
+            <column name="physician_profile_id" type="NUMBER(38,0)"/>
+            <column name="physician_first_name" type="VARCHAR2(20)"/>
+            <column name="physician_middle_name" type="VARCHAR2(20)"/>
+            <column name="physician_last_name" type="VARCHAR2(35)"/>
+            <column name="physician_name_suffix" type="VARCHAR2(5)"/>
+            <column name="recipient_primary_business_street_address_line1" type="VARCHAR2(55)"/>
+            <column name="recipient_primary_business_street_address_line2" type="VARCHAR2(55)"/>
+            <column name="recipient_city" type="VARCHAR2(40)"/>
+            <column name="recipient_state" type="CHAR(2)"/>
+            <column name="recipient_zip_code" type="VARCHAR2(10)"/>
+            <column name="recipient_country" type="VARCHAR2(100)"/>
+            <column name="recipient_province" type="VARCHAR2(20)"/>
+            <column name="recipient_postal_code" type="VARCHAR2(20)"/>
+            <column name="physician_primary_type" type="VARCHAR2(100)"/>
+            <column name="physician_specialty" type="VARCHAR2(300)"/>
+            <column name="physician_license_state_code1" type="CHAR(2)"/>
+            <column name="physician_license_state_code2" type="CHAR(2)"/>
+            <column name="physician_license_state_code3" type="CHAR(2)"/>
+            <column name="physician_license_state_code4" type="CHAR(2)"/>
+            <column name="physician_license_state_code5" type="CHAR(2)"/>
+            <column name="submitting_applicable_manufacturer_or_applicable_gpo_name" type="VARCHAR2(100)"/>
+            <column name="applicable_manufacturer_or_applicable_gpo_making_payment_id" type="VARCHAR2(12)"/>
+            <column name="applicable_manufacturer_or_applicable_gpo_making_payment_name" type="VARCHAR2(100)"/>
+            <column name="applicable_manufacturer_or_applicable_gpo_making_payment_state" type="CHAR(2)"/>
+            <column name="applicable_manufacturer_or_applicable_gpo_making_payment_countr" type="VARCHAR2(100)"/>
+            <column name="total_amount_of_payment_usdollars" type="NUMBER(12,2)"/>
+            <column name="date_of_payment" type="DATE"/>
+            <column name="number_of_payments_included_in_total_amount" type="NUMBER(3,0)"/>
+            <column name="form_of_payment_or_transfer_of_value" type="VARCHAR2(100)"/>
+            <column name="nature_of_payment_or_transfer_of_value" type="VARCHAR2(200)"/>
+            <column name="city_of_travel" type="VARCHAR2(40)"/>
+            <column name="state_of_travel" type="CHAR(2)"/>
+            <column name="country_of_travel" type="VARCHAR2(100)"/>
+            <column name="physician_ownership_indicator" type="CHAR(3)"/>
+            <column name="third_party_payment_recipient_indicator" type="VARCHAR2(50)"/>
+            <column name="name_of_third_party_entity_receiving_payment_or_transfer_of_val" type="VARCHAR2(50)"/>
+            <column name="charity_indicator" type="CHAR(3)"/>
+            <column name="third_party_equals_covered_recipient_indicator" type="CHAR(3)"/>
+            <column name="contextual_information" type="VARCHAR2(500)"/>
+            <column name="delay_in_publication_indicator" type="CHAR(3)"/>
+            <column name="record_id" type="NUMBER(38,0)"/>
+            <column name="dispute_status_for_publication" type="CHAR(3)"/>
+            <column name="related_product_indicator" type="VARCHAR2(100)"/>
+            <column name="covered_or_noncovered_indicator_1" type="VARCHAR2(100)"/>
+            <column name="indicate_drug_or_biological_or_device_or_medical_supply_1" type="VARCHAR2(100)"/>
+            <column name="product_category_or_therapeutic_area_1" type="VARCHAR2(100)"/>
+            <column name="name_of_drug_or_biological_or_device_or_medical_supply_1" type="VARCHAR2(500)"/>
+            <column name="associated_drug_or_biological_ndc_1" type="VARCHAR2(100)"/>
+            <column name="covered_or_noncovered_indicator_2" type="VARCHAR2(100)"/>
+            <column name="indicate_drug_or_biological_or_device_or_medical_supply_2" type="VARCHAR2(100)"/>
+            <column name="product_category_or_therapeutic_area_2" type="VARCHAR2(100)"/>
+            <column name="name_of_drug_or_biological_or_device_or_medical_supply_2" type="VARCHAR2(500)"/>
+            <column name="associated_drug_or_biological_ndc_2" type="VARCHAR2(100)"/>
+            <column name="covered_or_noncovered_indicator_3" type="VARCHAR2(100)"/>
+            <column name="indicate_drug_or_biological_or_device_or_medical_supply_3" type="VARCHAR2(100)"/>
+            <column name="product_category_or_therapeutic_area_3" type="VARCHAR2(100)"/>
+            <column name="name_of_drug_or_biological_or_device_or_medical_supply_3" type="VARCHAR2(500)"/>
+            <column name="associated_drug_or_biological_ndc_3" type="VARCHAR2(100)"/>
+            <column name="covered_or_noncovered_indicator_4" type="VARCHAR2(100)"/>
+            <column name="indicate_drug_or_biological_or_device_or_medical_supply_4" type="VARCHAR2(100)"/>
+            <column name="product_category_or_therapeutic_area_4" type="VARCHAR2(100)"/>
+            <column name="name_of_drug_or_biological_or_device_or_medical_supply_4" type="VARCHAR2(500)"/>
+            <column name="associated_drug_or_biological_ndc_4" type="VARCHAR2(100)"/>
+            <column name="covered_or_noncovered_indicator_5" type="VARCHAR2(100)"/>
+            <column name="indicate_drug_or_biological_or_device_or_medical_supply_5" type="VARCHAR2(100)"/>
+            <column name="product_category_or_therapeutic_area_5" type="VARCHAR2(100)"/>
+            <column name="name_of_drug_or_biological_or_device_or_medical_supply_5" type="VARCHAR2(500)"/>
+            <column name="associated_drug_or_biological_ndc_5" type="VARCHAR2(100)"/>
+            <column name="program_year" type="CHAR(4)"/>
+            <column name="payment_publication_date" type="DATE"/>
+        </createTable>
+
+    </changeSet>
+
+</databaseChangeLog>
+```
+02_populate_large_data.sh has a helper function, which does the work for getting sqlldr working for us.
+
+```bash
+#!/usr/bin/env bash
+
+ROWS=$1
+
+figlet -w 240 -f small "Populate Oracle AWS - Large Data - $ROWS rows"
+head -n `echo "$ROWS+1" | bc` /tmp/PGYR19_P063020/OP_DTL_GNRL_PGYR2019_P06302020.csv > /tmp/PGYR19_P063020/OP_DTL_GNRL_PGYR2019_P06302020.subset.csv
+sed --in-place s/Applicable_Manufacturer_or_Applicable_GPO_Making_Payment_Country/Applicable_Manufacturer_or_Applicable_GPO_Making_Payment_Countr/g /tmp/PGYR19_P063020/OP_DTL_GNRL_PGYR2019_P06302020.subset.csv
+sed --in-place s/Name_of_Third_Party_Entity_Receiving_Payment_or_Transfer_of_Value/Name_of_Third_Party_Entity_Receiving_Payment_or_transfer_of_Val/g /tmp/PGYR19_P063020/OP_DTL_GNRL_PGYR2019_P06302020.subset.csv
+
+grep -E '<column name=' /tmp/changeset.xml > /tmp/.columns
+sed --in-place --regexp-extended 's/            <column name="//g' /tmp/.columns
+sed --in-place --regexp-extended 's/"\ type=".*/,/g' /tmp/.columns
+sed --in-place --regexp-extended '$ s/,$//g' /tmp/.columns
+
+echo 'options  ( skip=1 )' > /tmp/control.ctl
+echo 'load data' >> /tmp/control.ctl
+echo '  infile "/tmp/PGYR19_P063020/OP_DTL_GNRL_PGYR2019_P06302020.subset.csv"' >> /tmp/control.ctl
+echo '  truncate into table "OP_DTL_GNRL_PGYR2019_P06302020"' >> /tmp/control.ctl
+echo 'fields terminated by ","' >> /tmp/control.ctl
+echo 'optionally enclosed by '"'"'"'"'"' ' >> /tmp/control.ctl
+echo 'trailing nullcols' >> /tmp/control.ctl
+echo '( ' >> /tmp/control.ctl
+cat /tmp/control.ctl /tmp/.columns > /tmp/control.ctl.tmp
+mv /tmp/control.ctl.tmp /tmp/control.ctl
+echo ' ) ' >> /tmp/control.ctl
+sed --in-place --regexp-extended 's/date_of_payment/date_of_payment "to_date(:date_of_payment,'"'"'MM\/DD\/YYYY'"'"')"/g' /tmp/control.ctl
+sed --in-place --regexp-extended 's/payment_publication_date/payment_publication_date "to_date(:date_of_payment,'"'"'MM\/DD\/YYYY'"'"')"/g' /tmp/control.ctl
+sed --in-place --regexp-extended 's/contextual_information/contextual_information CHAR(500)/g' /tmp/control.ctl
+
+sudo -u oracle bash -c "source /home/oracle/.bash_profile ; sqlldr system/OraPasswd1@localhost:1521/ORCL control=/tmp/control.ctl log=/tmp/control.log | sed -E '/Loader:|Commit point reached|Copyright|Path used:|Loader:|Commit point reached|Copyright|Path used:|Check the log file:|control.log|for more information about the load|^$/d'"
+
+rm /tmp/.columns /tmp/control.ctl
+```
+
 <BR />
+When run in conjunction with 01_startup_large_data.sh and 03_shutdown.sh for a sample size of 1,000,000 records, you will see:
+
+![02_populate_large_data_1000000_01](README_assets/02_populate_large_data_1000000_01.png)\
+![02_populate_large_data_1000000_02](README_assets/02_populate_large_data_1000000_02.png)\
+![02_populate_large_data_1000000_03](README_assets/02_populate_large_data_1000000_03.png)\
+![02_populate_large_data_1000000_04](README_assets/02_populate_large_data_1000000_04.png)\
+![02_populate_large_data_1000000_05](README_assets/02_populate_large_data_1000000_05.png)\
+![02_populate_large_data_1000000_06](README_assets/02_populate_large_data_1000000_06.png)\
+![02_populate_large_data_1000000_07](README_assets/02_populate_large_data_1000000_07.png)\
+![02_populate_large_data_1000000_08](README_assets/02_populate_large_data_1000000_08.png)\
+![02_populate_large_data_1000000_09](README_assets/02_populate_large_data_1000000_09.png)\
+![02_populate_large_data_1000000_10](README_assets/02_populate_large_data_1000000_10.png)\
+![02_populate_large_data_1000000_11](README_assets/02_populate_large_data_1000000_11.png)\
+![02_populate_large_data_1000000_12](README_assets/02_populate_large_data_1000000_12.png)\
+![02_populate_large_data_1000000_13](README_assets/02_populate_large_data_1000000_13.png)\
+<BR />
+This particular run generated the following results.
+
+![Experimental Results 1000000](README_assets/Experimental Results 1000000.png)\
+<BR />
+When rerun with sample sizes of 3,000,000 and then 9,000,000 records, the following results can be observed for comparison.  For clarity, many of the metrics are hidden to make the observations more easily observed:
+
+![Experimental Results Comparisons](README_assets/Experimental Results Comparisons.png)\
+<BR />
+And to do the same comparison as was done in 07_Oracle_Local, when compared to the results of the 02_PostgreSQL_terraform-aws-rds-aurora-clustered expriments on just elapsed time for population of data...
+<TABLE>
+<TR><TD>Sample Size</TD><TD>Elapsed Time Postgres<TD>Elapsed Time Oracle</TD><TD>Oracle Penalty</TD></TR>
+<TR><TD>1,000,000</TD><TD>3:04.0</TD><TD>3:39.228</TD><TD>14%</TD></TR>
+<TR><TD>3,000,000</TD><TD>8:45.4</TD><TD>9:52.275</TD><TD>13%</TD></TR>
+<TR><TD>9,000,000</TD><TD>27.26.3</TD><TD>31:14.036</TD><TD>14%</TD></TR>
+</TABLE>
+These performance numbers are more in line with Postgres.  However, I had to use a 40GB EBS disk to handle the size, and there is about a 16 minute period to spin up and configure the Oracle instance - which would make an AWS EC2 Oracle quite unattractive and expensive compared to a docker container for a Postgres database.
+<BR />
+

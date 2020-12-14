@@ -26,8 +26,6 @@ figlet -w 240 -f small "Apply Schema for Oracle - Large Data - $(numfmt --groupi
 cp ../../ddl/PGYR19_P063020/changeset.xml changeSet.xml
 # make schemaName="PI" in a line go away
 sed --in-place --regexp-extended '"'"'s/schemaName\=\"PI\"//g'"'"' changeSet.xml
-# modify the tablenames in constraints clauses to include the PI in from of the tablemame.
-#sed --in-place --regexp-extended '"'"'s/(tableName\=\")([A-Za-z0-9_\-]+)(\"\/>)/\1PI.\2\3/g'"'"' changeSet.xml
 liquibase update
 EOF'
 chmod +x .script

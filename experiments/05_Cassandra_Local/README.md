@@ -784,7 +784,7 @@ Those measures get rid of tombstones for our purposes, but then surface a more d
 
 Then there's the matter of grouping, aggregation, and ordering.
 
-This fairly simple querry fails. 
+This fairly simple query fails. 
 ```sql
 SELECT physician_first_name, physician_last_name, SUM(total_amount_of_payment_usdollars), COUNT(total_amount_of_payment_usdollars) 
 FROM PGYR19_P063020.PI 
