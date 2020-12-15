@@ -38,7 +38,7 @@ ls -lh /tmp/PGYR19_P063020
 command time -v ./02_populate_large_data_load_data.sh $ROWS 2> .results
 ../../getExperimentalResults.sh
 experiment=$(../../getExperimentNumber.sh)
-../../getDataAsCSVline.sh .results ${experiment} "09_MongoDB_Local: Populate Oracle Data - Large Data - $ROWS rows" >> Experimental\ Results.csv
+../../getDataAsCSVline.sh .results ${experiment} "09_MongoDB_Local: Populate MongoDB Data - Large Data - $ROWS rows" >> Experimental\ Results.csv
 ../../putExperimentalResults.sh
 rm -rf .script .results Experimental\ Results.csv
 
@@ -76,6 +76,6 @@ chmod +x .script
 command time -v ./.script 2> .results
 ../../getExperimentalResults.sh
 experiment=$(../../getExperimentNumber.sh)
-../../getDataAsCSVline.sh .results ${experiment} "09_MongoDB_Local: Check Oracle Data - Large Data - $ROWS rows" >> Experimental\ Results.csv
+../../getDataAsCSVline.sh .results ${experiment} "09_MongoDB_Local: Check MongoDB Data - Large Data - $ROWS rows" >> Experimental\ Results.csv
 ../../putExperimentalResults.sh
 rm -rf .script .results .mongo.js /tmp/PGYR19_P063020
