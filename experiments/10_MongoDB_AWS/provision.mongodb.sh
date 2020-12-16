@@ -6,7 +6,7 @@ sudo apt-get update > provision.log
 sudo apt-get install -y -qq figlet > provision.log
 
 figlet -w 160 -f small "Install Prerequisites"
-sudo apt-get install -y -qq gnupg gnupg2 awscli >> provision.log
+sudo apt-get install -y -qq gnupg gnupg2 awscli unzip >> provision.log
 
 figlet -w 160 -f small "Import MongoDB public GPG Key"
 wget -qO - https://www.mongodb.org/static/pgp/server-4.4.asc | sudo apt-key add -

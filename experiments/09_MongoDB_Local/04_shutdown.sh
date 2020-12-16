@@ -7,6 +7,7 @@ docker-compose -f docker-compose.app.yml down
 docker volume rm 09_mongodb_local_cecacheserver_data
 docker-compose -f docker-compose.yml down
 docker volume rm 09_mongodb_local_mongo_data
+docker volume rm 09_mongodb_local_mongo_config
 docker volume rm 09_mongodb_local_mongoclient_data
 EOF'
 chmod +x .script

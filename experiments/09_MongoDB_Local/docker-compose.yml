@@ -9,7 +9,8 @@ services:
 #      MONGO_INITDB_ROOT_USERNAME: root
 #      MONGO_INITDB_ROOT_PASSWORD: password
     volumes:
-      - mongo_data:/var/lib/mongo/data
+      - mongo_data:/data/db
+      - mongo_config:/data/configdb
     restart: unless-stopped
     ports:
       - 27017:27017
@@ -34,4 +35,5 @@ networks:
 
 volumes:
   mongo_data:
+  mongo_config:
   mongoclient_data:

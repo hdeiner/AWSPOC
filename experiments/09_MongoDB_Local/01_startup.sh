@@ -6,6 +6,7 @@ bash -c 'cat << "EOF" > .script
 #!/usr/bin/env bash
 figlet -w 240 -f small "Startup MongoDB Locally"
 docker volume rm 09_mongodb_local_mongo_data
+docker volume rm 09_mongodb_local_mongo_config
 docker volume rm 09_mongodb_local_mongoclient_data
 docker-compose -f docker-compose.yml up -d
 

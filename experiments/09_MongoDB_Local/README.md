@@ -406,7 +406,7 @@ head -n `echo "$ROWS+1" | bc` /tmp/PGYR19_P063020/OP_DTL_GNRL_PGYR2019_P06302020
 docker cp /tmp/PGYR19_P063020/OP_DTL_GNRL_PGYR2019_P06302020.subset.csv mongodb_container:/tmp/OP_DTL_GNRL_PGYR2019_P06302020.subset.csv
 docker exec mongodb_container bash -c "mongoimport --type csv -d PGYR19_P063020 -c PI --headerline /tmp/OP_DTL_GNRL_PGYR2019_P06302020.subset.csv"
 ```
-Ans 02_populate_large_data_top_10_earning_phyicians.txt looks like:
+And 02_populate_large_data_top_10_earning_phyicians.txt looks like:
 ```jshelllanguage
 use PGYR19_P063020
     db.getCollection('PI').aggregate( [

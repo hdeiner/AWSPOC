@@ -1,0 +1,32 @@
+use PGYR19_P063020
+db.getCollection('PI').aggregate( [
+    {
+        $match:
+            {
+                "Physician_First_Name": {"$exists": true, "$ne": ""},
+                "Physician_Last_Name": {"$exists": true, "$ne": null},
+            },
+    },
+    {
+        $group:
+            {
+                _id: ["$Physician_First_Name", "$Physician_Last_Name"],
+                Total_Amount_of_Payment_USDollars: {$sum: '$Total_Amount_of_Payment_USDollars'},
+                Total_Number_of_Payments: {$sum: 1}
+            },
+    },
+    {
+        $sort:
+            {
+                Total_Amount_of_Payment_USDollars: -1
+            }
+    },
+    {
+        $limit: 10
+    }
+    ],
+        {
+            allowDiskUse: true
+        }
+    )
+exit
