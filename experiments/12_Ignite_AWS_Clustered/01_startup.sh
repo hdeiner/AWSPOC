@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+cp terraform.aws_instance.tf.original terraform.aws_instance.tf
+
 ../../startExperiment.sh
 
 bash -c 'cat << "EOF" > .script

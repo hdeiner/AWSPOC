@@ -43,7 +43,7 @@ bash -c 'cat << "EOF" > .script
 #!/usr/bin/env bash
 figlet -w 240 -f small "Get Data from S3 Bucket"
 ../../data/transferPGYR19_P063020_from_s3_and_decrypt.sh
-python3 ../../create_insert_data_PGYR2019_P06302020.py -s $ROWS -i /tmp/PGYR19_P063020/OP_DTL_GNRL_PGYR2019_P06302020.csv -o /tmp/insert_data
+python3 ../../create_csv_data_PGYR2019_P06302020.py -s $ROWS -i /tmp/PGYR19_P063020/OP_DTL_GNRL_PGYR2019_P06302020.csv -o /tmp/PGYR2019_P06302020.csv
 EOF'
 chmod +x .script
 command time -v ./.script 2> .results
@@ -83,7 +83,7 @@ echo "GROUP BY physician_first_name, physician_last_name " >> .command.sql
 echo "ORDER BY SUM(total_amount_of_payment_usdollars) DESC " >> .command.sql
 echo "FETCH FIRST 10 ROWS ONLY; " >> .command.sql
 docker cp .command.sql ignite_container:/tmp/command.sql
-docker exec ignite_container bash -c "./apache-ignite/bin/sqlline.sh -u jdbc:ignite:thin://127.0.0.1 -f /tmp/command.sql"
+docker exec ignite_container bash -c "./apache-ignite/bin/sqlline.sh --color=true -u jdbc:ignite:thin://127.0.0.1 -f /tmp/command.sql"
 EOF'
 chmod +x .script
 command time -v ./.script 2> .results

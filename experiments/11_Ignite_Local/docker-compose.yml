@@ -6,7 +6,7 @@ services:
     image: apacheignite/ignite
     container_name: ignite_container
     environment:
-      - JVM_OPTS=-server -Xms8g -Xmx8g -XX:+AlwaysPreTouch -XX:+UseG1GC -XX:+ScavengeBeforeFullGC -XX:+DisableExplicitGC
+      - JVM_OPTS=-server -Xms5g -Xmx5g -XX:+AlwaysPreTouch -XX:+UseG1GC -XX:+ScavengeBeforeFullGC -XX:+DisableExplicitGC
     volumes:
       - ignite_data:/opt/ignite/
     restart: unless-stopped
