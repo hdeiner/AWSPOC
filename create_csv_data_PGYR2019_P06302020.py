@@ -2,7 +2,6 @@ import argparse
 import os
 import csv
 import re
-from subprocess import check_output
 from subprocess import call
 
 def get_args():
@@ -38,10 +37,10 @@ def get_args():
     return args
 
 def create_insert_data(filesize, filenamein, filenameout):
-
     call("rm -rf "+filenameout, shell=True)
 
     csv_file_out = open(filenameout, mode='w')
+
     with open(filenamein) as csv_file_in:
         csv_reader = csv.reader(csv_file_in, delimiter=',')
         line_count = 0
@@ -270,7 +269,7 @@ def create_insert_data(filesize, filenamein, filenameout):
 
                 row[74] = re.sub(r'^(.*)(/)(.*)(/)(.*$)', r'\5-\1-\3', row[74]) #  Payment_Publication_Date
 
-                outrow = "INSERT INTO PGYR2019_P06302020 VALUES("
+                outrow = ""
                 for i in range(75):
                     if (i in [3,5,30,32,45,73]):  #numbers
                         if (len(row[i]) == 0):
@@ -278,12 +277,11 @@ def create_insert_data(filesize, filenamein, filenameout):
                         else:
                             outrow += row[i] + ","
                     elif (i in [31,74]):    #dates
-                        outrow += "'" + row[i] + "'" + ","
+                        outrow += row[i] + ","
                     else:
-                        outrow += "'" + row[i] + "'" + ","
-                outrow = outrow[:-1]
-                outrow += ");\n"
-                csv_file_out.write(outrow)
+                        outrow += row[i] + ","
+
+                csv_file_out.write(outrow[:-1]+"\n")
 
             if (line_count < filesize):
                 line_count += 1
@@ -310,9 +308,6 @@ def main():
 
     quit()
 
-
-
-# Press the green button in the gutter to run the script.
 if __name__ == '__main__':
     main()
 

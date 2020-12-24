@@ -331,7 +331,7 @@ bash -c 'cat << "EOF" > .script
 #!/usr/bin/env bash
 figlet -w 240 -f small "Get Data from S3 Bucket"
 ../../data/transferPGYR19_P063020_from_s3_and_decrypt.sh
-python3 ../../create_insert_data_PGYR2019_P06302020.py -s $ROWS -i /tmp/PGYR19_P063020/OP_DTL_GNRL_PGYR2019_P06302020.csv -o /tmp/insert_data
+python3 ../../create_csv_data_PGYR2019_P06302020.py -s $ROWS -i /tmp/PGYR19_P063020/OP_DTL_GNRL_PGYR2019_P06302020.csv -o /tmp/PGYR2019_P06302020.csv
 EOF'
 chmod +x .script
 command time -v ./.script 2> .results
@@ -371,7 +371,7 @@ echo "GROUP BY physician_first_name, physician_last_name " >> .command.sql
 echo "ORDER BY SUM(total_amount_of_payment_usdollars) DESC " >> .command.sql
 echo "FETCH FIRST 10 ROWS ONLY; " >> .command.sql
 docker cp .command.sql ignite_container:/tmp/command.sql
-docker exec ignite_container bash -c "./apache-ignite/bin/sqlline.sh -u jdbc:ignite:thin://127.0.0.1 -f /tmp/command.sql"
+docker exec ignite_container bash -c "./apache-ignite/bin/sqlline.sh --color=true -u jdbc:ignite:thin://127.0.0.1 -f /tmp/command.sql"
 EOF'
 chmod +x .script
 command time -v ./.script 2> .results
@@ -381,13 +381,12 @@ experiment=$(../../getExperimentNumber.sh)
 ../../putExperimentalResults.sh
 rm -rf .script .sql .results .command.sql *.csv /tmp/PGYR19_P063020
 ```
-As you can see, there are two helper scripts to actually do the data load.  The first is a Python progrsm called create_insert_data_PGYR2019_P06302020.py, which takes the raw "Complete 2019 Program Year Open Payments Dataset" and creates a script that manufactures SQL INSERT statements to load the data.  Apache Ignite has a CSV Bulk Loader, but it does not work with quoted data CSV files yet.  As such, we will incur a penalty in the data load timings, both to run the helper program, and then to insert the data one row at a time.  The code look like this:
+As you can see, there are two helper scripts to actually do the data load.  The first is a Python program called create_csv_data_PGYR2019_P06302020.py, which takes the raw "Complete 2019 Program Year Open Payments Dataset" and creates a csv file that Ignite can actually use to load the data.  Apache Ignite has a CSV Bulk Loader, but it does not work with quoted data CSV files yet.  As such, we will incur a penalty in the data load timings, as we have to run this run the helper program, before we can actually load the data.  The code look like this:
 ```python
 import argparse
 import os
 import csv
 import re
-from subprocess import check_output
 from subprocess import call
 
 def get_args():
@@ -423,10 +422,10 @@ def get_args():
     return args
 
 def create_insert_data(filesize, filenamein, filenameout):
-
     call("rm -rf "+filenameout, shell=True)
 
     csv_file_out = open(filenameout, mode='w')
+
     with open(filenamein) as csv_file_in:
         csv_reader = csv.reader(csv_file_in, delimiter=',')
         line_count = 0
@@ -655,7 +654,7 @@ def create_insert_data(filesize, filenamein, filenameout):
 
                 row[74] = re.sub(r'^(.*)(/)(.*)(/)(.*$)', r'\5-\1-\3', row[74]) #  Payment_Publication_Date
 
-                outrow = "INSERT INTO PGYR2019_P06302020 VALUES("
+                outrow = ""
                 for i in range(75):
                     if (i in [3,5,30,32,45,73]):  #numbers
                         if (len(row[i]) == 0):
@@ -663,12 +662,11 @@ def create_insert_data(filesize, filenamein, filenameout):
                         else:
                             outrow += row[i] + ","
                     elif (i in [31,74]):    #dates
-                        outrow += "'" + row[i] + "'" + ","
+                        outrow += row[i] + ","
                     else:
-                        outrow += "'" + row[i] + "'" + ","
-                outrow = outrow[:-1]
-                outrow += ");\n"
-                csv_file_out.write(outrow)
+                        outrow += row[i] + ","
+
+                csv_file_out.write(outrow[:-1]+"\n")
 
             if (line_count < filesize):
                 line_count += 1
@@ -695,9 +693,6 @@ def main():
 
     quit()
 
-
-
-# Press the green button in the gutter to run the script.
 if __name__ == '__main__':
     main()
 ```
@@ -708,8 +703,17 @@ The other helper file is called 02_populate_large_data_load_data.sh.  For this e
 ROWS=$1
 
 figlet -w 240 -f small "Populate Ignite Data - Large Data - $ROWS rows"
-docker cp /tmp/insert_data ignite_container:/tmp/import.command
-docker exec ignite_container bash -c "./apache-ignite/bin/sqlline.sh -u jdbc:ignite:thin://127.0.0.1 -f /tmp/import.command"
+
+sed -n 1,1p /tmp/PGYR19_P063020/OP_DTL_GNRL_PGYR2019_P06302020.csv > .command
+sed --in-place --regexp-extended 's/Applicable_Manufacturer_or_Applicable_GPO_Making_Payment_Country/Applicable_Manufacturer_or_Applicable_GPO_Making_Payment_Countr/g' .command
+sed --in-place --regexp-extended 's/Name_of_Third_Party_Entity_Receiving_Payment_or_Transfer_of_Value/Name_of_Third_Party_Entity_Receiving_Payment_or_Transfer_of_Val/g' .command
+
+sed --in-place '1s/^/COPY FROM '"'"'\/tmp\/PGYR2019_P06302020.csv'"'"' INTO PGYR2019_P06302020(/' .command
+echo ") FORMAT CSV; " >> .command
+
+./apache-ignite-2.9.0-bin/bin/sqlline.sh -u jdbc:ignite:thin://127.0.0.1 -f .command
+
+rm .command
 ```
 
 It uses the following schema, althout it does not use Liquibase to establish the database.
