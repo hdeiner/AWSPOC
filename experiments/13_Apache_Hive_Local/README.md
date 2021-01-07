@@ -22,6 +22,16 @@
 >
 > https://en.wikipedia.org/wiki/Apache_Hive
 
+As a super quick overview, here are a few architecural diagrams.
+
+An overview of Hadoop components:
+![HDFS Architecture](README_assets/HDFS Architecture.png)
+
+How Hive interacts with Hadoop:
+![Overview of Hive Hadoop Architecture](README_assets/Overview of Hive Hadoop Architecture.png)
+
+What we are implementing in this experiment:
+![Hive Docker Compose Architecture](README_assets/Hive Docker Compose Architecture.png)
 
 #### Execution
 
