@@ -58,6 +58,36 @@ resource "aws_instance" "ec2_instance_hdfs_datanode" {
       host = self.public_dns
       private_key = file("~/.ssh/id_rsa")
     }
+    source      = "mapred-site.xml"
+    destination = "/tmp/mapred-site.xml"
+  }
+  provisioner "file" {
+    connection {
+      type = "ssh"
+      user = "ubuntu"
+      host = self.public_dns
+      private_key = file("~/.ssh/id_rsa")
+    }
+    source      = "capacity-scheduler.xml"
+    destination = "/tmp/capacity-scheduler.xml"
+  }
+  provisioner "file" {
+    connection {
+      type = "ssh"
+      user = "ubuntu"
+      host = self.public_dns
+      private_key = file("~/.ssh/id_rsa")
+    }
+    source      = "yarn-site.xml"
+    destination = "/tmp/yarn-site.xml"
+  }
+  provisioner "file" {
+    connection {
+      type = "ssh"
+      user = "ubuntu"
+      host = self.public_dns
+      private_key = file("~/.ssh/id_rsa")
+    }
     source      = "provision.hdfs_base.sh"
     destination = "/tmp/provision.hdfs_base.sh"
   }

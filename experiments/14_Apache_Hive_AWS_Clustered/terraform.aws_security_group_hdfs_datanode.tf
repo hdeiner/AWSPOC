@@ -268,10 +268,24 @@ resource "aws_security_group" "hive_hdfs_datanode" {
     cidr_blocks = ["0.0.0.0/0"]
   }
   egress {
-    description = "wide open"
+    description = "tcp wide open below 53"
     from_port = 0
-    to_port = 0
-    protocol = "-1"
+    to_port = 52
+    protocol = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+  egress {
+    description = "tcp wide open above 53"
+    from_port = 54
+    to_port = 65353
+    protocol = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+  egress {
+    description = "DNS UDP on 53"
+    from_port = 53
+    to_port = 53
+    protocol = "udp"
     cidr_blocks = ["0.0.0.0/0"]
   }
   tags = {

@@ -5,7 +5,7 @@ sudo apt-get update -y -qq >> provision.log
 sudo apt-get install -y -qq figlet >> provision.log
 
 figlet -w 240 -f small "Install Prerequisites"
-sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends openjdk-8-jdk net-tools curl netcat gnupg libsnappy-dev awscli jq moreutils >> provision.log
+sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends openjdk-8-jdk net-tools curl netcat gnupg libsnappy-dev awscli jq moreutils xmlstarlet libxml2-utils >> provision.log
 sudo rm -rf /var/lib/apt/lists/*
 export JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64/
 
@@ -21,19 +21,19 @@ sudo systemctl restart ssh.service
 sudo systemctl restart ssh
 
 export INSTANCE_DNS_NAME=$(curl http://169.254.169.254/latest/meta-data/public-hostname)
-aws s3 cp ~/.ssh/id_rsa s3://hdfs-tmp/${INSTANCE_DNS_NAME}.id_rsa
-aws s3 cp ~/.ssh/id_rsa.pub s3://hdfs-tmp/${INSTANCE_DNS_NAME}.id_rsa.pub
+aws s3 cp ~/.ssh/id_rsa s3://hdfs-tmp/$INSTANCE_DNS_NAME.id_rsa
+aws s3 cp ~/.ssh/id_rsa.pub s3://hdfs-tmp/$INSTANCE_DNS_NAME.id_rsa.pub
 
 figlet -w 240 -f small "Set CLUSTER_NAME"
 export INSTANCE_ID=$(curl http://169.254.169.254/latest/meta-data/instance-id)
 export CLUSTER_NAME=$(aws ec2 describe-instances --region=us-east-1 --instance-id=$INSTANCE_ID --query 'Reservations[].Instances[].Tags[?Key==`Environment`].Value' --output text)
 
-figlet -w 240 -f small "Install Hadoop"
+export HADOOP_VERSION=3.3.0
+figlet -w 240 -f small "Install Hadoop $HADOOP_VERSION"
 curl -sO https://dist.apache.org/repos/dist/release/hadoop/common/KEYS > /dev/null
 gpg --quiet --import KEYS >> provision.log
-export HADOOP_VERSION=3.2.1
-export HADOOP_URL=https://www.apache.org/dist/hadoop/common/hadoop-$HADOOP_VERSION/hadoop-$HADOOP_VERSION.tar.gz
 
+export HADOOP_URL=https://www.apache.org/dist/hadoop/common/hadoop-$HADOOP_VERSION/hadoop-$HADOOP_VERSION.tar.gz
 curl -sfSL "$HADOOP_URL" -o /tmp/hadoop.tar.gz > /dev/null
 curl -sfSL "$HADOOP_URL.asc" -o /tmp/hadoop.tar.gz.asc > /dev/null
 gpg --quiet --verify /tmp/hadoop.tar.gz.asc
@@ -100,17 +100,20 @@ do
   if [[ ${namenode:0:1} != "[" ]]
   then
       namenode_dns=$(echo $line | sed -r 's/^.*"HDFS Namenode Instance ([0-9]+)".*"([a-z0-9\.\-]+)".*$/\2/')
+#      aws s3api delete-object --bucket hdfs-tmp --key $namenode_dns.id_rsa
+#      aws s3api delete-object --bucket hdfs-tmp --key $namenode_dns.id_rsa.pub
   fi
   datanode=$(echo $line | sed -r 's/^.*"HDFS Datanode Instance ([0-9]+)".*"([a-z0-9\.\-]+)".*$/\1/')
   if [[ ${datanode:0:1} != "[" ]]
   then
       let datanode_count=datanode_count+1
+      datanode_dns=$(echo $line | sed -r 's/^.*"HDFS Datanode Instance ([0-9]+)".*"([a-z0-9\.\-]+)".*$/\2/')
+#      aws s3api delete-object --bucket hdfs-tmp --key $datanode_dns.id_rsa
+#      aws s3api delete-object --bucket hdfs-tmp --key $datanode_dns.id_rsa.pub
   fi
 done < "HDFS_INSTANCES"
 
-echo "<?xml version=\"1.0"\" encoding=\"UTF-8\""?>" | sudo -- sponge  /etc/hadoop/core-site.xml
-echo "<?xml-stylesheet type="text/xsl" href="configuration.xsl"?>" | sudo -- sponge -a /etc/hadoop/core-site.xml
-echo "<configuration>" | sudo -- sponge -a /etc/hadoop/core-site.xml
+echo "<configuration>" | sudo -- sponge  /etc/hadoop/core-site.xml
 echo "  <property>" | sudo -- sponge -a /etc/hadoop/core-site.xml
 echo "    <name>hadoop.tmp.dir</name>" | sudo -- sponge -a /etc/hadoop/core-site.xml
 echo "    <value>file:///hadoop-tmp</value>" | sudo -- sponge -a /etc/hadoop/core-site.xml
@@ -121,9 +124,7 @@ echo "    <value>hdfs://$namenode_dns:9000</value>" | sudo -- sponge -a /etc/had
 echo "  </property>" | sudo -- sponge -a /etc/hadoop/core-site.xml
 echo "</configuration>" | sudo -- sponge -a /etc/hadoop/core-site.xml
 
-echo "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" | sudo -- sponge /etc/hadoop/hdfs-site.xml
-echo "<?xml-stylesheet type="text/xsl" href="configuration.xsl"?>" | sudo -- sponge -a /etc/hadoop/hdfs-site.xml
-echo "<configuration>" | sudo -- sponge -a /etc/hadoop/hdfs-site.xml
+echo "<configuration>" | sudo -- sponge /etc/hadoop/hdfs-site.xml
 echo "  <property>" | sudo -- sponge -a /etc/hadoop/hdfs-site.xml
 echo "    <name>dfs.replication</name>" | sudo -- sponge -a /etc/hadoop/hdfs-site.xml
 echo "    <value>$datanode_count</value>" | sudo -- sponge -a /etc/hadoop/hdfs-site.xml
@@ -147,6 +148,10 @@ do
       echo $datanode | sudo -- sponge -a /etc/hadoop/workers
   fi
 done < "HDFS_INSTANCES"
+
+sudo cp /tmp/capacity-scheduler.xml /etc/hadoop/capacity-scheduler.xml
+sudo cp /tmp/mapred-site.xml /etc/hadoop/mapred-site.xml
+sudo cp /tmp/yarn-site.xml /etc/hadoop/yarn-site.xml
 
 figlet -w 240 -f small "Update Instance Status Tag to provisioned"
 aws ec2 create-tags --region us-east-1 --resources $INSTANCE_ID --tags Key=Status,Value=provisioned

@@ -172,8 +172,10 @@ resource "aws_security_group" "hive_hdfs_namenode" {
   ingress {
     description = "yarn.resourcemanager.resource-tracker.address"
     protocol = "tcp"
-    from_port = 8031
-    to_port = 8031
+    #    from_port = 8031
+    #    to_port = 8031
+    from_port = 8025
+    to_port = 8025
     cidr_blocks = ["0.0.0.0/0"]
   }
   ingress {
@@ -268,10 +270,17 @@ resource "aws_security_group" "hive_hdfs_namenode" {
     cidr_blocks = ["0.0.0.0/0"]
   }
   egress {
-    description = "wide open"
+    description = "tcp wide open below 53"
     from_port = 0
-    to_port = 0
-    protocol = "-1"
+    to_port = 52
+    protocol = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+  egress {
+    description = "tcp wide open above 53"
+    from_port = 54
+    to_port = 65353
+    protocol = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
   tags = {

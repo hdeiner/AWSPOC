@@ -14,10 +14,11 @@ do
     then
       node_status=$(aws ec2 describe-instances --region=us-east-1 | jq '.Reservations[].Instances[] | select(.PublicDnsName == "'$node'") | (.Tags[]|select(.Key=="Status")|.Value)')
       node_status=$(echo $node_status | sed 's/^"\(.*\)"$/\1/')
-      echo "Status of "$node" is "$node_status
+      echo "Datanode asks status of "$node" for not provisioning so it can ssh to it and finds it "$node_status
       sleep 5
     fi
     echo "Adding "$node" to ssh authorized_keys for "$INSTANCE_DNS_NAME
+    aws s3api wait object-exists --bucket hdfs-tmp --key $node.id_rsa.pub
     aws s3 cp s3://hdfs-tmp/$node.id_rsa.pub /tmp/id_rsa.pub
     chmod 777 ~/.ssh/authorized_keys
     cat /tmp/id_rsa.pub >> ~/.ssh/authorized_keys

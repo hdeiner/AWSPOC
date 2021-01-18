@@ -85,5 +85,67 @@ resource "aws_instance" "ec2_instance_hdfs_namenode" {
       "/tmp/run.hdfs_namenode.sh",
     ]
   }
+  provisioner "file" {
+    connection {
+      type = "ssh"
+      user = "ubuntu"
+      host = self.public_dns
+      private_key = file("~/.ssh/id_rsa")
+    }
+    source      = "mapred-site.xml"
+    destination = "/tmp/mapred-site.xml"
+  }
+  provisioner "file" {
+    connection {
+      type = "ssh"
+      user = "ubuntu"
+      host = self.public_dns
+      private_key = file("~/.ssh/id_rsa")
+    }
+    source      = "capacity-scheduler.xml"
+    destination = "/tmp/capacity-scheduler.xml"
+  }
+  provisioner "file" {
+    connection {
+      type = "ssh"
+      user = "ubuntu"
+      host = self.public_dns
+      private_key = file("~/.ssh/id_rsa")
+    }
+    source      = "yarn-site.xml"
+    destination = "/tmp/yarn-site.xml"
+  }
+  provisioner "file" {
+    connection {
+      type = "ssh"
+      user = "ubuntu"
+      host = self.public_dns
+      private_key = file("~/.ssh/id_rsa")
+    }
+    source      = "WordCount.java"
+    destination = "/tmp/WordCount.java"
+  }
+  provisioner "file" {
+    connection {
+      type = "ssh"
+      user = "ubuntu"
+      host = self.public_dns
+      private_key = file("~/.ssh/id_rsa")
+    }
+    source      = "02_test_mapreduce.sh"
+    destination = "/tmp/02_test_mapreduce.sh"
+  }
+  provisioner "remote-exec" {
+    connection {
+      type = "ssh"
+      user = "ubuntu"
+      host = self.public_dns
+      private_key = file("~/.ssh/id_rsa")
+    }
+    inline = [
+      "chmod +x /tmp/02_test_mapreduce.sh",
+      "/tmp/02_test_mapreduce.sh",
+    ]
+  }
 }
 
