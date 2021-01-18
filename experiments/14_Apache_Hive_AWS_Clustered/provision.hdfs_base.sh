@@ -9,6 +9,10 @@ sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends o
 sudo rm -rf /var/lib/apt/lists/*
 export JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64/
 
+figlet -w 240 -f small "Set CLUSTER_NAME"
+export INSTANCE_ID=$(curl http://169.254.169.254/latest/meta-data/instance-id)
+export CLUSTER_NAME=$(aws ec2 describe-instances --region=us-east-1 --instance-id=$INSTANCE_ID --query 'Reservations[].Instances[].Tags[?Key==`Environment`].Value' --output text)
+
 figlet -w 240 -f small "Configure ssh"
 ssh-keygen -t rsa -P '' -f ~/.ssh/id_rsa
 cat ~/.ssh/id_rsa.pub >> ~/.ssh/authorized_keys
@@ -21,12 +25,8 @@ sudo systemctl restart ssh.service
 sudo systemctl restart ssh
 
 export INSTANCE_DNS_NAME=$(curl http://169.254.169.254/latest/meta-data/public-hostname)
-aws s3 cp ~/.ssh/id_rsa s3://hdfs-tmp/$INSTANCE_DNS_NAME.id_rsa
-aws s3 cp ~/.ssh/id_rsa.pub s3://hdfs-tmp/$INSTANCE_DNS_NAME.id_rsa.pub
-
-figlet -w 240 -f small "Set CLUSTER_NAME"
-export INSTANCE_ID=$(curl http://169.254.169.254/latest/meta-data/instance-id)
-export CLUSTER_NAME=$(aws ec2 describe-instances --region=us-east-1 --instance-id=$INSTANCE_ID --query 'Reservations[].Instances[].Tags[?Key==`Environment`].Value' --output text)
+aws s3 cp ~/.ssh/id_rsa s3://hadoop-scratchpad/$CLUSTER_NAME-$INSTANCE_DNS_NAME.id_rsa
+aws s3 cp ~/.ssh/id_rsa.pub s3://hadoop-scratchpad/$CLUSTER_NAME-$INSTANCE_DNS_NAME.id_rsa.pub
 
 export HADOOP_VERSION=3.3.0
 figlet -w 240 -f small "Install Hadoop $HADOOP_VERSION"
@@ -100,16 +100,12 @@ do
   if [[ ${namenode:0:1} != "[" ]]
   then
       namenode_dns=$(echo $line | sed -r 's/^.*"HDFS Namenode Instance ([0-9]+)".*"([a-z0-9\.\-]+)".*$/\2/')
-#      aws s3api delete-object --bucket hdfs-tmp --key $namenode_dns.id_rsa
-#      aws s3api delete-object --bucket hdfs-tmp --key $namenode_dns.id_rsa.pub
   fi
   datanode=$(echo $line | sed -r 's/^.*"HDFS Datanode Instance ([0-9]+)".*"([a-z0-9\.\-]+)".*$/\1/')
   if [[ ${datanode:0:1} != "[" ]]
   then
       let datanode_count=datanode_count+1
       datanode_dns=$(echo $line | sed -r 's/^.*"HDFS Datanode Instance ([0-9]+)".*"([a-z0-9\.\-]+)".*$/\2/')
-#      aws s3api delete-object --bucket hdfs-tmp --key $datanode_dns.id_rsa
-#      aws s3api delete-object --bucket hdfs-tmp --key $datanode_dns.id_rsa.pub
   fi
 done < "HDFS_INSTANCES"
 

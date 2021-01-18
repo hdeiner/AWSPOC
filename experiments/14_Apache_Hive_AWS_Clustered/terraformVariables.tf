@@ -1,7 +1,7 @@
 variable "environment" {
   description = "Name of environment for the cluster"
   type = string
-  default = "HJD1"
+  default = "HJD_ENVIRONMENT"
 }
 variable "status" {
   description = "Status of the instance"

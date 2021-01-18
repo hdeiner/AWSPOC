@@ -18,8 +18,8 @@ do
       sleep 5
     fi
     echo "Adding "$node" to ssh authorized_keys for "$INSTANCE_DNS_NAME
-    aws s3api wait object-exists --bucket hdfs-tmp --key $node.id_rsa.pub
-    aws s3 cp s3://hdfs-tmp/$node.id_rsa.pub /tmp/id_rsa.pub
+    aws s3api wait object-exists --bucket hadoop-scratchpad --key $CLUSTER_NAME-$node.id_rsa.pub
+    aws s3 cp s3://hadoop-scratchpad/$CLUSTER_NAME-$node.id_rsa.pub /tmp/id_rsa.pub
     chmod 777 ~/.ssh/authorized_keys
     cat /tmp/id_rsa.pub >> ~/.ssh/authorized_keys
     chmod 755 ~/.ssh/authorized_keys
