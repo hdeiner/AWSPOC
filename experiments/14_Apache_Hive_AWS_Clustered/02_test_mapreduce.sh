@@ -1,36 +1,9 @@
 #!/usr/bin/env bash
 
-figlet -w 200 -f small "Test Map/Reduce"
-figlet -w 200 -f slant "This is run on AWS ONLY during startup"
+echo "$(tput bold)$(tput setaf 6)Test Map/Reduce$(tput sgr 0)"
+echo "$(tput bold)$(tput smul)$(tput setaf 6)This is run on AWS ONLY during startup$(tput sgr 0)"
 
 source /home/ubuntu/.bash_profile
-
-figlet -w 240 -f small "Start YARN ResourceManager"
-start-yarn.sh  # resourcemanager starts correctly for this script, but dies when terraform is done
-#yarn resourcemanager 2> /dev/null&
-echo "Wait For YARN ResourceManager To Start"
-while true ; do
-  result=$(jps | grep -cE "^[0-9 ]*ResourceManager$")
-  if [ $result == 1 ] ; then
-#    sleep 10 # give it just a bit more for safety
-    echo "YARN ResourceManager has started"
-    break
-  fi
-  sleep 5
-done
-
-figlet -w 240 -f small "Start Job History Server"
-mapred --daemon start historyserver
-echo "Wait For Job History Server To Start"
-while true ; do
-  result=$(jps | grep -cE "^[0-9 ]*JobHistoryServer")
-  if [ $result == 1 ] ; then
-#    sleep 10 # give it just a bit more for safety
-    echo "Job History Server has started"
-    break
-  fi
-  sleep 5
-done
 
 cd /tmp
 
@@ -50,3 +23,32 @@ hdfs dfs -put file03 /usr/joe/wordcount/input/file03
 hadoop jar wc.jar WordCount /usr/joe/wordcount/input /usr/joe/wordcount/output 2> /dev/null
 
 hdfs dfs -cat /usr/joe/wordcount/output/part-r-00000
+hdfs dfs -copyToLocal /usr/joe/wordcount/output/part-r-00000 mr.txt
+
+sed --in-place 's/\t/ /g' mr.txt
+
+echo "Rose 1" > mr.answer
+echo "a 1" >> mr.answer
+echo "an 1" >> mr.answer
+echo "arrow 1" >> mr.answer
+echo "banana 1" >> mr.answer
+echo "flies 2" >> mr.answer
+echo "fruit 1" >> mr.answer
+echo "her 1" >> mr.answer
+echo "like 2" >> mr.answer
+echo "of 1" >> mr.answer
+echo "on 1" >> mr.answer
+echo "put 1" >> mr.answer
+echo "roes 1" >> mr.answer
+echo "rose 2" >> mr.answer
+echo "roses 1" >> mr.answer
+echo "rows 1" >> mr.answer
+echo "time 1" >> mr.answer
+echo "to 1" >> mr.answer
+
+result=$(diff mr.txt mr.answer | wc -l)
+if [ $result == 0 ] ; then
+  echo "$(tput bold)$(tput setaf 2)Test Map/Reduce SUCCESS$(tput sgr 0)"
+else
+  echo "$(tput bold)$(tput setaf 2)Test Map/Reduce FAILURE$(tput sgr 0)"
+fi

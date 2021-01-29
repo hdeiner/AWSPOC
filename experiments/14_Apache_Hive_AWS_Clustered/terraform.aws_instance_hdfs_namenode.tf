@@ -1,6 +1,7 @@
-resource "aws_instance" "ec2_instance_hdfs_namenode" {
+resource "aws_instance" "ec2_instance_hive_hdfs_namenode" {
   ami = "ami-0ac80df6eff0e70b5"  #  Ubuntu 18.04 LTS - Bionic - hvm:ebs-ssde  https://cloud-images.ubuntu.com/locator/ec2/
-  instance_type = "m5.large"   # $0.096/hour ; 2 vCPU  ; 10 ECU  ; 8 GiB memory   ; EBS disk              ; EBS Optimized by default
+#  instance_type = "m5.large"   # $0.096/hour ; 2 vCPU  ; 10 ECU  ; 8 GiB memory   ; EBS disk              ; EBS Optimized by default
+  instance_type = "m5.xlarge"   # $0.192/hour ; 4 vCPU  ; 16 ECU  ; 16 GiB memory   ; EBS disk              ; EBS Optimized by default
 #  instance_type = "m5d.metal" # $5.424/hour ; 96 vCPU ; 345 ECU ; 384 GiB memory ; 4 x 900 NVMe SSD disk ; EBS Optimized by default ; max bandwidth 19,000 Mbps ; max throughput 2,375 MB/s ; Max IOPS 80,000
   key_name = aws_key_pair.hive_key_pair.key_name
   ebs_optimized = true
@@ -12,6 +13,7 @@ resource "aws_instance" "ec2_instance_hdfs_namenode" {
     delete_on_termination = true
   }
   count = 1
+#  count = 0
   tags = {
     Name = "HDFS Namenode Instance ${format("%03d", count.index)}"
     Environment = var.environment
@@ -71,6 +73,66 @@ resource "aws_instance" "ec2_instance_hdfs_namenode" {
     source      = "run.hdfs_namenode.sh"
     destination = "/tmp/run.hdfs_namenode.sh"
   }
+  provisioner "file" {
+    connection {
+      type = "ssh"
+      user = "ubuntu"
+      host = self.public_dns
+      private_key = file("~/.ssh/id_rsa")
+    }
+    source      = "config/core-site.xml"
+    destination = "/tmp/core-site.xml"
+  }
+  provisioner "file" {
+    connection {
+      type = "ssh"
+      user = "ubuntu"
+      host = self.public_dns
+      private_key = file("~/.ssh/id_rsa")
+    }
+    source      = "config/hdfs-site.xml"
+    destination = "/tmp/hdfs-site.xml"
+  }
+  provisioner "file" {
+    connection {
+      type = "ssh"
+      user = "ubuntu"
+      host = self.public_dns
+      private_key = file("~/.ssh/id_rsa")
+    }
+    source      = "config/mapred-site.xml"
+    destination = "/tmp/mapred-site.xml"
+  }
+  provisioner "file" {
+    connection {
+      type = "ssh"
+      user = "ubuntu"
+      host = self.public_dns
+      private_key = file("~/.ssh/id_rsa")
+    }
+    source      = "config/mapred-queues.xml"
+    destination = "/tmp/mapred-queues.xml"
+  }
+  provisioner "file" {
+    connection {
+      type = "ssh"
+      user = "ubuntu"
+      host = self.public_dns
+      private_key = file("~/.ssh/id_rsa")
+    }
+    source      = "config/capacity-scheduler.xml"
+    destination = "/tmp/capacity-scheduler.xml"
+  }
+  provisioner "file" {
+    connection {
+      type = "ssh"
+      user = "ubuntu"
+      host = self.public_dns
+      private_key = file("~/.ssh/id_rsa")
+    }
+    source      = "config/yarn-site.xml"
+    destination = "/tmp/yarn-site.xml"
+  }
   provisioner "remote-exec" {
     connection {
       type = "ssh"
@@ -84,36 +146,6 @@ resource "aws_instance" "ec2_instance_hdfs_namenode" {
       "/tmp/provision.hdfs_base.sh",
       "/tmp/run.hdfs_namenode.sh",
     ]
-  }
-  provisioner "file" {
-    connection {
-      type = "ssh"
-      user = "ubuntu"
-      host = self.public_dns
-      private_key = file("~/.ssh/id_rsa")
-    }
-    source      = "mapred-site.xml"
-    destination = "/tmp/mapred-site.xml"
-  }
-  provisioner "file" {
-    connection {
-      type = "ssh"
-      user = "ubuntu"
-      host = self.public_dns
-      private_key = file("~/.ssh/id_rsa")
-    }
-    source      = "capacity-scheduler.xml"
-    destination = "/tmp/capacity-scheduler.xml"
-  }
-  provisioner "file" {
-    connection {
-      type = "ssh"
-      user = "ubuntu"
-      host = self.public_dns
-      private_key = file("~/.ssh/id_rsa")
-    }
-    source      = "yarn-site.xml"
-    destination = "/tmp/yarn-site.xml"
   }
   provisioner "file" {
     connection {

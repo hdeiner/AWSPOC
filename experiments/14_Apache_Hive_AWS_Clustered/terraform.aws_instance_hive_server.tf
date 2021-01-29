@@ -1,19 +1,20 @@
-resource "aws_instance" "ec2_instance_hive_hdfs_datanode" {
+resource "aws_instance" "ec2_instance_hive_server" {
   ami = "ami-0ac80df6eff0e70b5"  #  Ubuntu 18.04 LTS - Bionic - hvm:ebs-ssde  https://cloud-images.ubuntu.com/locator/ec2/
-  instance_type = "m5.large"   # $0.096/hour ; 2 vCPU  ; 10 ECU  ; 8 GiB memory   ; EBS disk              ; EBS Optimized by default
+#  instance_type = "m5.large"   # $0.096/hour ; 2 vCPU  ; 10 ECU  ; 8 GiB memory   ; EBS disk              ; EBS Optimized by default
+  instance_type = "m5.xlarge"   # $0.192/hour ; 4 vCPU  ; 16 ECU  ; 16 GiB memory   ; EBS disk              ; EBS Optimized by default
 #  instance_type = "m5d.metal" # $5.424/hour ; 96 vCPU ; 345 ECU ; 384 GiB memory ; 4 x 900 NVMe SSD disk ; EBS Optimized by default ; max bandwidth 19,000 Mbps ; max throughput 2,375 MB/s ; Max IOPS 80,000
   key_name = aws_key_pair.hive_key_pair.key_name
   ebs_optimized = true
-  security_groups = [aws_security_group.hive_hdfs_datanode.name]
+  security_groups = [aws_security_group.hive_metastore.name]
   root_block_device {
     volume_type           = "io1"
     volume_size           = 30 # GB
     iops                  = 500
     delete_on_termination = true
   }
-  count = 2
+  count = 1
   tags = {
-    Name = "HDFS Datanode Instance ${format("%03d", count.index)}"
+    Name = "Hive Server Instance ${format("%03d", count.index)}"
     Environment = var.environment
     Status =var.status
   }
@@ -118,6 +119,16 @@ resource "aws_instance" "ec2_instance_hive_hdfs_datanode" {
       host = self.public_dns
       private_key = file("~/.ssh/id_rsa")
     }
+    source      = "config/hive-site.xml"
+    destination = "/tmp/hive-site.xml"
+  }
+  provisioner "file" {
+    connection {
+      type = "ssh"
+      user = "ubuntu"
+      host = self.public_dns
+      private_key = file("~/.ssh/id_rsa")
+    }
     source      = "provision.hdfs_base.sh"
     destination = "/tmp/provision.hdfs_base.sh"
   }
@@ -128,8 +139,18 @@ resource "aws_instance" "ec2_instance_hive_hdfs_datanode" {
       host = self.public_dns
       private_key = file("~/.ssh/id_rsa")
     }
-    source      = "run.hdfs_datanode.sh"
-    destination = "/tmp/run.hdfs_datanode.sh"
+    source      = "provision.hive_server.sh"
+    destination = "/tmp/provision.hive_server.sh"
+  }
+  provisioner "file" {
+    connection {
+      type = "ssh"
+      user = "ubuntu"
+      host = self.public_dns
+      private_key = file("~/.ssh/id_rsa")
+    }
+    source      = "run.hive_server.sh"
+    destination = "/tmp/run.hive_server.sh"
   }
   provisioner "remote-exec" {
     connection {
@@ -140,9 +161,63 @@ resource "aws_instance" "ec2_instance_hive_hdfs_datanode" {
     }
     inline = [
       "chmod +x /tmp/provision.hdfs_base.sh",
-      "chmod +x /tmp/run.hdfs_datanode.sh",
+      "chmod +x /tmp/provision.hive_server.sh",
+      "chmod +x /tmp/run.hive_server.sh",
       "/tmp/provision.hdfs_base.sh",
-      "/tmp/run.hdfs_datanode.sh",
+      "/tmp/provision.hive_server.sh",
+      "/tmp/run.hive_server.sh",
+    ]
+  }
+  provisioner "file" {
+    connection {
+      type = "ssh"
+      user = "ubuntu"
+      host = self.public_dns
+      private_key = file("~/.ssh/id_rsa")
+    }
+    source      = "PGYR2019_P06302020.load_data.sql"
+    destination = "/tmp/PGYR2019_P06302020.load_data.sql"
+  }
+  provisioner "file" {
+    connection {
+      type = "ssh"
+      user = "ubuntu"
+      host = self.public_dns
+      private_key = file("~/.ssh/id_rsa")
+    }
+    source      = "PGYR2019_P06302020.schema.sql"
+    destination = "/tmp/PGYR2019_P06302020.schema.sql"
+  }
+  provisioner "file" {
+    connection {
+      type = "ssh"
+      user = "ubuntu"
+      host = self.public_dns
+      private_key = file("~/.ssh/id_rsa")
+    }
+    source      = "../../create_csv_data_PGYR2019_P06302020.py"
+    destination = "/tmp/create_csv_data_PGYR2019_P06302020.py"
+  }
+  provisioner "file" {
+    connection {
+      type = "ssh"
+      user = "ubuntu"
+      host = self.public_dns
+      private_key = file("~/.ssh/id_rsa")
+    }
+    source      = "02_test_hive.sh"
+    destination = "/tmp/02_test_hive.sh"
+  }
+  provisioner "remote-exec" {
+    connection {
+      type = "ssh"
+      user = "ubuntu"
+      host = self.public_dns
+      private_key = file("~/.ssh/id_rsa")
+    }
+    inline = [
+      "chmod +x /tmp/02_test_hive.sh",
+      "/tmp/02_test_hive.sh",
     ]
   }
 }

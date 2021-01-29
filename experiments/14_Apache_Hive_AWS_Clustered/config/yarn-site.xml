@@ -1,15 +1,19 @@
 <configuration>
     <property>
+        <name>yarn.resourcemanager.scheduler.class</name>
+        <value>org.apache.hadoop.yarn.server.resourcemanager.scheduler.capacity.CapacityScheduler</value>
+    </property>
+    <property>
         <name>yarn.nodemanager.resource.memory-mb</name>
-        <value>1536</value>
+        <value>12288</value>
     </property>
     <property>
         <name>yarn.scheduler.maximum-allocation-mb</name>
-        <value>1536</value>
+        <value>12288</value>
     </property>
     <property>
         <name>yarn.scheduler.minimum-allocation-mb</name>
-        <value>128</value>
+        <value>4096</value>
     </property>
     <property>
         <name>yarn.nodemanager.vmem-check-enabled</name>
@@ -21,7 +25,19 @@
     </property>
     <property>
         <name>yarn.resourcemanager.hostname</name>
-        <value>ec2-3-226-74-167.compute-1.amazonaws.com</value>
+        <value>YARNNODE_HOSTNAME</value>
+    </property>
+    <property>
+        <name>yarn.resourcemanager.resource-tracker.address</name>
+        <value>YARNNODE_DNS:8031</value>
+    </property>
+    <property>
+        <name>yarn.resourcemanager.scheduler.address</name>
+        <value>YARNNODE_DNS:8030</value>
+    </property>
+    <property>
+        <name>yarn.resourcemanager.address</name>
+        <value>YARNNODE_DNS:8032</value>
     </property>
     <property>
         <name>yarn.nodemanager.aux-services</name>
